@@ -30,7 +30,7 @@
         </tr>
         <tr>  
             <td><a href="https://shaiwz.com/home"><img src="https://www.warm-flow.com/ggw/shaiwz.jpg" height="80px"/></a></td>
-            <td></td>
+            <td><a href="https://www.oarsai.com"><img src="https://www.oarsai.com/assets/ad-banner.webp" height="80px"/></a></td>
             <td></td>
             <td></td>
         </tr>
