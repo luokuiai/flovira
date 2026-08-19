@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.luokuiai.flovira.ui.config.FloviraUiConfig

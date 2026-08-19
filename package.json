@@ -1,7 +1,19 @@
 {
-  "name": "warm-flow-vue-workspace",
+  "name": "flovira-workspace",
   "private": true,
   "version": "0.0.0",
-  "description": "Warm-Flow 设计器组件库（@dromara/warm-flow-designer）+ 消费示例 的 pnpm 工作区（不含 Maven 模块与 warm-flow-ui）",
-  "packageManager": "pnpm@11.4.0"
+  "description": "Flovira Vue/React 设计器组件库及消费示例的 Bun 工作区",
+  "packageManager": "bun@1.3.4",
+  "workspaces": [
+    "flovira-designer/vue",
+    "flovira-designer/react",
+    "flovira-designer/examples/*"
+  ],
+  "scripts": {
+    "build:vue-designer": "bun run --cwd flovira-designer/vue build:lib",
+    "build:react-designer": "bun run --cwd flovira-designer/react build",
+    "build:demos": "bun run --cwd flovira-designer/examples/vue-element-plus build && bun run --cwd flovira-designer/examples/vue-antdv build && bun run --cwd flovira-designer/examples/vue-naive build && bun run --cwd flovira-designer/examples/react build",
+    "build:designer": "bun run build:vue-designer && bun run build:react-designer",
+    "build": "bun run build:designer && bun run build:demos"
+  }
 }

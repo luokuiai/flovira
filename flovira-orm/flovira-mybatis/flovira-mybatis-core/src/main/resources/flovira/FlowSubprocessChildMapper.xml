@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luokuiai.flovira.orm.mapper.FlowSubprocessChildMapper">
+    <resultMap id="ChildResult" type="com.luokuiai.flovira.orm.entity.FlowSubprocessChild">
+        <id property="id" column="id"/>
+        <result property="runId" column="run_id"/><result property="itemKey" column="item_key"/>
+        <result property="itemLabel" column="item_label"/><result property="childBusinessKey" column="child_business_key"/>
+        <result property="childFlowCode" column="child_flow_code"/><result property="childDefinitionId" column="child_definition_id"/>
+        <result property="childDefinitionVersion" column="child_definition_version"/><result property="childInstanceId" column="child_instance_id"/>
+        <result property="childStatus" column="child_status"/><result property="outcome" column="outcome"/>
+        <result property="startedAt" column="started_at"/><result property="completedAt" column="completed_at"/>
+        <result property="tenantId" column="tenant_id"/><result property="delFlag" column="del_flag"/>
+        <result property="createTime" column="create_time"/><result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/><result property="updateBy" column="update_by"/>
+    </resultMap>
+    <sql id="columns">id,run_id,item_key,item_label,child_business_key,child_flow_code,child_definition_id,
+        child_definition_version,child_instance_id,child_status,outcome,started_at,completed_at,tenant_id,del_flag,
+        create_time,update_time,create_by,update_by</sql>
+    <sql id="tenant"><choose><when test="tenantId != null">tenant_id=#{tenantId}</when><otherwise>tenant_id is null</otherwise></choose></sql>
+    <insert id="insert">insert into flow_subprocess_child (<include refid="columns"/>) values
+        (#{id},#{runId},#{itemKey},#{itemLabel},#{childBusinessKey},#{childFlowCode},#{childDefinitionId},
+        #{childDefinitionVersion},#{childInstanceId},#{childStatus},#{outcome},#{startedAt},#{completedAt},#{tenantId},
+        #{delFlag},#{createTime},#{updateTime},#{createBy},#{updateBy})</insert>
+    <update id="updateById">update flow_subprocess_child set child_instance_id=#{childInstanceId},
+        child_status=#{childStatus},outcome=#{outcome},started_at=#{startedAt},completed_at=#{completedAt},
+        update_time=#{updateTime},update_by=#{updateBy} where id=#{id} and <include refid="tenant"/> and del_flag=#{delFlag}</update>
+    <select id="findByChildInstanceId" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
+        where <include refid="tenant"/> and child_instance_id=#{childInstanceId} and del_flag='0'</select>
+    <select id="findById" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
+        where <include refid="tenant"/> and id=#{childId} and del_flag='0'</select>
+    <select id="findByRunAndItem" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
+        where <include refid="tenant"/> and run_id=#{runId} and item_key=#{itemKey} and del_flag='0'</select>
+    <select id="lockByRunId" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
+        <if test="dataSourceType == 'sqlserver'.toString()">with (updlock,rowlock)</if>
+        where <include refid="tenant"/> and run_id=#{runId} and del_flag='0' order by id
+        <if test="dataSourceType != 'sqlserver'.toString()">for update</if></select>
+    <select id="listByRunId" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
+        where <include refid="tenant"/> and run_id=#{runId} and del_flag='0' order by id</select>
+</mapper>

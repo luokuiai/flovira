@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luokuiai.flovira.orm.mapper.FlowSubprocessRunMapper">
+    <resultMap id="RunResult" type="com.luokuiai.flovira.orm.entity.FlowSubprocessRun">
+        <id property="id" column="id"/>
+        <result property="parentInstanceId" column="parent_instance_id"/>
+        <result property="parentTaskId" column="parent_task_id"/>
+        <result property="parentDefinitionId" column="parent_definition_id"/>
+        <result property="parentNodeCode" column="parent_node_code"/>
+        <result property="childFlowCode" column="child_flow_code"/>
+        <result property="childDefinitionId" column="child_definition_id"/>
+        <result property="childDefinitionVersion" column="child_definition_version"/>
+        <result property="completionPolicy" column="completion_policy"/>
+        <result property="collectionFingerprint" column="collection_fingerprint"/>
+        <result property="expectedCount" column="expected_count"/>
+        <result property="pendingCount" column="pending_count"/>
+        <result property="runningCount" column="running_count"/>
+        <result property="completedCount" column="completed_count"/>
+        <result property="failedCount" column="failed_count"/>
+        <result property="cancelledCount" column="cancelled_count"/>
+        <result property="runStatus" column="run_status"/>
+        <result property="failureCode" column="failure_code"/>
+        <result property="lockVersion" column="lock_version"/>
+        <result property="initializedAt" column="initialized_at"/>
+        <result property="completedAt" column="completed_at"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="delFlag" column="del_flag"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+    </resultMap>
+    <sql id="columns">id,parent_instance_id,parent_task_id,parent_definition_id,parent_node_code,
+        child_flow_code,child_definition_id,child_definition_version,completion_policy,collection_fingerprint,
+        expected_count,pending_count,running_count,completed_count,failed_count,cancelled_count,run_status,
+        failure_code,lock_version,initialized_at,completed_at,tenant_id,del_flag,create_time,update_time,create_by,update_by</sql>
+    <sql id="tenant"><choose><when test="tenantId != null">tenant_id=#{tenantId}</when><otherwise>tenant_id is null</otherwise></choose></sql>
+    <insert id="insert">
+        insert into flow_subprocess_run (<include refid="columns"/>) values
+        (#{id},#{parentInstanceId},#{parentTaskId},#{parentDefinitionId},#{parentNodeCode},#{childFlowCode},
+        #{childDefinitionId},#{childDefinitionVersion},#{completionPolicy},#{collectionFingerprint},#{expectedCount},
+        #{pendingCount},#{runningCount},#{completedCount},#{failedCount},#{cancelledCount},#{runStatus},#{failureCode},
+        #{lockVersion},#{initializedAt},#{completedAt},#{tenantId},#{delFlag},#{createTime},#{updateTime},#{createBy},#{updateBy})
+    </insert>
+    <update id="updateById">
+        update flow_subprocess_run set pending_count=#{pendingCount},running_count=#{runningCount},
+        completed_count=#{completedCount},failed_count=#{failedCount},cancelled_count=#{cancelledCount},
+        run_status=#{runStatus},failure_code=#{failureCode},lock_version=lock_version+1,
+        initialized_at=#{initializedAt},completed_at=#{completedAt},update_time=#{updateTime},update_by=#{updateBy}
+        where id=#{id} and <include refid="tenant"/> and del_flag=#{delFlag}
+    </update>
+    <update id="claimReadyToResume">
+        update flow_subprocess_run set run_status='RESUMING',lock_version=lock_version+1
+        where id=#{runId} and <include refid="tenant"/> and del_flag='0' and run_status='READY_TO_RESUME'
+    </update>
+    <select id="findByParentTask" resultMap="RunResult">
+        select <include refid="columns"/> from flow_subprocess_run
+        where <include refid="tenant"/> and parent_task_id=#{parentTaskId} and del_flag='0'
+    </select>
+    <select id="findById" resultMap="RunResult">
+        select <include refid="columns"/> from flow_subprocess_run
+        where <include refid="tenant"/> and id=#{runId} and del_flag='0'
+    </select>
+    <select id="lockById" resultMap="RunResult">
+        select <include refid="columns"/> from flow_subprocess_run
+        <if test="dataSourceType == 'sqlserver'.toString()">with (updlock,rowlock)</if>
+        where <include refid="tenant"/> and id=#{runId} and del_flag='0'
+        <if test="dataSourceType != 'sqlserver'.toString()">for update</if>
+    </select>
+    <select id="lockActiveByParent" resultMap="RunResult">
+        select <include refid="columns"/> from flow_subprocess_run
+        <if test="dataSourceType == 'sqlserver'.toString()">with (updlock,rowlock)</if>
+        where <include refid="tenant"/> and parent_instance_id=#{parentInstanceId} and del_flag='0'
+        and run_status in ('INITIALIZING','RUNNING','READY_TO_RESUME','RESUMING','FAILED','CANCELLING') order by id
+        <if test="dataSourceType != 'sqlserver'.toString()">for update</if>
+    </select>
+    <select id="findReconcileCandidates" resultMap="RunResult">
+        select <include refid="columns"/> from flow_subprocess_run where del_flag='0'
+        and run_status in ('INITIALIZING','RUNNING','READY_TO_RESUME') order by id
+    </select>
+</mapper>

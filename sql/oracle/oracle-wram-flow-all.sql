@@ -75,7 +75,7 @@ alter table FLOW_NODE
 
 comment on table FLOW_NODE is '流程节点表';
 comment on column FLOW_NODE.ID is '主键id';
-comment on column FLOW_NODE.NODE_TYPE is '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）';
+comment on column FLOW_NODE.NODE_TYPE is '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 comment on column FLOW_NODE.DEFINITION_ID is '对应flow_definition表的id';
 comment on column FLOW_NODE.NODE_CODE is '流程节点编码';
 comment on column FLOW_NODE.NODE_NAME is '流程节点名称';
@@ -124,10 +124,10 @@ alter table FLOW_SKIP
 comment on table FLOW_SKIP is '节点跳转关联表';
 comment on column FLOW_SKIP.ID is '主键id';
 comment on column FLOW_SKIP.DEFINITION_ID is '流程定义id';
-comment on column FLOW_SKIP.NOW_NODE_CODE is '当前流程节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关)';
-comment on column FLOW_SKIP.NOW_NODE_TYPE is '下一个流程节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关)';
+comment on column FLOW_SKIP.NOW_NODE_CODE is '当前流程节点编码';
+comment on column FLOW_SKIP.NOW_NODE_TYPE is '当前流程节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待)';
 comment on column FLOW_SKIP.NEXT_NODE_CODE is '下一个流程节点编码';
-comment on column FLOW_SKIP.NEXT_NODE_TYPE is '下一个流程节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关)';
+comment on column FLOW_SKIP.NEXT_NODE_TYPE is '下一个流程节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待)';
 comment on column FLOW_SKIP.SKIP_NAME is '跳转名称';
 comment on column FLOW_SKIP.SKIP_TYPE is '跳转类型 (PASS审批通过 REJECT退回)';
 comment on column FLOW_SKIP.SKIP_CONDITION is '跳转条件';
@@ -143,6 +143,7 @@ create table FLOW_INSTANCE
 (
     ID              NUMBER       not null,
     DEFINITION_ID   NUMBER       not null,
+    BUSINESS_TYPE   VARCHAR2(64) not null,
     BUSINESS_ID     VARCHAR2(40) not null,
     NODE_TYPE       NUMBER(1),
     NODE_CODE       VARCHAR2(100),
@@ -166,8 +167,9 @@ alter table FLOW_INSTANCE
 comment on table FLOW_INSTANCE is '流程实例表';
 comment on column FLOW_INSTANCE.ID is '主键id';
 comment on column FLOW_INSTANCE.DEFINITION_ID is '对应flow_definition表的id';
+comment on column FLOW_INSTANCE.BUSINESS_TYPE is '业务类型';
 comment on column FLOW_INSTANCE.BUSINESS_ID is '业务id';
-comment on column FLOW_INSTANCE.NODE_TYPE is '开始节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关)';
+comment on column FLOW_INSTANCE.NODE_TYPE is '开始节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待)';
 comment on column FLOW_INSTANCE.NODE_CODE is '开始节点编码';
 comment on column FLOW_INSTANCE.NODE_NAME is '开始节点名称';
 comment on column FLOW_INSTANCE.VARIABLE is '任务变量';
@@ -181,6 +183,7 @@ comment on column FLOW_INSTANCE.UPDATE_BY is '更新人';
 comment on column FLOW_INSTANCE.EXT is '扩展字段，预留给业务系统使用';
 comment on column FLOW_INSTANCE.DEL_FLAG is '删除标志';
 comment on column FLOW_INSTANCE.TENANT_ID is '租户id';
+create index IDX_FLOW_INSTANCE_BUSINESS on FLOW_INSTANCE (TENANT_ID, BUSINESS_TYPE, BUSINESS_ID);
 
 create table FLOW_TASK
 (
@@ -198,7 +201,12 @@ create table FLOW_TASK
     UPDATE_TIME   DATE,
     UPDATE_BY     VARCHAR2(64) default '',
     DEL_FLAG      VARCHAR2(1) default '0',
-    TENANT_ID     VARCHAR2(40)
+    TENANT_ID     VARCHAR2(40),
+    TIMEOUT_AT    DATE,
+    TIMEOUT_ACTION VARCHAR2(32),
+    TIMEOUT_CONFIG CLOB,
+    TIMEOUT_STATUS VARCHAR2(16),
+    TIMEOUT_CLAIMED_AT DATE
 );
 
 alter table FLOW_TASK
@@ -210,7 +218,14 @@ comment on column FLOW_TASK.DEFINITION_ID is '对应flow_definition表的id';
 comment on column FLOW_TASK.INSTANCE_ID is '对应flow_instance表的id';
 comment on column FLOW_TASK.NODE_CODE is '节点编码';
 comment on column FLOW_TASK.NODE_NAME is '节点名称';
-comment on column FLOW_TASK.NODE_TYPE is '节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关)';
+comment on column FLOW_TASK.NODE_TYPE is '节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待)';
+comment on column FLOW_TASK.TIMEOUT_AT is '冻结的节点超时时间';
+comment on column FLOW_TASK.TIMEOUT_ACTION is '节点超时动作';
+comment on column FLOW_TASK.TIMEOUT_CONFIG is '节点超时配置快照';
+comment on column FLOW_TASK.TIMEOUT_STATUS is '节点超时状态';
+comment on column FLOW_TASK.TIMEOUT_CLAIMED_AT is '节点超时领取时间';
+create index IDX_FLOW_TASK_TIMEOUT_DUE on FLOW_TASK (TIMEOUT_STATUS, TIMEOUT_AT, TIMEOUT_CLAIMED_AT);
+create index IDX_FLOW_TASK_INSTANCE_NODE on FLOW_TASK (TENANT_ID, INSTANCE_ID, NODE_TYPE);
 comment on column FLOW_TASK.FLOW_STATUS is '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
 comment on column FLOW_TASK.FORM_CUSTOM is '审批表单是否自定义 (Y是 N否)';
 comment on column FLOW_TASK.FORM_PATH is '审批表单路径';
@@ -259,7 +274,7 @@ comment on column FLOW_HIS_TASK.INSTANCE_ID is '对应flow_instance表的id';
 comment on column FLOW_HIS_TASK.TASK_ID is '对应flow_task表的id';
 comment on column FLOW_HIS_TASK.NODE_CODE is '开始节点编码';
 comment on column FLOW_HIS_TASK.NODE_NAME is '开始节点名称';
-comment on column FLOW_HIS_TASK.NODE_TYPE is '开始节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关)';
+comment on column FLOW_HIS_TASK.NODE_TYPE is '开始节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待)';
 comment on column FLOW_HIS_TASK.TARGET_NODE_CODE is '目标节点编码';
 comment on column FLOW_HIS_TASK.TARGET_NODE_NAME is '目标节点名称';
 comment on column FLOW_HIS_TASK.SKIP_TYPE is '流转类型（PASS通过 REJECT退回 NONE无动作）';
@@ -276,6 +291,7 @@ comment on column FLOW_HIS_TASK.TENANT_ID is '租户id';
 comment on column FLOW_HIS_TASK.APPROVER is '审批者';
 comment on column FLOW_HIS_TASK.COOPERATE_TYPE is '协作方式(1审批 2转办 3委派 4会签 5票签 6加签 7减签)';
 comment on column FLOW_HIS_TASK.COLLABORATOR is '协作人';
+create index IDX_FLOW_HIS_TASK_INSTANCE_TIME on FLOW_HIS_TASK (TENANT_ID, INSTANCE_ID, CREATE_TIME);
 
 create table FLOW_USER
 (
@@ -308,3 +324,43 @@ comment on column FLOW_USER.TENANT_ID is '租户id';
 
 create index USER_PROCESSED_TYPE on FLOW_USER (PROCESSED_BY, TYPE);
 create index USER_ASSOCIATED_IDX on FLOW_USER (ASSOCIATED);
+CREATE TABLE flow_subprocess_run (
+    id NUMBER(19) PRIMARY KEY, parent_instance_id NUMBER(19) NOT NULL, parent_task_id NUMBER(19) NOT NULL,
+    parent_definition_id NUMBER(19) NOT NULL, parent_node_code VARCHAR2(100) NOT NULL,
+    child_flow_code VARCHAR2(100) NOT NULL, child_definition_id NUMBER(19) NOT NULL,
+    child_definition_version VARCHAR2(20) NOT NULL, completion_policy VARCHAR2(20) DEFAULT 'ALL' NOT NULL,
+    collection_fingerprint CHAR(64) NOT NULL, expected_count NUMBER(10) DEFAULT 0 NOT NULL,
+    pending_count NUMBER(10) DEFAULT 0 NOT NULL, running_count NUMBER(10) DEFAULT 0 NOT NULL,
+    completed_count NUMBER(10) DEFAULT 0 NOT NULL, failed_count NUMBER(10) DEFAULT 0 NOT NULL,
+    cancelled_count NUMBER(10) DEFAULT 0 NOT NULL, run_status VARCHAR2(30) NOT NULL,
+    failure_code VARCHAR2(100), lock_version NUMBER(10) DEFAULT 0 NOT NULL,
+    initialized_at TIMESTAMP, completed_at TIMESTAMP, create_time TIMESTAMP, create_by VARCHAR2(64) DEFAULT '',
+    update_time TIMESTAMP, update_by VARCHAR2(64) DEFAULT '', del_flag CHAR(1) DEFAULT '0' NOT NULL,
+    tenant_id VARCHAR2(40) DEFAULT '0' NOT NULL, CONSTRAINT uk_subprocess_run_parent_task UNIQUE (tenant_id,parent_task_id)
+);
+CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run (tenant_id,parent_instance_id,parent_node_code);
+CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (run_status,update_time);
+
+CREATE TABLE flow_subprocess_child (
+    id NUMBER(19) PRIMARY KEY, run_id NUMBER(19) NOT NULL, item_key VARCHAR2(200) NOT NULL,
+    item_label VARCHAR2(200), child_business_key VARCHAR2(100) NOT NULL, child_flow_code VARCHAR2(100) NOT NULL,
+    child_definition_id NUMBER(19) NOT NULL, child_definition_version VARCHAR2(20) NOT NULL,
+    child_instance_id NUMBER(19), child_status VARCHAR2(20) NOT NULL, outcome VARCHAR2(20),
+    started_at TIMESTAMP, completed_at TIMESTAMP, create_time TIMESTAMP, create_by VARCHAR2(64) DEFAULT '',
+    update_time TIMESTAMP, update_by VARCHAR2(64) DEFAULT '', del_flag CHAR(1) DEFAULT '0' NOT NULL,
+    tenant_id VARCHAR2(40) DEFAULT '0' NOT NULL,
+    CONSTRAINT uk_subprocess_child_item UNIQUE (tenant_id,run_id,item_key),
+    CONSTRAINT uk_subprocess_child_instance UNIQUE (tenant_id,child_instance_id)
+);
+CREATE INDEX idx_subprocess_child_page ON flow_subprocess_child (tenant_id,run_id,id);
+
+CREATE TABLE flow_subprocess_event (
+    id NUMBER(19) PRIMARY KEY, run_id NUMBER(19) NOT NULL, child_id NUMBER(19),
+    parent_instance_id NUMBER(19) NOT NULL, child_instance_id NUMBER(19), parent_node_code VARCHAR2(100) NOT NULL,
+    event_type VARCHAR2(50) NOT NULL, event_result VARCHAR2(30) NOT NULL, reason VARCHAR2(500),
+    occurred_at TIMESTAMP NOT NULL, create_time TIMESTAMP, create_by VARCHAR2(64) DEFAULT '',
+    update_time TIMESTAMP, update_by VARCHAR2(64) DEFAULT '', del_flag CHAR(1) DEFAULT '0' NOT NULL,
+    tenant_id VARCHAR2(40) DEFAULT '0' NOT NULL
+);
+CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,occurred_at,id);
+CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id);

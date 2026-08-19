@@ -1,7 +1,6 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+.gradle/
+.codegraph/
+**/target/
 
 ### IntelliJ IDEA ###
 .idea
@@ -32,12 +31,12 @@ build/
 
 ### Mac OS ###
 .DS_Store
-/warm-flow-ui/.qoder/
+/flovira-ui/.qoder/
 
-### Node / pnpm（warm-flow-vue-designer + warm-flow-designer-demo 工作区） ###
+### Node / Bun（flovira-vue-designer + flovira-designer-demo 工作区） ###
 node_modules/
 dist-lib/
-.pnpm-store/
+**/dist/
 *.local
 **/*.log
 /.playwright-cli/
@@ -48,20 +47,20 @@ dist-lib/
 /.cursor/mcp.json
 /.playwright-cli/
 /output/
-/warm-flow-designer-demo/warm-flow-antdv4-designer-demo/.playwright-cli/
-/warm-flow-designer-demo/warm-flow-antdv4-designer-demo/node_modules/
-/warm-flow-designer-demo/warm-flow-antdv4-designer-demo/dist/
-/warm-flow-designer-demo/warm-flow-ep-designer-demo/.playwright-cli/
-/warm-flow-designer-demo/warm-flow-ep-designer-demo/dist/
-/warm-flow-designer-demo/warm-flow-ep-designer-demo/node_modules/
-/warm-flow-designer-demo/warm-flow-naive-designer-demo/.playwright-cli/
-/warm-flow-designer-demo/warm-flow-naive-designer-demo/dist/
-/warm-flow-designer-demo/warm-flow-naive-designer-demo/node_modules/
-/warm-flow-vue-designer/node_modules/
-/warm-flow-vue-designer/output/
-/warm-flow-vue-designer/dist/
+/flovira-designer-demo/flovira-antdv4-designer-demo/.playwright-cli/
+/flovira-designer-demo/flovira-antdv4-designer-demo/node_modules/
+/flovira-designer-demo/flovira-antdv4-designer-demo/dist/
+/flovira-designer-demo/flovira-ep-designer-demo/.playwright-cli/
+/flovira-designer-demo/flovira-ep-designer-demo/dist/
+/flovira-designer-demo/flovira-ep-designer-demo/node_modules/
+/flovira-designer-demo/flovira-naive-designer-demo/.playwright-cli/
+/flovira-designer-demo/flovira-naive-designer-demo/dist/
+/flovira-designer-demo/flovira-naive-designer-demo/node_modules/
+/flovira-vue-designer/node_modules/
+/flovira-vue-designer/output/
+/flovira-vue-designer/dist/
 /node_modules/
 /.codex/
-/warm-flow-vue-designer/.playwright-cli/
-/warm-flow-vue-designer/dist-lib/
+/flovira-vue-designer/.playwright-cli/
+/flovira-vue-designer/dist-lib/
 /.codex/

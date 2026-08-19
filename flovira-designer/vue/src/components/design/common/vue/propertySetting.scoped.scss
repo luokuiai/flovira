@@ -1,0 +1,83 @@
+/* 抽屉容器隐藏滚动条（组件内部生效） */
+.el-drawer__container ::-webkit-scrollbar {
+  display: none;
+}
+
+.property-panel-modern {
+  flex: 0 0 328px;
+  width: 328px;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--wf-bg-white, #fff);
+  border-left: 1px solid var(--wf-border-light, #e4e7ed);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.property-panel-header {
+  flex: 0 0 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wf-space-sm, 8px);
+  padding: 0 var(--wf-space-md, 16px);
+  border-bottom: 1px solid var(--wf-border-lighter, #ebeef5);
+}
+
+.property-panel-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-sm, 8px);
+  color: var(--wf-text-primary, #303133);
+  font-size: var(--wf-font-size, 14px);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.property-panel-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--wf-primary, #409eff);
+  background: var(--wf-primary-light, #ecf5ff);
+  border-radius: var(--wf-radius, 8px);
+}
+
+.property-panel-close {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  flex: 0 0 32px;
+}
+
+.property-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--wf-space, 12px) var(--wf-space-md, 16px) var(--wf-space-xl, 24px);
+}
+
+.property-panel-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.property-panel-body::-webkit-scrollbar-thumb {
+  background: var(--wf-scrollbar-thumb, #c0c4cc);
+  border-radius: var(--wf-radius-sm, 4px);
+}
+
+:global(html.dark) .property-panel-modern {
+  background: var(--wf-bg-white, #1f1f1f);
+  border-left-color: var(--wf-border-color, #333);
+}
+
+:global(html.dark) .property-panel-header {
+  border-bottom-color: var(--wf-border-color, #333);
+}

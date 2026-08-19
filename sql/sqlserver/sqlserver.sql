@@ -201,7 +201,7 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
-'MS_Description', N'节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）',
+'MS_Description', N'节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_node',
 'COLUMN', N'node_type'
@@ -407,7 +407,7 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
-'MS_Description', N'当前节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）',
+'MS_Description', N'当前节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_skip',
 'COLUMN', N'now_node_type'
@@ -421,7 +421,7 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
-'MS_Description', N'下一个节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）',
+'MS_Description', N'下一个节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_skip',
 'COLUMN', N'next_node_type'
@@ -506,6 +506,7 @@ GO
 CREATE TABLE flow_instance (
     id bigint NOT NULL,
     definition_id bigint NOT NULL,
+    business_type nvarchar(64) NOT NULL,
     business_id nvarchar(40) NOT NULL,
     node_type tinyint NOT NULL,
     node_code nvarchar(40) NOT NULL,
@@ -529,6 +530,10 @@ ON [PRIMARY]
 TEXTIMAGE_ON [PRIMARY]
 GO
 
+CREATE NONCLUSTERED INDEX idx_flow_instance_business
+ON flow_instance (tenant_id, business_type, business_id)
+GO
+
 EXEC sp_addextendedproperty
 'MS_Description', N'主键id',
 'SCHEMA', N'dbo',
@@ -544,6 +549,13 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
+'MS_Description', N'业务类型',
+'SCHEMA', N'dbo',
+'TABLE', N'flow_instance',
+'COLUMN', N'business_type'
+GO
+
+EXEC sp_addextendedproperty
 'MS_Description', N'业务id',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_instance',
@@ -551,7 +563,7 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
-'MS_Description', N'节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）',
+'MS_Description', N'节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_instance',
 'COLUMN', N'node_type'
@@ -670,11 +682,24 @@ CREATE TABLE flow_task (
     update_by nvarchar(64) NULL,
     del_flag nchar(1) DEFAULT('0') NULL,
     tenant_id nvarchar(40) NULL,
+    timeout_at datetime2(7) NULL,
+    timeout_action nvarchar(32) NULL,
+    timeout_config nvarchar(max) NULL,
+    timeout_status nvarchar(16) NULL,
+    timeout_claimed_at datetime2(7) NULL,
     CONSTRAINT PK__flow_tas__3213E83F5AE1F1BA PRIMARY KEY CLUSTERED (id)
     WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON)
     ON [PRIMARY]
 )
 ON [PRIMARY]
+GO
+
+CREATE NONCLUSTERED INDEX idx_flow_task_timeout_due
+ON flow_task (timeout_status, timeout_at, timeout_claimed_at)
+GO
+
+CREATE NONCLUSTERED INDEX idx_flow_task_instance_node
+ON flow_task (tenant_id, instance_id, node_type)
 GO
 
 EXEC sp_addextendedproperty
@@ -713,7 +738,7 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
-'MS_Description', N'节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）',
+'MS_Description', N'节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_task',
 'COLUMN', N'node_type'
@@ -783,6 +808,41 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
+'MS_Description', N'冻结的节点超时时间',
+'SCHEMA', N'dbo',
+'TABLE', N'flow_task',
+'COLUMN', N'timeout_at'
+GO
+
+EXEC sp_addextendedproperty
+'MS_Description', N'节点超时动作',
+'SCHEMA', N'dbo',
+'TABLE', N'flow_task',
+'COLUMN', N'timeout_action'
+GO
+
+EXEC sp_addextendedproperty
+'MS_Description', N'节点超时配置快照',
+'SCHEMA', N'dbo',
+'TABLE', N'flow_task',
+'COLUMN', N'timeout_config'
+GO
+
+EXEC sp_addextendedproperty
+'MS_Description', N'节点超时状态',
+'SCHEMA', N'dbo',
+'TABLE', N'flow_task',
+'COLUMN', N'timeout_status'
+GO
+
+EXEC sp_addextendedproperty
+'MS_Description', N'节点超时领取时间',
+'SCHEMA', N'dbo',
+'TABLE', N'flow_task',
+'COLUMN', N'timeout_claimed_at'
+GO
+
+EXEC sp_addextendedproperty
 'MS_Description', N'待办任务表',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_task'
@@ -817,6 +877,10 @@ CREATE TABLE flow_his_task (
     ON [PRIMARY]
 )
 ON [PRIMARY]
+GO
+
+CREATE NONCLUSTERED INDEX idx_flow_his_task_instance_time
+ON flow_his_task (tenant_id, instance_id, create_time)
 GO
 
 EXEC sp_addextendedproperty
@@ -862,7 +926,7 @@ EXEC sp_addextendedproperty
 GO
 
 EXEC sp_addextendedproperty
-'MS_Description', N'开始节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）',
+'MS_Description', N'开始节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
 'SCHEMA', N'dbo',
 'TABLE', N'flow_his_task',
 'COLUMN', N'node_type'
@@ -1084,3 +1148,45 @@ EXEC sp_addextendedproperty
 'SCHEMA', N'dbo',
 'TABLE', N'flow_user'
 GO
+CREATE TABLE flow_subprocess_run (
+    id bigint NOT NULL PRIMARY KEY, parent_instance_id bigint NOT NULL, parent_task_id bigint NOT NULL,
+    parent_definition_id bigint NOT NULL, parent_node_code nvarchar(100) NOT NULL,
+    child_flow_code nvarchar(100) NOT NULL, child_definition_id bigint NOT NULL,
+    child_definition_version nvarchar(20) NOT NULL, completion_policy nvarchar(20) NOT NULL DEFAULT 'ALL',
+    collection_fingerprint char(64) NOT NULL, expected_count int NOT NULL DEFAULT 0,
+    pending_count int NOT NULL DEFAULT 0, running_count int NOT NULL DEFAULT 0,
+    completed_count int NOT NULL DEFAULT 0, failed_count int NOT NULL DEFAULT 0,
+    cancelled_count int NOT NULL DEFAULT 0, run_status nvarchar(30) NOT NULL,
+    failure_code nvarchar(100) NULL, lock_version int NOT NULL DEFAULT 0,
+    initialized_at datetime2 NULL, completed_at datetime2 NULL, create_time datetime2 NULL,
+    create_by nvarchar(64) DEFAULT '', update_time datetime2 NULL, update_by nvarchar(64) DEFAULT '',
+    del_flag char(1) NOT NULL DEFAULT '0', tenant_id nvarchar(40) NOT NULL DEFAULT '0',
+    CONSTRAINT uk_subprocess_run_parent_task UNIQUE (tenant_id,parent_task_id)
+);
+CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run (tenant_id,parent_instance_id,parent_node_code);
+CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (run_status,update_time);
+
+CREATE TABLE flow_subprocess_child (
+    id bigint NOT NULL PRIMARY KEY, run_id bigint NOT NULL, item_key nvarchar(200) NOT NULL,
+    item_label nvarchar(200) NULL, child_business_key nvarchar(100) NOT NULL, child_flow_code nvarchar(100) NOT NULL,
+    child_definition_id bigint NOT NULL, child_definition_version nvarchar(20) NOT NULL,
+    child_instance_id bigint NULL, child_status nvarchar(20) NOT NULL, outcome nvarchar(20) NULL,
+    started_at datetime2 NULL, completed_at datetime2 NULL, create_time datetime2 NULL,
+    create_by nvarchar(64) DEFAULT '', update_time datetime2 NULL, update_by nvarchar(64) DEFAULT '',
+    del_flag char(1) NOT NULL DEFAULT '0', tenant_id nvarchar(40) NOT NULL DEFAULT '0',
+    CONSTRAINT uk_subprocess_child_item UNIQUE (tenant_id,run_id,item_key)
+);
+CREATE INDEX idx_subprocess_child_page ON flow_subprocess_child (tenant_id,run_id,id);
+CREATE UNIQUE INDEX uk_subprocess_child_instance ON flow_subprocess_child (tenant_id,child_instance_id)
+WHERE child_instance_id IS NOT NULL;
+
+CREATE TABLE flow_subprocess_event (
+    id bigint NOT NULL PRIMARY KEY, run_id bigint NOT NULL, child_id bigint NULL,
+    parent_instance_id bigint NOT NULL, child_instance_id bigint NULL, parent_node_code nvarchar(100) NOT NULL,
+    event_type nvarchar(50) NOT NULL, event_result nvarchar(30) NOT NULL, reason nvarchar(500) NULL,
+    occurred_at datetime2 NOT NULL, create_time datetime2 NULL, create_by nvarchar(64) DEFAULT '',
+    update_time datetime2 NULL, update_by nvarchar(64) DEFAULT '', del_flag char(1) NOT NULL DEFAULT '0',
+    tenant_id nvarchar(40) NOT NULL DEFAULT '0'
+);
+CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,occurred_at,id);
+CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id);

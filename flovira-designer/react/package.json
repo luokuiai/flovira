@@ -1,0 +1,54 @@
+{
+  "name": "@luokuiai/flovira-react-designer",
+  "version": "1.0.0",
+  "description": "Flovira React approval process designer with Tailwind CSS",
+  "author": "warm",
+  "license": "MIT",
+  "type": "module",
+  "module": "./dist/flovira-react-designer.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/flovira-react-designer.js"
+    },
+    "./style.css": "./dist/flovira-react-designer.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
+  },
+  "dependencies": {
+    "lucide-react": "^0.563.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.4",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^6.0.3",
+    "vite": "^7.0.0",
+    "vite-plugin-dts": "^5.0.2",
+    "vitest": "^3.2.7"
+  }
+}

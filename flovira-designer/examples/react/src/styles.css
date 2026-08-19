@@ -1,0 +1,31 @@
+:root {
+  color-scheme: light dark;
+  background: #e9eef5;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+main {
+  padding: 16px;
+}
+
+.save-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #166534;
+  color: #fff;
+  font: 13px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 18%);
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 0;
+  }
+}

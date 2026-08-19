@@ -1,0 +1,26 @@
+{
+  "name": "flovira-naive-designer-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Flovira 设计器（@luokuiai/flovira-vue-designer）Naive UI 消费示例",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@luokuiai/flovira-vue-designer": "workspace:*",
+    "@logicflow/core": "2.2.3",
+    "@logicflow/extension": "2.2.3",
+    "naive-ui": "2.44.1",
+    "pinia": "2.1.7",
+    "vue": "3.3.9",
+    "vue-router": "4.2.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "4.5.0",
+    "typescript": "^5.3.3",
+    "vite": "5.0.4"
+  }
+}

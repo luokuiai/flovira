@@ -1,0 +1,84 @@
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@source "./**/*.{ts,tsx}";
+
+.flovira-react-designer {
+  --frd-primary: #2563eb;
+  --frd-surface: #ffffff;
+  --frd-canvas: #f8fafc;
+  --frd-border: #dbe4ef;
+  --frd-text: #0f172a;
+  --frd-muted: #64748b;
+  color: var(--frd-text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+    "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.flovira-react-designer *,
+.flovira-react-designer *::before,
+.flovira-react-designer *::after {
+  box-sizing: border-box;
+}
+
+.flovira-react-canvas {
+  background-color: var(--frd-canvas);
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.flovira-react-node {
+  width: 252px;
+  min-height: 82px;
+}
+
+.flovira-react-branch-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(284px, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.flovira-react-designer button,
+.flovira-react-designer input,
+.flovira-react-designer select,
+.flovira-react-designer textarea {
+  font: inherit;
+}
+
+.flovira-react-designer button:focus-visible,
+.flovira-react-designer input:focus-visible,
+.flovira-react-designer select:focus-visible,
+.flovira-react-designer textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--frd-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .flovira-react-designer {
+    --frd-surface: #172033;
+    --frd-canvas: #0f172a;
+    --frd-border: #334155;
+    --frd-text: #f1f5f9;
+    --frd-muted: #94a3b8;
+  }
+
+  .flovira-react-canvas {
+    background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+  }
+}
+
+@media (max-width: 760px) {
+  .flovira-react-node {
+    width: 220px;
+  }
+
+  .flovira-react-branch-grid {
+    grid-auto-columns: minmax(244px, 1fr);
+    gap: 12px;
+  }
+}
