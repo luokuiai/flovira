@@ -20,11 +20,11 @@
 
 ## 常用命令
 
-> 包管理为 **Bun workspace**（由根 `package.json` 管理 Vue / React 组件库和 `flovira-designer/examples/*`）。**本库是纯组件库，无独立应用**（无 `dev` app / `build:prod`）。
+> 包管理为 **Bun workspace**（由 `flovira-designer/package.json` 管理 Vue / React 组件库和 `examples/*`）。**本库是纯组件库，无独立应用**（无 `dev` app / `build:prod`）。
 
 ```bash
 # 仓库根：一次安装两个组件库及全部示例
-bun install
+cd flovira-designer && bun install
 
 # 库（在 flovira-designer/vue/）
 bun build:lib   # 组件库构建 -> dist-lib/（ESM + .d.ts + 合并样式，框架依赖 externalize）

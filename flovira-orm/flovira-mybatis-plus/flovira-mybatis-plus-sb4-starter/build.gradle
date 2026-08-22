@@ -8,7 +8,6 @@ plugins {
 
 dependencies {
     api platform('org.springframework.boot:spring-boot-dependencies:4.0.2')
-    api project(':flovira-plugin-json-jackson3')
     api project(':flovira-mybatis-plus-sb-starter')
     api libs.com.baomidou.mybatis.plus.spring.boot4.starter
     api libs.com.baomidou.mybatis.plus.jsqlparser

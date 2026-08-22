@@ -23,7 +23,7 @@
   - `flovira-mybatis-plus`：同上四件套。
 - `flovira-plugin`：可插拔扩展。
   - `flovira-plugin-modes`：Spring 框架模式与 SpEL 表达式实现（`*-sb`）。
-  - `flovira-plugin-json`：JSON 序列化实现（`*-json-v1`：snack/snack4/jackson/fastjson2/gson；`*-json-jackson3`）。
+  - `flovira-plugin-json`：独立 JSON 序列化实现（`*-json-jackson`、`*-json-jackson3`、`*-json-gson`），使用方只选择一个。
   - `flovira-plugin-ui`：设计器 / 流程图后端 API（`*-ui-core`、`*-ui-sb-web`），不内嵌前端静态资源。
 - `flovira-designer`：流程设计器前端工作区；`vue/` 与 `react/` 分别发布独立 npm 包，`examples/` 提供各技术栈消费示例。
 - `sql/`：建表脚本按数据库分目录：`mysql/`、`oracle/`、`postgresql/`、`sqlserver/`；本 fork 从 1.0.0 重新起版，MySQL 与 PostgreSQL 使用完整的 `flovira-v1.sql` 初始化脚本，不继承 Warm-Flow 或旧 Flovira 升级链。
@@ -34,7 +34,7 @@
 - **JDK 1.8 源码级**：Gradle Java convention 默认锁定 source/target 8，Jackson 3 与 Spring Boot 4 模块单独使用 Java 17 convention。主代码**禁止使用 Java 9+ 的语法与 API**（详见「兼容性红线」）。
 - **Spring Boot 生态**：并行支持 Spring Boot 2.7.18 / 3.5.16 / 4.0.2，对应 `sb` / `sb3` / `sb4` 后缀的 starter。
 - **多 ORM**：MyBatis 3.5.15（mybatis-spring-boot 2.3.2）、MyBatis-Plus 3.5.12；README 另提到 JPA / BeetlSql 等生态由社区扩展。
-- **多 JSON**：snack3 3.2.139、snack4 4.0.8、jackson 2.13.5、jackson3 3.0.4、fastjson2 2.0.43、gson 2.9.0。
+- **多 JSON**：jackson 2.13.5、jackson3 3.0.4、gson 2.9.0，各实现独立发布。
 - **多数据库**：MySQL、Oracle、PostgreSQL、SQL Server（其它库转换表结构即可）。
 - **基础依赖**：Lombok、`slf4j-api`（仅 API，不绑定日志实现）、JUnit 4（测试在独立仓库）。
 - **依赖版本统一在 `gradle/libs.versions.toml` 与 `buildSrc` convention plugins 中管理**，子模块不私自写死或改版本号；项目版本由共享 Java convention 统一设置。
@@ -172,6 +172,7 @@
 ./gradlew :flovira-orm:flovira-mybatis:flovira-mybatis-core:compileJava
 
 # 前端工作区
+cd flovira-designer
 bun install
 bun run build
 ```
@@ -212,12 +213,14 @@ upgrade: 升级版本
 ./gradlew clean build                  # 编译、测试并打包
 ./gradlew publishToMavenLocal          # 发布到本地 Maven 仓库
 ./gradlew publish                      # 发布到配置的远程 Maven 仓库
+cd flovira-designer
 bun install                            # 安装前端 workspace 依赖
 bun run build                          # 构建设计器组件库和全部 demo
 ```
 
 - 发布远程 Maven 仓库前必须配置目标仓库、凭证、签名和 Central 发布流程；不得把凭证写入仓库。
-- `.github/workflows/release.yml` 当前是**全注释的模板（CI 未启用）**，发布是**手动**执行，不要假设 CI 会自动发版。`.gitee/` 下有中文 issue / PR 模板，提 PR 时遵循。
+- `.github/workflows/publish.yml` 在 `develop` 推送时发布 Maven Snapshot，在 `vX.Y.Z` tag 时发布 Maven 正式版本。
+- `.github/workflows/publish-npm.yml` 在 `vX.Y.Z` tag 时通过 npm Trusted Publishing 发布 Vue/React Designer；两个 npm 包必须分别在 npm 网站配置该 workflow 为 Trusted Publisher。
 
 ## 安全边界
 

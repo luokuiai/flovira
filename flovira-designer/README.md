@@ -24,3 +24,12 @@ bun run build:demos
 ```
 
 也可以使用 `bun run build` 一次构建两个 npm 包和全部示例。
+
+## 发布
+
+在 `main` 分支执行 `bun run release`，由 Lerna 同步两个公开包的版本、创建并推送 `vX.Y.Z` tag。tag 会触发 GitHub Actions，通过 npm Trusted Publishing 发布：
+
+- `@luokuiai/flovira-vue-designer`
+- `@luokuiai/flovira-react-designer`
+
+两个 npm 包需要在 npm 网站分别配置本仓库 `.github/workflows/publish-npm.yml` 为 Trusted Publisher。

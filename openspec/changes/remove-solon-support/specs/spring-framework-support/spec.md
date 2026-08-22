@@ -15,8 +15,8 @@ The core module SHALL remain independent of Spring and ORM implementation depend
 - **THEN** compilation succeeds without Spring, Solon, or ORM implementation dependencies
 
 ### Requirement: Preserve independent JSON providers
-The distribution SHALL retain Snack3 and Snack4 JSON providers even though their group namespace is `org.noear`, because they are independent serialization implementations rather than Solon framework adapters.
+The distribution SHALL publish each supported JSON provider as an independent module without binding a provider to a framework starter.
 
 #### Scenario: Build JSON providers
-- **WHEN** the JSON v1 plugin is compiled after Solon removal
-- **THEN** Snack3 and Snack4 converters remain available
+- **WHEN** a consumer selects a JSON provider
+- **THEN** only the selected provider and its JSON library are required

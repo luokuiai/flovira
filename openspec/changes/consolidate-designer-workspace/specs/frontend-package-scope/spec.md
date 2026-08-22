@@ -4,7 +4,7 @@
 Every publishable Flovira frontend package SHALL use the `@luokuiai` npm scope and an explicit framework suffix, and every workspace dependency, source import and active documentation example SHALL reference the same package names.
 
 #### Scenario: Build workspace consumers
-- **WHEN** dependencies are installed from the root Bun workspace
+- **WHEN** dependencies are installed from the `flovira-designer` Bun workspace
 - **THEN** Vue demos resolve `@luokuiai/flovira-vue-designer` and the React demo resolves `@luokuiai/flovira-react-designer`
 - **AND** no active `@luokuiai/flovira-designer` package reference remains
 

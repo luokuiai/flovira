@@ -183,7 +183,12 @@ public class Flovira implements Serializable {
 
     public void spiLoad() {
         // 通过SPI机制加载json转换策略实现类
-        FlowEngine.jsonConvert = ServiceLoaderUtil.loadFirst(JsonConvert.class);
+        List<JsonConvert> jsonConverts = ServiceLoaderUtil.loadList(JsonConvert.class);
+        if (jsonConverts.size() != 1) {
+            throw new IllegalStateException("Exactly one JsonConvert provider is required, found: "
+                + jsonConverts.size());
+        }
+        FlowEngine.jsonConvert = jsonConverts.get(0);
     }
 
     private void printBanner() {

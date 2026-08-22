@@ -4,7 +4,7 @@
 Every publishable Flovira frontend package SHALL use the `@luokuiaiai` npm scope, and every workspace dependency, source import and documentation example SHALL reference the same scope.
 
 #### Scenario: Build workspace consumers
-- **WHEN** dependencies are installed from the root Bun workspace
+- **WHEN** dependencies are installed from the `flovira-designer` Bun workspace
 - **THEN** Vue and React demos resolve their designer packages through `@luokuiaiai/*`
 - **AND** no active `@luokuiai/*` package reference remains
 

@@ -59,7 +59,6 @@ dist-lib/
 /flovira-vue-designer/node_modules/
 /flovira-vue-designer/output/
 /flovira-vue-designer/dist/
-/node_modules/
 /.codex/
 /flovira-vue-designer/.playwright-cli/
 /flovira-vue-designer/dist-lib/

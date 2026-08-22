@@ -1,7 +1,7 @@
 ## 1. Workspace And Package Scope
 
 - [x] 1.1 Rename active frontend package references from `@luokuiai` to `@luokuiaiai`
-- [x] 1.2 Add the React designer library and demo to the Bun workspace and root build scripts
+- [x] 1.2 Add the React designer library and demo to the `flovira-designer` workspace build scripts
 - [x] 1.3 Regenerate the Bun lockfile and verify no active old-scope references remain
 
 ## 2. React Designer Core

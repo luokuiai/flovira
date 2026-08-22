@@ -42,6 +42,7 @@ modules use a Java 17 baseline.
 
 ```bash
 ./gradlew clean build
+cd flovira-designer
 bun install
 bun run build
 ```
@@ -67,6 +68,32 @@ Spring Boot 3 with MyBatis-Plus:
 <dependency>
     <groupId>com.luokuiai</groupId>
     <artifactId>flovira-mybatis-plus-sb3-starter</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+Select exactly one JSON provider. Framework and ORM starters do not select one
+automatically:
+
+```xml
+<!-- Jackson 2: Spring Boot 2 and 3 -->
+<dependency>
+    <groupId>com.luokuiai</groupId>
+    <artifactId>flovira-plugin-json-jackson</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- Jackson 3: Spring Boot 4 -->
+<dependency>
+    <groupId>com.luokuiai</groupId>
+    <artifactId>flovira-plugin-json-jackson3</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- Gson: alternative for any supported framework -->
+<dependency>
+    <groupId>com.luokuiai</groupId>
+    <artifactId>flovira-plugin-json-gson</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```

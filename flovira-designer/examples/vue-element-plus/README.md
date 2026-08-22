@@ -9,7 +9,7 @@ Flovira 设计器（`@luokuiai/flovira-vue-designer`）的 **Element Plus** 消�
 ```bash
 # 1) 先在库工程构建产物
 cd flovira-designer/vue && bun run build:lib
-# 2) 启动本 demo（依赖随仓库根 bun install 一次装齐）
+# 2) 启动本 demo（依赖随 flovira-designer 下的 bun install 一次装齐）
 cd ../examples/vue-element-plus
 bun run dev  # http://localhost:5180
 ```

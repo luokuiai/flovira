@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * fastjson：map和json字符串转换工具类
+ * gson：map和json字符串转换工具类
  *
  * @author warm
  */
