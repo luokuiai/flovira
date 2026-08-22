@@ -8,11 +8,7 @@ plugins {
 
 dependencies {
     api project(':flovira-core')
-    api libs.com.alibaba.fastjson2.fastjson2
     api libs.com.google.code.gson.gson
-    api libs.com.fasterxml.jackson.core.jackson.databind
-    api libs.org.noear.snack3
-    api libs.org.noear.snack4
 }
 
-description = 'flovira-plugin-json-v1'
+description = 'flovira-plugin-json-gson'

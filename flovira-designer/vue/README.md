@@ -32,7 +32,9 @@ Flovira 国产工作流引擎，特点是简洁轻量、功能完整、扩展性
 ```bash
 
 # 安装依赖
+cd flovira-designer
 bun install --registry https://registry.npmmirror.com
+cd vue
 
 # 启动服务
 bun run dev

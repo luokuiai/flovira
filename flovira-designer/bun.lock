@@ -5,7 +5,7 @@
     "": {
       "name": "flovira-vue-workspace",
     },
-    "flovira-designer/examples/react": {
+    "examples/react": {
       "name": "flovira-react-designer-demo",
       "version": "1.0.0",
       "dependencies": {
@@ -21,7 +21,7 @@
         "vite": "^7.0.0",
       },
     },
-    "flovira-designer/examples/vue-antdv": {
+    "examples/vue-antdv": {
       "name": "flovira-antdv4-designer-demo",
       "version": "1.0.0",
       "dependencies": {
@@ -39,7 +39,7 @@
         "vite": "5.0.4",
       },
     },
-    "flovira-designer/examples/vue-element-plus": {
+    "examples/vue-element-plus": {
       "name": "flovira-ep-designer-demo",
       "version": "1.0.0",
       "dependencies": {
@@ -57,7 +57,7 @@
         "vite": "5.0.4",
       },
     },
-    "flovira-designer/examples/vue-naive": {
+    "examples/vue-naive": {
       "name": "flovira-naive-designer-demo",
       "version": "1.0.0",
       "dependencies": {
@@ -75,7 +75,7 @@
         "vite": "5.0.4",
       },
     },
-    "flovira-designer/react": {
+    "react": {
       "name": "@luokuiai/flovira-react-designer",
       "version": "1.0.0",
       "dependencies": {
@@ -101,7 +101,7 @@
         "react-dom": ">=18.2.0",
       },
     },
-    "flovira-designer/vue": {
+    "vue": {
       "name": "@luokuiai/flovira-vue-designer",
       "version": "1.0.0",
       "devDependencies": {
@@ -301,9 +301,9 @@
 
     "@logicflow/extension": ["@logicflow/extension@2.2.3", "https://registry.npmmirror.com/@logicflow/extension/-/extension-2.2.3.tgz", { "dependencies": { "@antv/hierarchy": "^0.6.11", "classnames": "^2.3.2", "lodash-es": "^4.17.21", "medium-editor": "^5.23.3", "mobx": "^5.15.7", "preact": "^10.17.1", "rangy": "^1.3.1", "vanilla-picker": "^2.12.3" }, "peerDependencies": { "@logicflow/core": "2.2.3" } }, "sha512-aPRmc6OHuZmJBJLlZUM4pioetBJ3WkxggI7bz0BL+UZkFOx94Un0/7CHVYOIiPN5+O1ql6DxWu4TrmZ/nG3RHw=="],
 
-    "@luokuiai/flovira-react-designer": ["@luokuiai/flovira-react-designer@workspace:flovira-designer/react"],
+    "@luokuiai/flovira-react-designer": ["@luokuiai/flovira-react-designer@workspace:react"],
 
-    "@luokuiai/flovira-vue-designer": ["@luokuiai/flovira-vue-designer@workspace:flovira-designer/vue"],
+    "@luokuiai/flovira-vue-designer": ["@luokuiai/flovira-vue-designer@workspace:vue"],
 
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "https://registry.npmmirror.com/@napi-rs/lzma-linux-x64-gnu/-/lzma-linux-x64-gnu-1.5.1.tgz", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
 
@@ -637,13 +637,13 @@
 
     "fill-range": ["fill-range@7.1.1", "https://registry.npmmirror.com/fill-range/-/fill-range-7.1.1.tgz", { "dependencies": { "to-regex-range": "^5.0.1" } }, "sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg=="],
 
-    "flovira-antdv4-designer-demo": ["flovira-antdv4-designer-demo@workspace:flovira-designer/examples/vue-antdv"],
+    "flovira-antdv4-designer-demo": ["flovira-antdv4-designer-demo@workspace:examples/vue-antdv"],
 
-    "flovira-ep-designer-demo": ["flovira-ep-designer-demo@workspace:flovira-designer/examples/vue-element-plus"],
+    "flovira-ep-designer-demo": ["flovira-ep-designer-demo@workspace:examples/vue-element-plus"],
 
-    "flovira-naive-designer-demo": ["flovira-naive-designer-demo@workspace:flovira-designer/examples/vue-naive"],
+    "flovira-naive-designer-demo": ["flovira-naive-designer-demo@workspace:examples/vue-naive"],
 
-    "flovira-react-designer-demo": ["flovira-react-designer-demo@workspace:flovira-designer/examples/react"],
+    "flovira-react-designer-demo": ["flovira-react-designer-demo@workspace:examples/react"],
 
     "follow-redirects": ["follow-redirects@1.16.0", "https://registry.npmmirror.com/follow-redirects/-/follow-redirects-1.16.0.tgz", {}, "sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw=="],
 

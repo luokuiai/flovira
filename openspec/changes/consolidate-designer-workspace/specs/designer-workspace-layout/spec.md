@@ -3,8 +3,8 @@
 ### Requirement: Unified designer source layout
 The repository SHALL place the Vue designer, React designer, and their examples under one `flovira-designer` source root while keeping each framework package independently buildable.
 
-#### Scenario: Build designers from the root workspace
-- **WHEN** a maintainer runs the root designer build commands
+#### Scenario: Build designers from the designer workspace
+- **WHEN** a maintainer runs the build commands from `flovira-designer`
 - **THEN** the workspace resolves `flovira-designer/vue`, `flovira-designer/react`, and every `flovira-designer/examples/*` package
 
 ### Requirement: No embedded designer application

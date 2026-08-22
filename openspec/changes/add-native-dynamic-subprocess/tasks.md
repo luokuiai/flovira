@@ -56,4 +56,4 @@
 - [x] 7.2 Verify core source remains Java 8-compatible and contains no Spring, Solon or concrete ORM imports.
 - [x] 7.3 Run focused Gradle tests and compilation for core, all ORM cores, all starter/plugin variants and UI plugin modules.
 - [x] 7.4 Run Bun component tests, type checks and production builds for `flovira-vue-designer`, `flovira-ui` and all designer demos.
-- [x] 7.5 Run `./gradlew clean build`, `bun install --frozen-lockfile`, `bun run build`, SQL contract checks and `openspec validate add-native-dynamic-subprocess --strict`.
+- [x] 7.5 Run `./gradlew clean build`, `cd flovira-designer && bun install --frozen-lockfile && bun run build`, SQL contract checks and `openspec validate add-native-dynamic-subprocess --strict`.

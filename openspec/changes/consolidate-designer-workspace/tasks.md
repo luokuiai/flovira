@@ -1,7 +1,7 @@
 ## 1. Workspace Consolidation
 
 - [x] 1.1 Move Vue, React, and example projects under `flovira-designer/`
-- [x] 1.2 Update root Bun workspaces and build scripts for the new paths
+- [x] 1.2 Update the `flovira-designer` Bun workspace and build scripts for the new paths
 
 ## 2. Package Naming
 
@@ -20,7 +20,7 @@
 
 ## 5. Verification
 
-- [x] 5.1 Install the root Bun workspace and build both designer packages
+- [x] 5.1 Install the `flovira-designer` Bun workspace and build both designer packages
 - [x] 5.2 Build all designer examples
 - [x] 5.3 Compile the retained UI core, Spring web, and Solon web backend modules
 - [x] 5.4 Validate OpenSpec and confirm removed modules/package names have no active references

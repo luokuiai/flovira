@@ -7,7 +7,7 @@
 引擎的可插拔扩展实现，按扩展点分三类：
 
 - `flovira-plugin-modes`：Spring 模式与 SpEL 表达式实现。`*-sb` 包含 `ConditionStrategySpel`、`VoteSignStrategySpel`、`HandlerStrategySpel`、`SpelHelper` 和安全方法解析，包根 `com.luokuiai.flovira.plugin.modes.sb`。
-- `flovira-plugin-json`：`JsonConvert` 的 SPI 实现。`*-json-v1`（`JsonConvertSnack`/`Snack4`/`Jackson`/`FastJson`/`Gson`）；`*-json-jackson3`。包根 `com.luokuiai.flovira.plugin.json`。
+- `flovira-plugin-json`：`JsonConvert` 的独立 SPI 实现。`*-json-jackson`、`*-json-jackson3`、`*-json-gson` 各自只注册一个 provider，使用方只选择一个。包根 `com.luokuiai.flovira.plugin.json`。
 - `flovira-plugin-ui`：设计器 / 流程图后端 API。`*-ui-core`（`service` / `dto` / `vo`）、`*-ui-sb-web`（Spring controller）。不再打包或映射前端静态资源，包根 `com.luokuiai.flovira.ui`。
 
 ## 改动前必读
@@ -27,7 +27,7 @@
 
 ```bash
 # 按被改子模块替换路径
-./gradlew :flovira-plugin:flovira-plugin-json:flovira-plugin-json-v1:compileJava
+./gradlew :flovira-plugin:flovira-plugin-json:flovira-plugin-json-jackson:compileJava
 ./gradlew :flovira-plugin:flovira-plugin-modes:flovira-plugin-modes-sb:compileJava
 ```
 

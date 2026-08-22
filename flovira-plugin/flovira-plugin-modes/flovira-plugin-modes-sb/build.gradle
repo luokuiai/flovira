@@ -10,7 +10,6 @@ dependencies {
     api project(':flovira-core')
     api project(':flovira-mybatis-core')
     api project(':flovira-mybatis-plus-core')
-    api project(':flovira-plugin-json-v1')
     api libs.org.springframework.boot.spring.boot
     api libs.org.springframework.boot.spring.boot.autoconfigure
     api libs.org.springframework.spring.context
@@ -19,6 +18,7 @@ dependencies {
     compileOnly libs.com.google.code.findbugs.jsr305
     compileOnly libs.org.springframework.data.spring.data.redis
     testImplementation libs.junit.junit
+    testImplementation project(':flovira-plugin-json-jackson')
     testImplementation libs.org.springframework.data.spring.data.redis
 }
 

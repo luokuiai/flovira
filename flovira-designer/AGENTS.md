@@ -20,6 +20,9 @@
 ## 聚焦验证
 
 ```bash
+cd flovira-designer
 bun run build:designer
 bun run build:demos
 ```
+
+npm 发布使用 Lerna 固定版本模式：在 `main` 执行 `bun run release` 同步 Vue/React 包版本并推送 `vX.Y.Z` tag，GitHub Actions 通过 npm Trusted Publishing 发布两个包。不要手工只修改或发布其中一个包。

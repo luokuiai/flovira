@@ -19,7 +19,7 @@
 
 ## Decisions
 
-1. 使用 `flovira-designer/vue`、`flovira-designer/react`、`flovira-designer/examples/*` 的单层目录结构，由仓库根 Bun workspace 直接管理，不新增嵌套 workspace。
+1. 使用 `flovira-designer/vue`、`flovira-designer/react`、`flovira-designer/examples/*` 的单层目录结构，由 `flovira-designer` Bun workspace 直接管理。
 2. Vue 包更名为 `@luokuiai/flovira-vue-designer`，React 保持 `@luokuiai/flovira-react-designer`。当前 fork 从 1.0.0 重新发布，优先在首次正式发布前完成明确命名。
 3. 删除 `flovira-ui` 和 `flovira-plugin-vue3-ui`。`flovira-plugin-ui-core` 不再通过 `api` 依赖静态资源 jar；Spring/Solon 仅保留 controller，不再注册 classpath 静态目录。
 4. 后端 API 继续使用 `/flovira-ui/*`，避免把前端目录整理扩大为跨语言 API 破坏性改名。Vue 默认 HTTP Provider 与自定义 DataProvider 均保持可用。

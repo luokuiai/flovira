@@ -14,7 +14,7 @@
   ],
   "homepage": "https://flovira.dromara.org",
   "bugs": {
-    "url": "https://github.com/luokui/flovira/issues"
+    "url": "https://github.com/luokuiai/flovira/issues"
   },
   "type": "module",
   "module": "./dist-lib/flovira-designer.es.js",
@@ -59,7 +59,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/luokui/flovira.git"
+    "url": "git+https://github.com/luokuiai/flovira.git",
+    "directory": "flovira-designer/vue"
   },
   "dependencies": {},
   "peerDependencies": {
