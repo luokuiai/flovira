@@ -1,7 +1,7 @@
 import { setDataProvider, getDataProvider } from './provider'
 import { createHttpProvider } from './httpProvider'
 import { createMockProvider } from './mockProvider'
-import type { DataProvider } from './provider'
+import type { DataProvider, DesignerDataProvider } from './provider'
 
 /**
  * 数据层统一出口。
@@ -38,9 +38,14 @@ export function setupDataProvider(): void {
 }
 
 export { setDataProvider, getDataProvider, createHttpProvider, createMockProvider }
-export type { DataProvider }
+export type { DataProvider, DesignerDataProvider }
 export type {
   ApiResponse,
+  ApproverRule,
+  ApproverStrategy,
+  ApproverSubject,
+  ApproverSelectionType,
+  DesignerApproverStrategy,
   DesignerCapabilities,
   DesignerNodeType,
   DesignerRelationshipQuery,
@@ -50,4 +55,10 @@ export type {
   DesignerResourceTreeNode,
   DesignerSubject,
 } from './contracts'
-export { DEFAULT_DESIGNER_CAPABILITIES, filterPaletteNodes, resourcesToTree, unwrapData } from './contracts'
+export {
+  createApproverRule,
+  DEFAULT_DESIGNER_CAPABILITIES,
+  filterPaletteNodes,
+  resourcesToTree,
+  unwrapData,
+} from './contracts'

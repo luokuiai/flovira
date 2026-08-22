@@ -36,7 +36,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 设计器Controller 可选择是否放行，放行可与业务系统共享权限，主要是用来访问业务系统数据
+ * 设计器默认 Controller。业务可声明本类的子类 Bean，增加业务注解或按需覆盖接口；
+ * {@code FloviraUiConfig} 检测到子类后不再注册默认实例。
  *
  * @author warm
  */

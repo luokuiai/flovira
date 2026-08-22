@@ -15,11 +15,12 @@ repositories {
 }
 
 group = 'com.luokuiai'
-version = '1.0.0'
+version = findProperty('releaseVersion') ?: '1.0.0'
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 
 java {
     withSourcesJar()
+    withJavadocJar()
 }
 
 dependencies {
@@ -33,6 +34,34 @@ publishing {
     publications {
         maven(MavenPublication) {
             from(components.java)
+
+            pom {
+                name = project.name
+                description = "Flovira workflow engine module ${project.name}"
+                url = 'https://github.com/luokuiai/flovira'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'warm'
+                        name = 'Warm-Flow'
+                        email = '290631660@qq.com'
+                    }
+                    developer {
+                        id = 'luokuiai'
+                        name = 'Luokuiai'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/luokuiai/flovira.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/luokuiai/flovira.git'
+                    url = 'https://github.com/luokuiai/flovira'
+                }
+            }
         }
     }
 }
@@ -49,4 +78,5 @@ tasks.withType(Jar) {
 
 tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'
+    failOnError = false
 }

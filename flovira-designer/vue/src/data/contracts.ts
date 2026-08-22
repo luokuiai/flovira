@@ -1,9 +1,36 @@
 export type DesignerNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
+export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
+
+export interface ApproverSubject {
+  id: string
+  type: string
+  name?: string
+}
+
+export interface ApproverRule {
+  schemaVersion: 1
+  strategy: ApproverStrategy | string
+  selectionType: ApproverSelectionType
+  relationType?: string
+  subjects: ApproverSubject[]
+  expression?: string
+}
+
+export type ApproverSelectionType = 'RESOURCE' | 'RELATION' | 'EXPRESSION'
+
+export interface DesignerApproverStrategy {
+  code: ApproverStrategy | string
+  name: string
+  selectionType: ApproverSelectionType
+  resourceType?: string
+  relationType?: string
+  multiple: boolean
+}
 
 export interface DesignerCapabilities {
   schemaVersion: 1
   nodeTypes: DesignerNodeType[]
-  approverStrategies: string[]
+  approverStrategies: DesignerApproverStrategy[]
   approvalModes: string[]
   returnPolicies: string[]
   timeoutNodeTypes: DesignerNodeType[]
@@ -49,12 +76,25 @@ export interface DesignerSubject {
   metadata?: Record<string, unknown>
 }
 
+export const createApproverRule = (
+  strategy: ApproverStrategy | string,
+  subjects: ApproverSubject[] = [],
+  expression?: string,
+  relationType?: string,
+  selectionType: ApproverSelectionType = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
+): ApproverRule => ({ schemaVersion: 1, strategy, selectionType, relationType, subjects, expression })
+
 export type ApiResponse<T> = T | { data?: T }
 
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7'],
-  approverStrategies: ['USER', 'ROLE', 'ORGANIZATION', 'EXPRESSION'],
+  approverStrategies: [
+    { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true },
+    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true },
+    { code: 'ORGANIZATION', name: '组织', selectionType: 'RESOURCE', resourceType: 'ORGANIZATION', relationType: 'ORGANIZATION_MEMBERS', multiple: true },
+    { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false },
+  ],
   approvalModes: ['OR', 'VOTE', 'COUNTERSIGN'],
   returnPolicies: ['PREVIOUS', 'ANY', 'REJECT'],
   timeoutNodeTypes: ['1', '7'],

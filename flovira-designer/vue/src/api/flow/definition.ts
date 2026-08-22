@@ -41,9 +41,10 @@ export async function designerSubjects(storageIds: string[]): Promise<any[]> {
     pageSize: storageIds.length,
     parameters: { ids: storageIds },
   })
-  const names = new Map(items.map((item) => [item.id, item.name]))
+  const resources = new Map(items.map((item) => [item.id, item]))
   return storageIds.map((storageId) => ({
     storageId,
-    handlerName: names.get(storageId) || storageId,
+    handlerName: resources.get(storageId)?.name || storageId,
+    resourceType: resources.get(storageId)?.resourceType,
   }))
 }

@@ -42,3 +42,34 @@ describe('wait and timeout definition conversion', () => {
     expect(ext.find((item) => item.code === 'timeoutConfig').value).toBe(timeoutConfig)
   })
 })
+
+describe('approver rule definition conversion', () => {
+  test('preserves the shared approver rule during round trip', () => {
+    const approverRule = JSON.stringify({
+      schemaVersion: 1,
+      strategy: 'ROLE',
+      selectionType: 'RESOURCE',
+      relationType: 'ROLE_MEMBERS',
+      subjects: [{ id: 'role:finance', type: 'ROLE', name: 'Finance' }],
+    })
+    const logic = json2LogicFlowJson({
+      flowCode: 'approval-flow',
+      flowName: 'Approval flow',
+      modelValue: 'CLASSICS',
+      version: '1',
+      nodeList: [{
+        nodeType: 1,
+        nodeCode: 'APPROVE',
+        nodeName: 'Approve',
+        nodeRatio: 0,
+        skipList: [],
+        ext: JSON.stringify([{ code: 'approverRule', value: approverRule }]),
+      }],
+    })
+
+    expect(logic.nodes[0].properties.ext.approverRule).toBe(approverRule)
+    const exported = JSON.parse(logicFlowJsonToFlovira(logic))
+    const ext = JSON.parse(exported.nodeList[0].ext)
+    expect(ext.find((item) => item.code === 'approverRule').value).toBe(approverRule)
+  })
+})

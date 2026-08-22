@@ -20,11 +20,14 @@ import type {
  *
  * @author warm
  */
-export interface DataProvider {
+export interface DesignerDataProvider {
   // ===== 统一集成契约 =====
   capabilities(): Promise<ApiResponse<DesignerCapabilities>>
   queryResources(query: DesignerResourceQuery): Promise<ApiResponse<DesignerResourcePage>>
   resolveRelationship(query: DesignerRelationshipQuery): Promise<ApiResponse<DesignerSubject[]>>
+}
+
+export interface DataProvider extends DesignerDataProvider {
 
   // ===== 流程定义 =====
   saveJson(data: any, onlyNodeSkip?: boolean): Promise<any>

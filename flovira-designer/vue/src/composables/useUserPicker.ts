@@ -11,6 +11,10 @@ export interface UseUserPickerProps {
   selectUser?: any[];
   /** 已选办理人行（回显用） */
   permissionRows?: any[];
+  /** 当前节点选定的审批人策略 */
+  resourceType?: string;
+  /** 是否允许多选 */
+  multiple?: boolean;
 }
 
 /** 办理人选择弹窗的 emit 形态（与 selectUser.vue 的 defineEmits 对齐） */
@@ -105,8 +109,7 @@ export function useUserPicker(props: UseUserPickerProps, emit: UseUserPickerEmit
     designerCapabilities().then(async res => {
       const capabilities = unwrapData(res);
       const resourceTypes = new Set(capabilities?.resourceTypes || []);
-      tabsList.value = (capabilities?.approverStrategies || [])
-        .filter((strategy: string) => resourceTypes.has(strategy));
+      tabsList.value = props.resourceType && resourceTypes.has(props.resourceType) ? [props.resourceType] : [];
       if (tabsList.value.length > 0) {
         tabsValue.value = tabsList.value[0]
       }
@@ -158,6 +161,7 @@ export function useUserPicker(props: UseUserPickerProps, emit: UseUserPickerEmit
       const page = unwrapData(res) || { items: [], total: 0 };
       const rows: any[] = page.items.map(item => ({
         storageId: item.id,
+        resourceType: item.resourceType || tabsValue.value,
         handlerCode: item.code,
         handlerName: item.name,
         groupName: item.metadata?.groupName,
@@ -255,13 +259,14 @@ export function useUserPicker(props: UseUserPickerProps, emit: UseUserPickerEmit
 
   // 全选
   function handleCheckAll() {
+    if (props.multiple === false) return;
     const checkedArr = checkedItemList.value;
     checkAllInfo.value.isIndeterminate = false;
     if (checkAllInfo.value.isChecked) {
       tableList.value = tableList.value.map(item => {
         item.isChecked = true;
         if (checkedItemList.value.findIndex(e => e.storageId === item.storageId) === -1) {
-          checkedArr.push({ storageId: item.storageId, handlerName: item.handlerName });
+          checkedArr.push({ storageId: item.storageId, handlerName: item.handlerName, resourceType: item.resourceType });
         }
         return item;
       });
@@ -277,12 +282,18 @@ export function useUserPicker(props: UseUserPickerProps, emit: UseUserPickerEmit
   }
 
   function handleCheck(row: any) {
+    if (props.multiple === false && !row.isChecked) {
+      tableList.value.forEach(e => { e.isChecked = false; });
+      checkedItemList.value = [];
+    }
     tableList.value.forEach(e => {
       if (e.storageId === row.storageId) e.isChecked = !e.isChecked;
     });
     const checkedArr = [...checkedItemList.value];
     if (row.isChecked) {
-      if (checkedArr.findIndex(e => e.storageId === row.storageId) === -1) checkedArr.push({ storageId: row.storageId, handlerName: row.handlerName });
+      if (checkedArr.findIndex(e => e.storageId === row.storageId) === -1) {
+        checkedArr.push({ storageId: row.storageId, handlerName: row.handlerName, resourceType: row.resourceType });
+      }
     } else {
       const index = checkedArr.findIndex(n => n.storageId === row.storageId);
       if (index !== -1) checkedArr.splice(index, 1);

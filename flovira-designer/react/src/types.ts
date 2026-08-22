@@ -1,6 +1,33 @@
 import type { ReactNode } from 'react'
 
 export type FloviraNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
+export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
+
+export interface ApproverSubject {
+  id: string
+  type: string
+  name?: string
+}
+
+export interface ApproverRule {
+  schemaVersion: 1
+  strategy: ApproverStrategy | string
+  selectionType: ApproverSelectionType
+  relationType?: string
+  subjects: ApproverSubject[]
+  expression?: string
+}
+
+export type ApproverSelectionType = 'RESOURCE' | 'RELATION' | 'EXPRESSION'
+
+export interface DesignerApproverStrategy {
+  code: ApproverStrategy | string
+  name: string
+  selectionType: ApproverSelectionType
+  resourceType?: string
+  relationType?: string
+  multiple: boolean
+}
 
 export interface WaitConfig {
   schemaVersion: 1
@@ -36,8 +63,6 @@ export interface FloviraNode extends Record<string, unknown> {
   coordinate?: string
   nodeRatio?: string | number
   permissionFlag?: string | null
-  handlerType?: string | null
-  handlerPath?: string | null
   ext?: string | Array<{ code: string; value: unknown }>
   skipList: FloviraSkip[]
 }
@@ -61,7 +86,7 @@ export interface SubprocessDefinition {
 export interface DesignerCapabilities {
   schemaVersion: 1
   nodeTypes: FloviraNodeType[]
-  approverStrategies: string[]
+  approverStrategies: DesignerApproverStrategy[]
   approvalModes: string[]
   returnPolicies: string[]
   timeoutNodeTypes: FloviraNodeType[]

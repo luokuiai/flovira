@@ -19,18 +19,17 @@ Flovira is a Java 8 SDK with optional framework adapters. The core engine must r
 
 - Prescribing Intelliconf's persistence model or organization identifiers.
 - Moving approver resolution or workflow state transitions into the UI plugin.
-- Reworking engine runtime relationship strategies beyond the provider contract introduced here.
 - Providing SSR or bundled designer pages.
 
 ## Decisions
 
 1. **Separate capability declaration from data queries.** `DesignerCapabilityProvider` returns a `DesignerCapabilities` manifest; `DesignerDataProvider` handles paged selectable resources and relationship resolution. Capability loading is small and cacheable, while data queries remain demand-driven.
 
-2. **Use semantic string codes.** Node types use Flovira node codes, while strategies, modes, policies, operations, and resource types use extensible strings. This avoids coupling public contracts to Java enum ordinals and permits host-defined strategies.
+2. **Use semantic strategy descriptors.** Node types use Flovira node codes. Each approver strategy declares a semantic code, display name, selection type (`RESOURCE`, `RELATION`, or `EXPRESSION`), optional resource and relation types, and multiplicity. This avoids Java enum ordinals and lets both designers render host-defined strategies without host-specific UI code.
 
 3. **Use a generic resource query/result envelope.** Users, roles, organizations, form fields, dictionaries, and subprocess definitions share stable item fields plus metadata. A resource type and optional scope/query parameters preserve domain flexibility without exposing Intelliconf DTOs.
 
-4. **Model relationship resolution separately.** Runtime-oriented queries such as department leader, supervising leader, role members, and organization chain use a semantic relation code and a context object. The UI can discover these strategies, while engine strategy implementations remain responsible for invoking the host provider during execution.
+4. **Model relationship resolution separately.** Runtime-oriented queries such as department leader, supervising leader, role members, organization members, and organization chain use a semantic relation code and a context object. The core engine invokes the host provider during execution and converts the returned subjects into final task permission identifiers.
 
 5. **Single 1.0 contract.** The fork starts at 1.0.0, so `HandlerSelectService`, `HandlerDictService`, `CategoryService`, `FormPathService`, `NodeExtService`, and `ListenerListService` plus their REST operations are removed. All business-provided designer data is queried through `DesignerDataProvider`; no fallback branch is retained.
 
@@ -38,20 +37,28 @@ Flovira is a Java 8 SDK with optional framework adapters. The core engine must r
 
 7. **Frontend providers receive defaults, then capabilities narrow them.** Both npm packages export identical contract types. Missing `capabilities()` means the complete built-in Flovira feature set for backward compatibility; an explicit manifest filters palette entries and option sets.
 
+8. **Persist one versioned approver rule in node extensions.** Vue and React serialize the same `approverRule` object containing a semantic strategy, selection type, optional relation type, typed subject references, and an optional expression. The existing node `ext` column carries this configuration, so no task or node table migration is required. Runtime keeps `permissionFlag` as a read fallback for definitions created before this contract.
+
+9. **Resolve rules before task persistence.** `USER` subjects resolve directly. `ROLE` and `ORGANIZATION` subjects delegate to `ROLE_MEMBERS` and `ORGANIZATION_MEMBERS`. `EXPRESSION` is passed into the existing handler-expression pipeline. Flovira validates provider output, removes duplicate identifiers, and rejects an empty resolved approver set so a task cannot be created with no eligible handler.
+
+10. **Use semantic strategy values everywhere.** Java, Vue, and React use `USER`, `ROLE`, `ORGANIZATION`, and `EXPRESSION`; numeric designer-only aliases are not part of the 1.0 contract. Both designers query selectable resources through the same provider methods and store the same JSON shape.
+
+11. **Make the Spring controller replaceable by subclass.** The Spring Web configuration creates the built-in `FloviraController` only when no Bean of that type or a subtype exists. A host can therefore add arbitrary class annotations, override selected endpoints for method annotations or relationship authorization, and inherit the rest without copying the complete bridge.
+
 ## Risks / Trade-offs
 
 - [Generic resource metadata can become weakly typed] -> Keep required identity/display fields typed and isolate host-specific values in `metadata`.
 - [Capability codes can drift between Java and TypeScript] -> Add matching constants/default manifests and contract-focused tests in both packages.
 - [Removing prototype APIs requires all in-repo clients to move together] -> Update both backend bridge and designer packages in the same change and verify no legacy symbols remain.
 - [Configurable mappings can surprise clients] -> Keep `/flovira` as the default and document the host override.
-- [Runtime relationship integration is broader than designer transport] -> Define the relation contract now, but wire individual approval strategies incrementally without making Spring Web part of execution.
+- [A host relation provider can return invalid or empty subjects] -> Validate results in core and fail task creation explicitly instead of producing an unclaimable task.
 
 ## Migration Plan
 
 1. Implement the capability and data providers in the host application.
 2. Configure `flovira.ui-api-prefix` when the host needs a route such as `/admin/v1/flovira`.
 3. Point Vue or React at the host bridge, or inject an in-process/custom HTTP provider.
-4. Implement runtime approver strategies against the relationship provider as those strategies are adopted.
+4. Existing definitions without `approverRule` continue to use `permissionFlag`; newly saved definitions use the versioned rule.
 
 Rollback consists of reverting the 1.0 integration as a unit; there is no legacy facade.
 

@@ -16,9 +16,10 @@
 package com.luokuiai.flovira.ui.config;
 
 import com.luokuiai.flovira.ui.controller.FloviraController;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 /**
  * 工作流设计器配置类
@@ -27,6 +28,16 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @ConditionalOnProperty(value = "flovira.ui", havingValue = "true", matchIfMissing = true)
-@Import(FloviraController.class)
 public class FloviraUiConfig {
+
+    /**
+     * 注册默认设计器接口。业务提供 {@link FloviraController} 子类 Bean 时自动让位。
+     *
+     * @return 默认设计器 Controller
+     */
+    @Bean
+    @ConditionalOnMissingBean(FloviraController.class)
+    public FloviraController floviraController() {
+        return new FloviraController();
+    }
 }

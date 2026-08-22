@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   DEFAULT_DESIGNER_CAPABILITIES,
+  createApproverRule,
   filterPaletteNodes,
   unwrapData,
 } from './contracts'
@@ -24,5 +25,18 @@ describe('designer integration contract', () => {
   test('unwraps REST envelopes and direct provider results', () => {
     expect(unwrapData({ data: DEFAULT_DESIGNER_CAPABILITIES })).toBe(DEFAULT_DESIGNER_CAPABILITIES)
     expect(unwrapData(DEFAULT_DESIGNER_CAPABILITIES)).toBe(DEFAULT_DESIGNER_CAPABILITIES)
+  })
+
+  test('creates the same semantic approver rule used by the runtime contract', () => {
+    expect(createApproverRule('ROLE', [
+      { id: 'role:finance', type: 'ROLE', name: '财务角色' },
+    ])).toEqual({
+      schemaVersion: 1,
+      strategy: 'ROLE',
+      selectionType: 'RESOURCE',
+      relationType: undefined,
+      subjects: [{ id: 'role:finance', type: 'ROLE', name: '财务角色' }],
+      expression: undefined,
+    })
   })
 })

@@ -13,25 +13,20 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.luokuiai.flovira.core.handler;
-
-import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
-import com.luokuiai.flovira.core.dto.BusinessSubject;
-
-import java.util.List;
+package com.luokuiai.flovira.core.constant;
 
 /**
- * 业务组织关系查询扩展点，由审批人策略调用，流程执行语义由 Flovira 负责。
+ * 审批人策略语义编码。
  *
  * @author warm
  */
-public interface BusinessRelationProvider {
+public final class ApproverStrategy {
 
-    String DEPARTMENT_LEADER = "DEPARTMENT_LEADER";
-    String SUPERVISING_LEADER = "SUPERVISING_LEADER";
-    String ROLE_MEMBERS = "ROLE_MEMBERS";
-    String ORGANIZATION_MEMBERS = "ORGANIZATION_MEMBERS";
-    String ORGANIZATION_CHAIN = "ORGANIZATION_CHAIN";
+    public static final String USER = "USER";
+    public static final String ROLE = "ROLE";
+    public static final String ORGANIZATION = "ORGANIZATION";
+    public static final String EXPRESSION = "EXPRESSION";
 
-    List<BusinessSubject> resolveRelationship(BusinessRelationQuery query);
+    private ApproverStrategy() {
+    }
 }

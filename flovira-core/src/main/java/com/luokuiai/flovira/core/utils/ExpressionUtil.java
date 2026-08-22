@@ -84,6 +84,7 @@ public class ExpressionUtil {
         }
         Map<String, Object> variable = flowParams.getVariable();
         addTasks.forEach(addTask -> {
+            boolean resolvedApproverRule = ApproverRuleUtil.isResolved(addTask.getPermissionList());
             List<String> permissions = addTask.getPermissionList().stream()
                     .map(s -> evalVariable(s, variable)).filter(Objects::nonNull)
                     .flatMap(List::stream)
@@ -92,7 +93,7 @@ public class ExpressionUtil {
 
             // 转换办理人，比如设计器中预设了能办理的人，如果其中包含角色或者部门id等，可以通过此接口进行转换成用户id
             PermissionHandler permissionHandler = FlowEngine.permissionHandler();
-            if (permissionHandler != null) {
+            if (!resolvedApproverRule && permissionHandler != null) {
                 try {
                     permissions = permissionHandler.convertPermissions(permissions);
                 } catch (Exception ignored) {

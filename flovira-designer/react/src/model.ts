@@ -1,4 +1,8 @@
 import type {
+  ApproverRule,
+  ApproverStrategy,
+  ApproverSubject,
+  DesignerApproverStrategy,
   DesignerCapabilities,
   FloviraDefinition,
   FloviraNode,
@@ -10,7 +14,12 @@ import type {
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7'],
-  approverStrategies: ['USER', 'ROLE', 'ORGANIZATION', 'EXPRESSION'],
+  approverStrategies: [
+    { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true },
+    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true },
+    { code: 'ORGANIZATION', name: '组织', selectionType: 'RESOURCE', resourceType: 'ORGANIZATION', relationType: 'ORGANIZATION_MEMBERS', multiple: true },
+    { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false },
+  ],
   approvalModes: ['OR', 'VOTE', 'COUNTERSIGN'],
   returnPolicies: ['PREVIOUS', 'ANY', 'REJECT'],
   timeoutNodeTypes: ['1', '7'],
@@ -26,16 +35,8 @@ export const filterNodeTypes = (
   capabilities: DesignerCapabilities,
 ): FloviraNodeType[] => nodeTypes.filter((type) => capabilities.nodeTypes.includes(type))
 
-const APPROVER_STRATEGY_META: Record<string, { label: string; value: string }> = {
-  USER: { label: '用户', value: '1' },
-  ROLE: { label: '角色', value: '2' },
-  ORGANIZATION: { label: '组织', value: '3' },
-  EXPRESSION: { label: '表达式', value: '4' },
-}
-
 export const approverStrategyOptions = (capabilities: DesignerCapabilities) =>
-  capabilities.approverStrategies.map((code) => APPROVER_STRATEGY_META[code]
-    || { label: code, value: code })
+  capabilities.approverStrategies.map((strategy) => ({ label: strategy.name, value: strategy.code }))
 
 const NODE_NAMES: Record<FloviraNodeType, string> = {
   '0': '开始',
@@ -281,6 +282,39 @@ export const setNodeExtConfig = (
   return { ...node, ext: JSON.stringify(ext) }
 }
 
+export const getApproverRule = (node: FloviraNode): ApproverRule => {
+  const config = getNodeExtConfig(node, 'approverRule')
+  return {
+    schemaVersion: 1,
+    strategy: String(config.strategy || 'USER'),
+    selectionType: (config.selectionType || (config.strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE')) as ApproverRule['selectionType'],
+    relationType: config.relationType ? String(config.relationType) : undefined,
+    subjects: Array.isArray(config.subjects) ? config.subjects as ApproverSubject[] : [],
+    expression: String(config.expression || ''),
+  }
+}
+
+export const setApproverRule = (
+  node: FloviraNode,
+  strategy: ApproverStrategy | string,
+  subjects: ApproverSubject[] = [],
+  expression = '',
+  relationType?: string,
+  selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
+): FloviraNode => setNodeExtConfig(node, 'approverRule', {
+  schemaVersion: 1,
+  strategy,
+  selectionType,
+  relationType,
+  subjects,
+  expression: strategy === 'EXPRESSION' ? expression : undefined,
+})
+
+export const findApproverStrategy = (
+  capabilities: DesignerCapabilities,
+  code: string,
+): DesignerApproverStrategy | undefined => capabilities.approverStrategies.find((strategy) => strategy.code === code)
+
 export const getWaitConfig = (node: FloviraNode): Record<string, unknown> =>
   getNodeExtConfig(node, 'waitConfig')
 
@@ -333,6 +367,18 @@ export const validateDefinition = (definition: FloviraDefinition): FlowValidatio
     }
     if (node.nodeType === '6' && !String(getSubprocessConfig(node).fixedChildFlowCode || '').trim()) {
       issues.push({ code: 'SUBPROCESS_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 未选择固定子流程` })
+    }
+    if (node.nodeType === '1') {
+      const configured = getNodeExtConfig(node, 'approverRule')
+      if (Object.keys(configured).length > 0) {
+      const approver = getApproverRule(node)
+      const invalid = approver.strategy === 'EXPRESSION'
+        ? !String(approver.expression || '').trim()
+        : approver.selectionType === 'RESOURCE' && approver.subjects.length === 0
+        if (invalid) {
+          issues.push({ code: 'APPROVER_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 未配置办理人` })
+        }
+      }
     }
     if (node.nodeType === '7' && !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/.test(String(getWaitConfig(node).waitKey || ''))) {
       issues.push({ code: 'WAIT_KEY_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 的等待标识无效` })

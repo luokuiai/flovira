@@ -33,7 +33,7 @@
 ## 技术基线
 
 - **JDK 1.8 源码级**：Gradle Java convention 默认锁定 source/target 8，Jackson 3 与 Spring Boot 4 模块单独使用 Java 17 convention。主代码**禁止使用 Java 9+ 的语法与 API**（详见「兼容性红线」）。
-- **Spring Boot 生态**：并行支持 Spring Boot 2.7.18 / 3.0.1 / 4.0.2，对应 `sb` / `sb3` / `sb4` 后缀的 starter。
+- **Spring Boot 生态**：并行支持 Spring Boot 2.7.18 / 3.5.16 / 4.0.2，对应 `sb` / `sb3` / `sb4` 后缀的 starter。
 - **多 ORM**：MyBatis 3.5.15（mybatis-spring-boot 2.3.2）、MyBatis-Plus 3.5.12、Easy-Query 3.1.79；README 另提到 JPA / BeetlSql 等生态由社区扩展。
 - **多 JSON**：snack3 3.2.139、snack4 4.0.8、jackson 2.13.5、jackson3 3.0.4、fastjson2 2.0.43、gson 2.9.0。
 - **多数据库**：MySQL、Oracle、PostgreSQL、SQL Server（其它库转换表结构即可）。

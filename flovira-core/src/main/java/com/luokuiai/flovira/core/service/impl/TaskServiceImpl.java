@@ -571,7 +571,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             .setCreateTime(now)
             .setPermissionList(NodeType.isWait(node.getNodeType())
                 ? Collections.<String>emptyList()
-                : StringUtils.str2List(node.getPermissionFlag(), FlowCons.SPLIT_AT));
+                : ApproverRuleUtil.resolve(node, flowParams));
 
         TimeoutConfigUtil.applySnapshot(node, addTask, now);
 

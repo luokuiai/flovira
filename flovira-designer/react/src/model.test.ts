@@ -7,12 +7,14 @@ import {
   deleteNode,
   filterNodeTypes,
   getSubprocessConfig,
+  getApproverRule,
   getTimeoutConfig,
   getWaitConfig,
   insertNodeAfter,
   normalizeDefinition,
   serializeDefinition,
   setSubprocessConfig,
+  setApproverRule,
   setTimeoutConfig,
   setWaitConfig,
   updateNode,
@@ -24,14 +26,18 @@ describe('Flovira definition model', () => {
     const capabilities = {
       ...DEFAULT_DESIGNER_CAPABILITIES,
       nodeTypes: ['0', '1', '2', '6'] as typeof DEFAULT_DESIGNER_CAPABILITIES.nodeTypes,
-      approverStrategies: ['USER', 'EXPRESSION', 'PROJECT_OWNER'],
+      approverStrategies: [
+        { code: 'USER', name: '用户', selectionType: 'RESOURCE' as const, resourceType: 'USER', multiple: true },
+        { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION' as const, multiple: false },
+        { code: 'PROJECT_OWNER', name: '项目负责人', selectionType: 'RELATION' as const, relationType: 'PROJECT_OWNER', multiple: false },
+      ],
     }
 
     expect(filterNodeTypes(['1', '7', '6', '3'], capabilities)).toEqual(['1', '6'])
     expect(approverStrategyOptions(capabilities)).toEqual([
-      { label: '用户', value: '1' },
-      { label: '表达式', value: '4' },
-      { label: 'PROJECT_OWNER', value: 'PROJECT_OWNER' },
+      { label: '用户', value: 'USER' },
+      { label: '表达式', value: 'EXPRESSION' },
+      { label: '项目负责人', value: 'PROJECT_OWNER' },
     ])
   })
 
@@ -89,6 +95,22 @@ describe('Flovira definition model', () => {
       completionPolicy: 'ALL',
     })
     expect(JSON.parse(String(configured.ext))).toContainEqual({ code: 'future', value: 'kept' })
+  })
+
+  test('round trips the shared semantic approver rule', () => {
+    const node = setApproverRule(createNode('1'), 'ROLE', [
+      { id: 'role:finance', type: 'ROLE', name: '财务角色' },
+    ])
+
+    expect(getApproverRule(node)).toEqual({
+      schemaVersion: 1,
+      strategy: 'ROLE',
+      selectionType: 'RESOURCE',
+      relationType: undefined,
+      subjects: [{ id: 'role:finance', type: 'ROLE', name: '财务角色' }],
+      expression: '',
+    })
+    expect(JSON.parse(String(node.ext))).toContainEqual(expect.objectContaining({ code: 'approverRule' }))
   })
 
   test('validates a 128 business-node definition without truncation', () => {

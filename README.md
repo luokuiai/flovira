@@ -1,7 +1,11 @@
 # Flovira
 
-Flovira 是一个轻量、可扩展的 Java 工作流引擎，提供流程定义、任务流转、
-条件表达式、监听器、多租户、多 ORM 适配以及可嵌入的 Vue 3 流程设计器。
+Flovira is a lightweight and extensible Java workflow engine. It provides
+process definitions, task transitions, conditional expressions, listeners,
+multi-tenancy, multiple ORM integrations, and embeddable Vue and React process
+designers.
+
+Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 
 ```text
     ______ _            _
@@ -12,28 +16,29 @@ Flovira 是一个轻量、可扩展的 Java 工作流引擎，提供流程定义
    |_|    |_|\___/ \_/ |_|_|  \__,_|
 ```
 
-## 技术基线
+## Technology Baseline
 
-- Java 8 源码兼容，支持在 Java 8、17 和 21 环境集成
-- Spring Boot 2、3、4
-- MyBatis、MyBatis-Plus、Easy-Query
-- MySQL、Oracle、PostgreSQL、SQL Server
+- Java 8 source compatibility, with integration support for Java 8, 17, and 21
+- Spring Boot 2.7.18, 3.5.16, and 4.0.2
+- MyBatis, MyBatis-Plus, and Easy-Query
+- MySQL, Oracle, PostgreSQL, and SQL Server
 - Apache License 2.0
 
-## 模块
+## Modules
 
-| 模块 | 说明 |
+| Module | Description |
 | --- | --- |
-| `flovira-core` | 框架和 ORM 无关的流程引擎核心 |
-| `flovira-orm` | MyBatis、MyBatis-Plus、Easy-Query 适配 |
-| `flovira-plugin` | 表达式、JSON 和流程设计器插件 |
-| `flovira-designer/vue` | Vue 3 流程设计器组件库（`@luokuiai/flovira-vue-designer`） |
-| `flovira-designer/react` | React 流程设计器组件库（`@luokuiai/flovira-react-designer`） |
-| `flovira-designer/examples` | Vue / React 集成示例 |
+| `flovira-core` | Framework-independent and ORM-independent workflow engine core |
+| `flovira-orm` | MyBatis, MyBatis-Plus, and Easy-Query integrations |
+| `flovira-plugin` | Expression, JSON, and process designer plugins |
+| `flovira-designer/vue` | Vue 3 designer package (`@luokuiai/flovira-vue-designer`) |
+| `flovira-designer/react` | React designer package (`@luokuiai/flovira-react-designer`) |
+| `flovira-designer/examples` | Vue and React integration examples |
 
-## 构建
+## Build
 
-Jackson 3 和 Spring Boot 4 模块要求使用 JDK 17 或更高版本执行全量构建。
+A full build requires JDK 17 or later because the Jackson 3 and Spring Boot 4
+modules use a Java 17 baseline.
 
 ```bash
 ./gradlew clean build
@@ -41,62 +46,58 @@ bun install
 bun run build
 ```
 
-## Maven 坐标
+## Maven Coordinates
 
-当前制品使用 `com.luokuiai` groupId。仓库尚未发布到公共 Maven 仓库，需先安装到本地仓库。
+All artifacts use the `com.luokuiai` group ID. Until a release is available
+from Maven Central, publish the artifacts to your local Maven repository.
 
-Spring Boot 3 + MyBatis：
+Spring Boot 3 with MyBatis:
 
 ```xml
 <dependency>
     <groupId>com.luokuiai</groupId>
     <artifactId>flovira-mybatis-sb3-starter</artifactId>
-<version>1.0.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
-Spring Boot 3 + MyBatis-Plus：
+Spring Boot 3 with MyBatis-Plus:
 
 ```xml
 <dependency>
     <groupId>com.luokuiai</groupId>
     <artifactId>flovira-mybatis-plus-sb3-starter</artifactId>
-<version>1.0.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
-配置统一使用 `flovira` 前缀：
+All configuration properties use the `flovira` prefix:
 
 ```yaml
 flovira:
   enabled: true
   banner: true
-  # 单个子流程节点每次最多启动的子实例数，默认 128，必须配置为正整数
+  # Maximum child instances started by one subprocess node. Must be positive.
   subprocess-max-children: 128
   timeout:
     enabled: false
-    # 超时任务扫描间隔，单位秒
+    # Timeout scan interval in seconds.
     scan-interval-seconds: 60
     batch-size: 100
     claim-timeout-millis: 300000
-    # 多个应用共用 Redis 时应配置不同的锁键
+    # Use a distinct lock key when multiple applications share Redis.
     scheduler-lock-key: flovira:timeout:scheduler
 ```
 
-启用超时任务后，Spring 环境存在 `StringRedisTemplate` Bean 时会自动优先使用 Redis
-调度锁。Redis 未配置或暂时不可用时，引擎继续使用数据库原子任务领取，保证同一超时任务不会被重复执行。
+When timeout processing is enabled, a Spring application automatically prefers
+a Redis scheduler lock if a `StringRedisTemplate` bean is available. If Redis
+is not configured or temporarily unavailable, the engine continues to use
+atomic database task claiming to prevent duplicate timeout processing.
 
-Java 根包名为 `com.luokuiai.flovira`。
+The Java root package is `com.luokuiai.flovira`.
 
-## 数据库
+## Database
 
-全量建表脚本位于 `sql/<database>/`。数据库表继续使用通用的 `flow_*` 前缀，
-避免品牌变化影响既有流程数据结构。
-
-## 上游项目
-
-Flovira 基于 [Dromara WarmFlow](https://github.com/dromara/warm-flow) 开发，保留原项目
-Git 历史、Apache 2.0 许可证、源文件版权声明和作者归属。WarmFlow 上游仓库在本地配置为
-`upstream` remote，便于持续同步上游修复。
-
-本 Fork 的品牌、Maven 坐标、Java 包名、配置前缀和设计器制品名已调整为 Flovira。
+Full initialization scripts are available under `sql/<database>/`. Database
+tables use the generic `flow_*` prefix to keep the persisted workflow schema
+independent of application branding.

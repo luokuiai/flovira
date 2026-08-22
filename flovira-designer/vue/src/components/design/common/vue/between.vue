@@ -173,13 +173,22 @@
       <div v-show="tabsValue === '2'" class="tabPane tabPane-full">
         <div class="section-card section-blue">
           <div class="section-card-body">
+              <wf-form-item :label="t('common.type')">
+                <wf-select v-model="approverStrategy" :disabled="disabled" @change="handleApproverStrategyChange">
+                  <wf-option v-for="strategy in approverStrategies" :key="strategy.code" :label="strategy.name" :value="strategy.code" />
+                </wf-select>
+              </wf-form-item>
+              <wf-form-item v-if="approverStrategyDescriptor?.selectionType === 'EXPRESSION'" :label="t('between.handlerExpression')">
+                <wf-input v-model="approverExpression" :disabled="disabled" @change="syncApproverRule" />
+              </wf-form-item>
+              <template v-else-if="approverStrategyDescriptor?.selectionType === 'RESOURCE'">
               <wf-table :data="permissionRows" style="width: 100%;" class="inputGroup handler-table-mobile"
                   :table-layout="isMobile ? 'fixed' : 'auto'"
               >
                   <wf-table-column prop="storageId" :label="t('between.handlerStorageId')" :width="isMobile ? undefined : 250">
                       <template #default="scope">
                           <wf-form-item prop="storageId">
-                              <wf-input v-model="scope.row.storageId" style="width: 100%;" @blur="event => inputBlur(event, scope.$index)"></wf-input>
+                              <wf-input v-model="scope.row.storageId" disabled style="width: 100%;"></wf-input>
                           </wf-form-item>
                       </template>
                   </wf-table-column>
@@ -191,9 +200,9 @@
                   </wf-table-column>
               </wf-table>
               <div class="action-buttons">
-                <wf-button v-if="!disabled" class="add-row-btn" @click="addPermission">{{ t('between.addRowHandler') }}</wf-button>
                 <wf-button v-if="!disabled" class="add-row-btn add-row-btn-secondary" @click="initUser">{{ t('between.selectHandler') }}</wf-button>
               </div>
+              </template>
           </div>
         </div>
       </div>
@@ -260,7 +269,9 @@
     <wf-dialog :title="t('between.userSelectTitle')" v-if="userVisible" v-model="userVisible" :width="isMobile ? '96%' : '80%'" append-to-body
       class="person-select-dialog" :class="{ 'mobile-user-dialog': isMobile }"
     >
-      <selectUser v-model:selectUser="form.permissionFlag" v-model:userVisible="userVisible" :permissionRows="permissionRows" @handleUserSelect="handleUserSelect"></selectUser>
+      <selectUser v-model:selectUser="form.permissionFlag" v-model:userVisible="userVisible" :permissionRows="permissionRows"
+        :resource-type="approverStrategyDescriptor?.resourceType" :multiple="approverStrategyDescriptor?.multiple"
+        @handleUserSelect="handleUserSelect"></selectUser>
     </wf-dialog>
   </div>
 </template>
@@ -268,12 +279,13 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, reactive, ref, watch } from 'vue';
 import selectUser from "./selectUser.vue";
-import {designerResourceItems, designerSubjects} from "@/api/flow/definition";
+import {designerCapabilities, designerResourceItems, designerSubjects} from "@/api/flow/definition";
 import nodeExtList from "./nodeExtList.vue";
 import NodeTimeout from "./nodeTimeout.vue";
 import {getPreviousNodes} from "@/components/design/common/js/tool";
 import {getFramework} from "@/utils/auth";
 import { useI18n } from '@/i18n';
+import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy } from '@/data/contracts';
 
 defineOptions({ name: 'Between' });
 
@@ -327,6 +339,10 @@ const baseList = ref<any[]>([]);
 //按钮权限
 const buttonList = ref<Record<string, any>>({});
 const permissionRows = ref<any[]>([]); // 办理人表格
+const approverStrategies = ref<DesignerApproverStrategy[]>(DEFAULT_DESIGNER_CAPABILITIES.approverStrategies);
+const approverStrategy = ref('USER');
+const approverExpression = ref('');
+const approverStrategyDescriptor = computed(() => approverStrategies.value.find(item => item.code === approverStrategy.value));
 const ListenerVo = ref<any[]>([]); // 监听器列表
 const emit = defineEmits<{ (e: 'update:modelValue', value: any): void }>();
 
@@ -477,17 +493,8 @@ function handleClear() {
 function delPermission(index: number) {
   form.value.permissionFlag.splice(index, 1);
   permissionRows.value.splice(index, 1);
+  syncApproverRule();
 }
-// 添加办理人
-function addPermission() {
-  form.value.permissionFlag.push("");
-  permissionRows.value.push({ storageId: "", handlerName: "" });
-}
-// 办理人手动输入，失焦获取权限名称
-function inputBlur(event: any, index: number) {
-  form.value.permissionFlag[index] = event.target.value;
-}
-
 // 添加在其他函数后面
 function handleTabChange(activeTabName: string) {
     // 可以根据不同的 tab 做相应处理
@@ -511,6 +518,23 @@ function handleTabChange(activeTabName: string) {
 
 /** 选择角色权限范围触发 */
 function getPermissionFlag() {
+  const rawRule = form.value.ext?.approverRule;
+  if (rawRule) {
+    try {
+      const rule = typeof rawRule === 'string' ? JSON.parse(rawRule) : rawRule;
+      approverStrategy.value = rule.strategy || 'USER';
+      approverExpression.value = rule.expression || '';
+      form.value.permissionFlag = (rule.subjects || []).map((subject: any) => subject.id);
+      permissionRows.value = (rule.subjects || []).map((subject: any) => ({
+        storageId: subject.id,
+        handlerName: subject.name || subject.id,
+        resourceType: subject.type,
+      }));
+      return;
+    } catch (e) {
+      // 非法规则交给后端定义校验，设计器继续按旧权限字段回显。
+    }
+  }
   const pf = form.value.permissionFlag;
   form.value.permissionFlag = (typeof pf === 'string' && pf) ? pf.split("@@") : [""];
   if (form.value.listenerType && typeof form.value.listenerType === 'string') {
@@ -526,6 +550,9 @@ function getPermissionFlag() {
 
 /** 办理人权限名称回显 */
 async function getHandlerFeedback() {
+  if (permissionRows.value.length > 0) {
+      return;
+  }
   if (form.value.permissionFlag) {
       permissionRows.value = await designerSubjects(form.value.permissionFlag);
   }
@@ -613,7 +640,35 @@ function handleUserSelect(checkedItemList: any[]) {
 
   // 办理人表格展示
   permissionRows.value = checkedItemList;
+  syncApproverRule();
 }
+
+function syncApproverRule() {
+  const descriptor = approverStrategyDescriptor.value;
+  const subjects = descriptor?.selectionType !== 'RESOURCE' ? [] : permissionRows.value
+    .filter(item => item.storageId)
+    .map(item => ({ id: item.storageId, type: descriptor.resourceType, name: item.handlerName }));
+  const rule = {
+    schemaVersion: 1,
+    strategy: approverStrategy.value,
+    selectionType: descriptor?.selectionType,
+    relationType: descriptor?.relationType,
+    subjects,
+    expression: descriptor?.selectionType === 'EXPRESSION' ? approverExpression.value : undefined,
+  };
+  form.value.ext = Object.assign({}, form.value.ext, { approverRule: JSON.stringify(rule) });
+}
+
+function handleApproverStrategyChange() {
+  form.value.permissionFlag = [];
+  permissionRows.value = [];
+  approverExpression.value = '';
+  syncApproverRule();
+}
+
+designerCapabilities().then(response => {
+  approverStrategies.value = unwrapData(response)?.approverStrategies || DEFAULT_DESIGNER_CAPABILITIES.approverStrategies;
+});
 
 // 增加行
 function handleAddRow() {

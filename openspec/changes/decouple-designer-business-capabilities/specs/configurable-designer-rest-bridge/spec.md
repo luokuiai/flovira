@@ -28,3 +28,14 @@ The REST bridge SHALL delegate authentication and authorization to the host appl
 #### Scenario: Protected host route
 - **WHEN** the host protects its configured designer prefix
 - **THEN** Flovira does not bypass or replace the host security policy
+
+### Requirement: Extensible default controller
+The Spring Web bridge SHALL register its built-in controller only when the host has not declared a `FloviraController` or subclass Bean.
+
+#### Scenario: Use the built-in controller
+- **WHEN** UI endpoints are enabled and the host declares no custom controller
+- **THEN** Flovira registers the complete built-in controller with the configured API prefix
+
+#### Scenario: Host extends the controller
+- **WHEN** the host declares a `FloviraController` subclass Bean with business annotations or overridden endpoints
+- **THEN** Flovira does not register the default controller and the host subclass retains all inherited endpoints

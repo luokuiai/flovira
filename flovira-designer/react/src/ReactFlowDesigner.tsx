@@ -39,6 +39,8 @@ import {
   DEFAULT_DESIGNER_CAPABILITIES,
   deleteNode,
   filterNodeTypes,
+  findApproverStrategy,
+  getApproverRule,
   getSubprocessConfig,
   getTimeoutConfig,
   getWaitConfig,
@@ -47,12 +49,14 @@ import {
   normalizeDefinition,
   serializeDefinition,
   setSubprocessConfig,
+  setApproverRule,
   setTimeoutConfig,
   setWaitConfig,
   updateNode,
   validateDefinition,
 } from './model'
 import type {
+  ApproverSubject,
   DesignerCapabilities,
   FloviraDefinition,
   FloviraNode,
@@ -60,6 +64,7 @@ import type {
   ReactFlowDesignerProps,
   ReactFlowDesignerRef,
   DesignerResourcePage,
+  DesignerResourceItem,
   SubprocessDefinition,
 } from './types'
 
@@ -93,6 +98,13 @@ const extractSubprocesses = (
   }))
 }
 
+const extractResourcePage = (
+  value: DesignerResourcePage | { data?: DesignerResourcePage },
+): DesignerResourcePage => {
+  const envelope = value as { data?: DesignerResourcePage }
+  return envelope.data || value as DesignerResourcePage || { items: [], total: 0 }
+}
+
 const extractCapabilities = (
   value: DesignerCapabilities | { data?: DesignerCapabilities },
 ): DesignerCapabilities => {
@@ -109,7 +121,9 @@ const summaryFor = (node: FloviraNode, subprocesses: SubprocessDefinition[]): st
   }
   if (node.nodeType === '7') return String(getWaitConfig(node).waitKey || '未配置等待标识')
   if (['3', '4', '5'].includes(node.nodeType)) return `${node.skipList.length} 条分支`
-  return String(node.handlerPath || '未配置办理人')
+  const rule = getApproverRule(node)
+  if (rule.strategy === 'EXPRESSION') return rule.expression || '未配置办理人'
+  return rule.subjects.map((subject) => subject.name || subject.id).join('、') || '未配置办理人'
 }
 
 export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesignerProps>(
@@ -138,6 +152,11 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const [subprocesses, setSubprocesses] = useState<SubprocessDefinition[]>([])
     const [subprocessState, setSubprocessState] = useState<'idle' | 'loading' | 'error'>('idle')
     const [capabilities, setCapabilities] = useState<DesignerCapabilities>(DEFAULT_DESIGNER_CAPABILITIES)
+    const [approverKeyword, setApproverKeyword] = useState('')
+    const [approverPage, setApproverPage] = useState(1)
+    const [approverResources, setApproverResources] = useState<DesignerResourceItem[]>([])
+    const [approverTotal, setApproverTotal] = useState(0)
+    const [approverResourceState, setApproverResourceState] = useState<'idle' | 'loading' | 'error'>('idle')
     const canvasRef = useRef<HTMLDivElement>(null)
     const importRef = useRef<HTMLInputElement>(null)
     const lastEmittedJsonRef = useRef<string | null>(null)
@@ -247,6 +266,39 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     }), [commit, definition, dirty, locateStart, redo, undo])
 
     const selectedNode = definition.nodeList.find((node) => node.nodeCode === selectedCode)
+    const selectedApproverRule = selectedNode?.nodeType === '1' ? getApproverRule(selectedNode) : null
+    const selectedApproverStrategy = selectedApproverRule
+      ? findApproverStrategy(capabilities, selectedApproverRule.strategy)
+      : undefined
+    useEffect(() => {
+      if (!selectedNode || selectedNode.nodeType !== '1'
+        || selectedApproverStrategy?.selectionType !== 'RESOURCE'
+        || !selectedApproverStrategy.resourceType
+        || !dataProvider?.queryResources) {
+        setApproverResources([])
+        setApproverTotal(0)
+        setApproverResourceState('idle')
+        return
+      }
+      let active = true
+      setApproverResourceState('loading')
+      dataProvider.queryResources({
+        resourceType: selectedApproverStrategy.resourceType,
+        keyword: approverKeyword || undefined,
+        pageNum: approverPage,
+        pageSize: 20,
+      }).then((response) => {
+        if (!active) return
+        const page = extractResourcePage(response)
+        setApproverResources(page.items || [])
+        setApproverTotal(page.total || 0)
+        setApproverResourceState('idle')
+      }).catch(() => {
+        if (active) setApproverResourceState('error')
+      })
+      return () => { active = false }
+    }, [approverKeyword, approverPage, dataProvider, selectedCode,
+      selectedApproverStrategy?.code, selectedApproverStrategy?.resourceType, selectedApproverStrategy?.selectionType])
     const nodeMap = useMemo(
       () => new Map(definition.nodeList.map((node) => [node.nodeCode, node])),
       [definition],
@@ -510,16 +562,92 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               {selectedNode.nodeType === '1' && (
                 <>
                   <Field label="办理人类型">
-                    <select value={String(selectedNode.handlerType || '')} disabled={disabled} onChange={(event) => changeSelected({ handlerType: event.target.value })}>
-                      <option value="">请选择</option>
+                    <select
+                      value={String(selectedApproverRule?.strategy || 'USER')}
+                      disabled={disabled}
+                      onChange={(event) => {
+                        const strategy = findApproverStrategy(capabilities, event.target.value)
+                        setApproverKeyword('')
+                        setApproverPage(1)
+                        commit(updateNode(definition, selectedNode.nodeCode,
+                          setApproverRule(selectedNode, event.target.value, [], '', strategy?.relationType,
+                            strategy?.selectionType || 'RESOURCE')))
+                      }}
+                    >
                       {approverStrategyOptions(capabilities).map((strategy) => (
                         <option key={strategy.value} value={strategy.value}>{strategy.label}</option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="办理人值">
-                    <input value={String(selectedNode.handlerPath || '')} disabled={disabled} placeholder="用户、角色或表达式" onChange={(event) => changeSelected({ handlerPath: event.target.value })} />
-                  </Field>
+                  {selectedApproverStrategy?.selectionType === 'EXPRESSION' ? (
+                    <Field label="办理人表达式">
+                      <input
+                        value={String(selectedApproverRule?.expression || '')}
+                        disabled={disabled}
+                        placeholder="例如 ${approverIds}"
+                        onChange={(event) => commit(updateNode(definition, selectedNode.nodeCode,
+                          setApproverRule(selectedNode, selectedApproverRule?.strategy || 'EXPRESSION', [], event.target.value,
+                            selectedApproverStrategy.relationType, selectedApproverStrategy.selectionType)))}
+                      />
+                    </Field>
+                  ) : selectedApproverStrategy?.selectionType === 'RESOURCE' ? (
+                    <div className="mb-5">
+                      <Field label="搜索办理人">
+                        <input
+                          value={approverKeyword}
+                          disabled={disabled || !dataProvider?.queryResources}
+                          placeholder={`搜索${approverStrategyOptions(capabilities).find((item) => item.value === selectedApproverRule?.strategy)?.label || '办理人'}`}
+                          onChange={(event) => {
+                            setApproverKeyword(event.target.value)
+                            setApproverPage(1)
+                          }}
+                        />
+                      </Field>
+                      <div className="max-h-56 overflow-y-auto border-y border-[var(--frd-border)]">
+                        {approverResourceState === 'loading' && <p className="py-4 text-center text-xs text-[var(--frd-muted)]">加载中...</p>}
+                        {approverResourceState === 'error' && <p className="py-4 text-center text-xs text-rose-600">办理人数据加载失败</p>}
+                        {approverResourceState === 'idle' && approverResources.length === 0 && (
+                          <p className="py-4 text-center text-xs text-[var(--frd-muted)]">暂无可选数据</p>
+                        )}
+                        {approverResources.map((item) => {
+                          const selected = selectedApproverRule?.subjects.some((subject) => subject.id === item.id) || false
+                          return (
+                            <label key={`${item.resourceType}:${item.id}`} className="flex min-h-10 items-center gap-2 border-b border-[var(--frd-border)] px-1 text-xs last:border-b-0">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                disabled={disabled || item.disabled}
+                                onChange={() => {
+                                  const current = selectedApproverRule?.subjects || []
+                                  const subjects: ApproverSubject[] = selected
+                                    ? current.filter((subject) => subject.id !== item.id)
+                                    : selectedApproverStrategy.multiple
+                                      ? [...current, { id: item.id, type: item.resourceType, name: item.name }]
+                                      : [{ id: item.id, type: item.resourceType, name: item.name }]
+                                  commit(updateNode(definition, selectedNode.nodeCode,
+                                    setApproverRule(selectedNode, String(selectedApproverRule?.strategy || 'USER'),
+                                      subjects, '', selectedApproverStrategy.relationType,
+                                      selectedApproverStrategy.selectionType)))
+                                }}
+                              />
+                              <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                              {item.code && <span className="truncate text-[var(--frd-muted)]">{item.code}</span>}
+                            </label>
+                          )
+                        })}
+                      </div>
+                      {approverTotal > 20 && (
+                        <div className="mt-2 flex items-center justify-between text-xs text-[var(--frd-muted)]">
+                          <button type="button" disabled={approverPage <= 1} onClick={() => setApproverPage((page) => Math.max(1, page - 1))}>上一页</button>
+                          <span>{approverPage} / {Math.ceil(approverTotal / 20)}</span>
+                          <button type="button" disabled={approverPage * 20 >= approverTotal} onClick={() => setApproverPage((page) => page + 1)}>下一页</button>
+                        </div>
+                      )}
+                      {selectedApproverRule && selectedApproverRule.subjects.length > 0 && (
+                        <p className="mt-2 text-xs text-[var(--frd-muted)]">已选择：{selectedApproverRule.subjects.map((subject) => subject.name || subject.id).join('、')}</p>
+                      )}
+                    </div>
+                  ) : null}
                 </>
               )}
               {selectedNode.nodeType === '6' && (

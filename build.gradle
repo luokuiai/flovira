@@ -1,0 +1,15 @@
+plugins {
+    id 'base'
+    id 'com.vanniktech.maven.publish.base' version '0.37.0' apply false
+}
+
+subprojects {
+    pluginManager.withPlugin('java-library') {
+        apply plugin: 'com.vanniktech.maven.publish.base'
+
+        mavenPublishing {
+            publishToMavenCentral()
+            signAllPublications()
+        }
+    }
+}

@@ -13,25 +13,31 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.luokuiai.flovira.core.handler;
+package com.luokuiai.flovira.core.dto;
 
-import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
-import com.luokuiai.flovira.core.dto.BusinessSubject;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 业务组织关系查询扩展点，由审批人策略调用，流程执行语义由 Flovira 负责。
+ * 节点审批人规则。
  *
  * @author warm
  */
-public interface BusinessRelationProvider {
+@Getter
+@Setter
+@Accessors(chain = true)
+public class ApproverRule {
 
-    String DEPARTMENT_LEADER = "DEPARTMENT_LEADER";
-    String SUPERVISING_LEADER = "SUPERVISING_LEADER";
-    String ROLE_MEMBERS = "ROLE_MEMBERS";
-    String ORGANIZATION_MEMBERS = "ORGANIZATION_MEMBERS";
-    String ORGANIZATION_CHAIN = "ORGANIZATION_CHAIN";
+    public static final int CURRENT_SCHEMA_VERSION = 1;
 
-    List<BusinessSubject> resolveRelationship(BusinessRelationQuery query);
+    private int schemaVersion = CURRENT_SCHEMA_VERSION;
+    private String strategy;
+    private String selectionType;
+    private String relationType;
+    private List<BusinessSubject> subjects = new ArrayList<BusinessSubject>();
+    private String expression;
 }

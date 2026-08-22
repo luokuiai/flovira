@@ -97,7 +97,7 @@
             </template>
             <wf-table-column width="50" align="center">
               <template #header>
-                <wf-checkbox
+                <wf-checkbox v-if="multiple"
                   v-model="checkAllInfo.isChecked"
                   :indeterminate="checkAllInfo.isIndeterminate"
                   @change="handleCheckAll"
@@ -157,11 +157,17 @@ interface SelectUserProps {
   selectUser?: any[];
   /** 已选办理人行（回显用） */
   permissionRows?: any[];
+  /** 当前审批人策略，选择器只查询对应资源类型 */
+  resourceType?: string;
+  /** 是否允许多选 */
+  multiple?: boolean;
 }
 const props = withDefaults(defineProps<SelectUserProps>(), {
   userVisible: false,
   selectUser: () => [],
   permissionRows: () => [],
+  resourceType: 'USER',
+  multiple: true,
 });
 const emit = defineEmits<{
   (e: 'update:userVisible', visible: boolean): void;

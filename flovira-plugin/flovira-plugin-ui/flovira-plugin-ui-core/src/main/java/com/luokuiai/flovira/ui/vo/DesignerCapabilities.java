@@ -15,6 +15,8 @@
  */
 package com.luokuiai.flovira.ui.vo;
 
+import com.luokuiai.flovira.core.constant.ApproverStrategy;
+import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -37,7 +39,7 @@ public class DesignerCapabilities {
 
     private int schemaVersion = SCHEMA_VERSION;
     private List<String> nodeTypes = new ArrayList<String>();
-    private List<String> approverStrategies = new ArrayList<String>();
+    private List<DesignerApproverStrategy> approverStrategies = new ArrayList<DesignerApproverStrategy>();
     private List<String> approvalModes = new ArrayList<String>();
     private List<String> returnPolicies = new ArrayList<String>();
     private List<String> timeoutNodeTypes = new ArrayList<String>();
@@ -47,7 +49,13 @@ public class DesignerCapabilities {
     public static DesignerCapabilities defaults() {
         return new DesignerCapabilities()
             .setNodeTypes(Arrays.asList("0", "1", "2", "3", "4", "5", "6", "7"))
-            .setApproverStrategies(Arrays.asList("USER", "ROLE", "ORGANIZATION", "EXPRESSION"))
+            .setApproverStrategies(Arrays.asList(
+                DesignerApproverStrategy.resource(ApproverStrategy.USER, "用户", "USER", null),
+                DesignerApproverStrategy.resource(ApproverStrategy.ROLE, "角色", "ROLE",
+                    BusinessRelationProvider.ROLE_MEMBERS),
+                DesignerApproverStrategy.resource(ApproverStrategy.ORGANIZATION, "组织", "ORGANIZATION",
+                    BusinessRelationProvider.ORGANIZATION_MEMBERS),
+                DesignerApproverStrategy.expression(ApproverStrategy.EXPRESSION, "表达式")))
             .setApprovalModes(Arrays.asList("OR", "VOTE", "COUNTERSIGN"))
             .setReturnPolicies(Arrays.asList("PREVIOUS", "ANY", "REJECT"))
             .setTimeoutNodeTypes(Arrays.asList("1", "7"))
