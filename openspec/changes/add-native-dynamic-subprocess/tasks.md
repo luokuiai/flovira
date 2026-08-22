@@ -23,7 +23,6 @@
 
 - [x] 3.1 Implement subprocess entities, mappers and DAOs in `flovira-mybatis-core`, including locking and indexed paging queries.
 - [x] 3.2 Implement equivalent subprocess entities and DAOs in `flovira-mybatis-plus-core`.
-- [x] 3.3 Implement equivalent subprocess entities and DAOs in `flovira-easy-query-core`.
 - [x] 3.4 Wire subprocess suppliers, DAOs and services through all Spring Boot 2/3/4 starters and Solon plugins for each ORM family.
 - [x] 3.5 Implement Spring and Solon transaction executors and verify atomic rollback of partial child initialization/cancellation.
 - [x] 3.6 Run one shared subprocess persistence/lifecycle contract suite against all three ORM adapters.

@@ -6,7 +6,7 @@
 
 ## 2. ORM Alignment
 
-- [x] 2.1 Add `businessType` to MyBatis, MyBatis-Plus and Easy-Query instance entities and query conditions
+- [x] 2.1 Add `businessType` to MyBatis and MyBatis-Plus instance entities and query conditions
 - [x] 2.2 Add batch instance-ID task and history queries to all three ORM implementations
 - [x] 2.3 Update MyBatis mapper interfaces and XML mappings for the new field and batch queries
 

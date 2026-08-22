@@ -25,6 +25,6 @@
 ## Impact
 
 - 核心服务：`WaitService`、`WaitServiceImpl`、`TimeoutServiceImpl`、`TaskService` 与 `TaskServiceImpl`。
-- ORM 契约与实现：`FlowTaskDao` 以及 MyBatis、MyBatis-Plus、Easy-Query 的任务查询实现。
+- ORM 契约与实现：`FlowTaskDao` 以及 MyBatis、MyBatis-Plus 的任务查询实现。
 - 数据库：MySQL、PostgreSQL、Oracle、SQL Server 的任务表索引。
 - 测试：等待快照稳定性、信号与超时竞争、幂等恢复、实例等待任务查询及系统推进。

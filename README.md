@@ -20,7 +20,7 @@ Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 
 - Java 8 source compatibility, with integration support for Java 8, 17, and 21
 - Spring Boot 2.7.18, 3.5.16, and 4.0.2
-- MyBatis, MyBatis-Plus, and Easy-Query
+- MyBatis and MyBatis-Plus
 - MySQL, Oracle, PostgreSQL, and SQL Server
 - Apache License 2.0
 
@@ -29,7 +29,7 @@ Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 | Module | Description |
 | --- | --- |
 | `flovira-core` | Framework-independent and ORM-independent workflow engine core |
-| `flovira-orm` | MyBatis, MyBatis-Plus, and Easy-Query integrations |
+| `flovira-orm` | MyBatis and MyBatis-Plus integrations |
 | `flovira-plugin` | Expression, JSON, and process designer plugins |
 | `flovira-designer/vue` | Vue 3 designer package (`@luokuiai/flovira-vue-designer`) |
 | `flovira-designer/react` | React designer package (`@luokuiai/flovira-react-designer`) |

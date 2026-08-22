@@ -82,7 +82,6 @@ public class SubprocessPersistenceContractTest {
             "--spring.datasource.driver-class-name=" + Driver.class.getName(),
             "--spring.sql.init.mode=always",
             "--spring.sql.init.schema-locations=classpath:subprocess-contract-schema.sql",
-            "--easy-query.database=pgsql",
             "--flovira.banner=false",
             "--flovira.data-source-type=postgresql"
         );

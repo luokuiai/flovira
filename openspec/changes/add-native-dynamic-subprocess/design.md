@@ -2,7 +2,7 @@
 
 Flovira 1.0.0 executes a definition as one independent instance. Nodes, tasks and history are persisted through the framework-neutral `FloviraDao` abstraction; Spring Boot and Solon starters wire concrete ORM implementations into `FlowEngine`. A node already has an `ext` JSON field, so subprocess configuration can be added without changing `flow_node`, but the engine has no parent-child aggregate, transaction abstraction, terminal callback or hierarchical query contract.
 
-The implementation must remain Java 8 compatible, framework/ORM neutral in core, additive for existing users, and aligned across MyBatis, MyBatis-Plus, Easy-Query, Spring Boot 2/3/4 and Solon.
+The implementation must remain Java 8 compatible, framework/ORM neutral in core, additive for existing users, and aligned across MyBatis, MyBatis-Plus and Spring Boot 2/3/4.
 
 ## Goals / Non-Goals
 

@@ -7,7 +7,7 @@
 ## 2. Task Progression And Query
 
 - [x] 2.1 Add a system-task progression entry that centralizes internal skip flags while reusing the normal transition pipeline
-- [x] 2.2 Add an instance-and-node-type task query across the core DAO contract and MyBatis, MyBatis-Plus and Easy-Query implementations
+- [x] 2.2 Add an instance-and-node-type task query across the core DAO contract and MyBatis and MyBatis-Plus implementations
 - [x] 2.3 Route WAIT and ordinary timeout actions through the appropriate atomic claim and shared system progression behavior
 
 ## 3. Database Performance

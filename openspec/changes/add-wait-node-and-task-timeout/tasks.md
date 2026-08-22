@@ -17,7 +17,6 @@
 
 - [x] 3.1 Add timeout fields and claim queries to MyBatis task entity, mapper and DAO.
 - [x] 3.2 Add equivalent timeout fields and claim operations to MyBatis-Plus.
-- [x] 3.3 Add equivalent timeout fields and claim operations to Easy-Query.
 - [x] 3.4 Update MySQL, PostgreSQL, Oracle and SQL Server initialization schemas with timeout columns and due-scan indexes.
 
 ## 4. Framework configuration and scheduling

@@ -8,7 +8,6 @@ ORM 适配层，实现 `flovira-core` 的 `FloviraDao` 抽象与各实体。按�
 
 - `flovira-mybatis`：`*-core`（实体 / Mapper / `FloviraDaoImpl`）+ `*-sb-starter`(SB2) + `*-sb3-starter`(SB3) + `*-sb4-starter`(SB4)。
 - `flovira-mybatis-plus`：同上四件套（含 `MybatisPlusIdGen` 等适配）。
-- `flovira-easy-query`：同上四件套。
 
 包根：ORM 实现 `com.luokuiai.flovira.orm`（`entity`/`mapper`/`dao`/`keygen`/`utils`）；Spring 适配 `com.luokuiai.flovira.spring.boot`。
 
