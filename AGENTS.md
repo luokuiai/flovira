@@ -21,7 +21,6 @@
 - `flovira-orm`：ORM 适配层，实现 core 的 `FloviraDao` 与实体。按「ORM × 框架」矩阵展开：
   - `flovira-mybatis`：`*-core` + `*-sb-starter`(SpringBoot2) + `*-sb3-starter`(SpringBoot3) + `*-sb4-starter`(SpringBoot4)。
   - `flovira-mybatis-plus`：同上四件套。
-  - `flovira-easy-query`：同上四件套。
 - `flovira-plugin`：可插拔扩展。
   - `flovira-plugin-modes`：Spring 框架模式与 SpEL 表达式实现（`*-sb`）。
   - `flovira-plugin-json`：JSON 序列化实现（`*-json-v1`：snack/snack4/jackson/fastjson2/gson；`*-json-jackson3`）。
@@ -34,7 +33,7 @@
 
 - **JDK 1.8 源码级**：Gradle Java convention 默认锁定 source/target 8，Jackson 3 与 Spring Boot 4 模块单独使用 Java 17 convention。主代码**禁止使用 Java 9+ 的语法与 API**（详见「兼容性红线」）。
 - **Spring Boot 生态**：并行支持 Spring Boot 2.7.18 / 3.5.16 / 4.0.2，对应 `sb` / `sb3` / `sb4` 后缀的 starter。
-- **多 ORM**：MyBatis 3.5.15（mybatis-spring-boot 2.3.2）、MyBatis-Plus 3.5.12、Easy-Query 3.1.79；README 另提到 JPA / BeetlSql 等生态由社区扩展。
+- **多 ORM**：MyBatis 3.5.15（mybatis-spring-boot 2.3.2）、MyBatis-Plus 3.5.12；README 另提到 JPA / BeetlSql 等生态由社区扩展。
 - **多 JSON**：snack3 3.2.139、snack4 4.0.8、jackson 2.13.5、jackson3 3.0.4、fastjson2 2.0.43、gson 2.9.0。
 - **多数据库**：MySQL、Oracle、PostgreSQL、SQL Server（其它库转换表结构即可）。
 - **基础依赖**：Lombok、`slf4j-api`（仅 API，不绑定日志实现）、JUnit 4（测试在独立仓库）。

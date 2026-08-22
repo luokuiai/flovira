@@ -57,7 +57,7 @@ Parent termination or withdrawal SHALL cancel every active run for the parent in
 - **AND** earlier run history is preserved
 
 ### Requirement: Runtime persistence shall be tenant-isolated and portable
-Run, child and event operations SHALL enforce tenant identity and SHALL be implemented for MyBatis, MyBatis-Plus and Easy-Query on every supported database schema. Events SHALL omit child variable values and business form content.
+Run, child and event operations SHALL enforce tenant identity and SHALL be implemented for MyBatis and MyBatis-Plus on every supported database schema. Events SHALL omit child variable values and business form content.
 
 #### Scenario: Query another tenant's child
 - **WHEN** a query uses a tenant that does not own the parent or child instance

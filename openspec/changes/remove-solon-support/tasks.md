@@ -1,6 +1,6 @@
 ## 1. Remove Solon Modules
 
-- [x] 1.1 Delete the MyBatis, MyBatis-Plus, and Easy-Query Solon adapter modules
+- [x] 1.1 Delete the MyBatis and MyBatis-Plus Solon adapter modules
 - [x] 1.2 Delete the Solon expression/mode and designer API Web modules
 - [x] 1.3 Remove deleted projects from Gradle settings and dependency metadata
 

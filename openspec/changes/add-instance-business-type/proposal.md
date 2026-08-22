@@ -24,6 +24,6 @@
 ## Impact
 
 - Core：`Instance`、`InsService`、`TaskService`、`HisTaskService` 及其实现和 DAO 契约。
-- ORM：MyBatis、MyBatis-Plus、Easy-Query 的实例实体、查询条件、任务与历史任务批量查询。
+- ORM：MyBatis、MyBatis-Plus 的实例实体、查询条件、任务与历史任务批量查询。
 - SQL：MySQL、PostgreSQL、Oracle、SQL Server 完整初始化脚本。
 - 公共 API 仅增加字段和方法重载，不删除现有入口。

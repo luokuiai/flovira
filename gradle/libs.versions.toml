@@ -11,10 +11,6 @@ com-baomidou-mybatis-plus-jsqlparser-v4-v9 = "3.5.12"
 com-baomidou-mybatis-plus-jsqlparser-x1 = "3.5.12"
 com-baomidou-mybatis-plus-spring-boot3-starter = "3.5.12"
 com-baomidou-mybatis-plus-spring-boot4-starter = "3.5.15"
-com-easy-query-sql-api-proxy = "3.1.79"
-com-easy-query-sql-processor = "3.1.79"
-com-easy-query-sql-springboot-starter = "3.1.79"
-com-easy-query-sql-springboot4-starter = "3.1.79"
 com-fasterxml-jackson-core-jackson-databind = "2.13.5"
 com-google-code-gson-gson = "2.9.0"
 com-google-code-findbugs-jsr305 = "3.0.2"
@@ -50,10 +46,6 @@ com-baomidou-mybatis-plus-jsqlparser-v4-v9 = { module = "com.baomidou:mybatis-pl
 com-baomidou-mybatis-plus-jsqlparser-x1 = { module = "com.baomidou:mybatis-plus-jsqlparser", version.ref = "com-baomidou-mybatis-plus-jsqlparser-x1" }
 com-baomidou-mybatis-plus-spring-boot3-starter = { module = "com.baomidou:mybatis-plus-spring-boot3-starter", version.ref = "com-baomidou-mybatis-plus-spring-boot3-starter" }
 com-baomidou-mybatis-plus-spring-boot4-starter = { module = "com.baomidou:mybatis-plus-spring-boot4-starter", version.ref = "com-baomidou-mybatis-plus-spring-boot4-starter" }
-com-easy-query-sql-api-proxy = { module = "com.easy-query:sql-api-proxy", version.ref = "com-easy-query-sql-api-proxy" }
-com-easy-query-sql-processor = { module = "com.easy-query:sql-processor", version.ref = "com-easy-query-sql-processor" }
-com-easy-query-sql-springboot-starter = { module = "com.easy-query:sql-springboot-starter", version.ref = "com-easy-query-sql-springboot-starter" }
-com-easy-query-sql-springboot4-starter = { module = "com.easy-query:sql-springboot4-starter", version.ref = "com-easy-query-sql-springboot4-starter" }
 com-fasterxml-jackson-core-jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "com-fasterxml-jackson-core-jackson-databind" }
 com-google-code-gson-gson = { module = "com.google.code.gson:gson", version.ref = "com-google-code-gson-gson" }
 com-google-code-findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "com-google-code-findbugs-jsr305" }

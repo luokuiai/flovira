@@ -4,7 +4,7 @@ Flovira 当前实际集成目标集中在 Spring Boot，继续维护 Solon 的 O
 
 ## What Changes
 
-- **BREAKING** 删除 MyBatis、MyBatis-Plus、Easy-Query 的 Solon plugin 发布模块。
+- **BREAKING** 删除 MyBatis、MyBatis-Plus 的 Solon plugin 发布模块。
 - **BREAKING** 删除 SnEL 表达式、Solon 事务、调度器和框架桥接实现。
 - **BREAKING** 删除设计器 API 的 Solon Web 适配模块。
 - 清理 Solon 依赖版本、Gradle 工程注册、自动装配资源和项目文档。
