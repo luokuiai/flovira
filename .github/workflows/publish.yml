@@ -3,7 +3,7 @@ name: Publish to Maven Central
 on:
   push:
     branches:
-      - main
+      - develop
     tags:
       - 'v*'
 
@@ -53,7 +53,7 @@ jobs:
         run: ./gradlew clean check -PreleaseVersion="$PUBLISH_VERSION" --no-daemon --no-parallel --max-workers=2
 
       - name: Publish snapshot
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/develop'
         run: ./gradlew publishToMavenCentral -PreleaseVersion="$PUBLISH_VERSION" --no-daemon --no-parallel --max-workers=2
 
       - name: Publish release
