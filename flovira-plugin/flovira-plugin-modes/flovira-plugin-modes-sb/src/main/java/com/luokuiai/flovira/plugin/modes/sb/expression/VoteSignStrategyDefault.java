@@ -22,8 +22,8 @@ import com.luokuiai.flovira.plugin.modes.sb.helper.SpelHelper;
 import java.util.Map;
 
 /**
- * 默认会签表达式 default@@${flag == 5 && flag > 4}
- * 实际上是基于spring的spel表达式简化使用，会把flag替换成#flag，然后由spel执行#flag == 5 && #flag > 4
+ * 默认会签表达式 default@@${flag == 5 &amp;&amp; flag > 4}
+ * 实际上是基于spring的spel表达式简化使用，会把flag替换成#flag，然后由spel执行#flag == 5 &amp;&amp; #flag > 4
  *
  * @author warm
  */

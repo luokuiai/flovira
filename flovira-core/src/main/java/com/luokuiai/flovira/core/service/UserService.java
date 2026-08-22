@@ -33,7 +33,7 @@ public interface UserService extends IFloviraService<User> {
      * 设置流程用户
      *
      * @param addTasks 待办任务
-     * @return List<User>
+     * @return {@code List<User>}
      * @author xiarg
      * @since 2024/5/10 13:59
      */
@@ -43,7 +43,7 @@ public interface UserService extends IFloviraService<User> {
      * 待办任务增加流程人员
      *
      * @param task 待办任务任务信息
-     * @return List<User>
+     * @return {@code List<User>}
      * @author xiarg
      * @since 2024/5/10 15:45
      */
@@ -73,7 +73,7 @@ public interface UserService extends IFloviraService<User> {
      *
      * @param associated 待办任务id
      * @param types      用户表类型
-     * @return List<User>
+     * @return {@code List<User>}
      */
     List<User> listByAssociatedAndTypes(Long associated, String... types);
 
@@ -82,7 +82,7 @@ public interface UserService extends IFloviraService<User> {
      *
      * @param associateds (待办任务，实例，历史表，节点等)id集合
      * @param types       用户表类型
-     * @return List<User>
+     * @return {@code List<User>}
      */
     List<User> getByAssociateds(List<Long> associateds, String... types);
 
@@ -92,7 +92,7 @@ public interface UserService extends IFloviraService<User> {
      * @param associated  待办任务id
      * @param processedBy 办理人
      * @param types       用户表类型
-     * @return List<User>
+     * @return {@code List<User>}
      */
     List<User> listByProcessedBys(Long associated, String processedBy, String... types);
 
@@ -102,7 +102,7 @@ public interface UserService extends IFloviraService<User> {
      * @param associated   待办任务id
      * @param processedBys 办理人id集合
      * @param types        用户表类型
-     * @return List<User>
+     * @return {@code List<User>}
      */
     List<User> getByProcessedBys(Long associated, List<String> processedBys, String... types);
 

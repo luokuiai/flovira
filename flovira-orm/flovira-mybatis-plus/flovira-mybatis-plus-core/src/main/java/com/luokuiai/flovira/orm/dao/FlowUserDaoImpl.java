@@ -75,7 +75,7 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
                 queryWrapper.in(FlowUser::getProcessedBy, processedBys);
             }
         }
-        queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, types);
+        queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, Arrays.asList(types));
         return getMapper().selectList(queryWrapper);
     }
 }

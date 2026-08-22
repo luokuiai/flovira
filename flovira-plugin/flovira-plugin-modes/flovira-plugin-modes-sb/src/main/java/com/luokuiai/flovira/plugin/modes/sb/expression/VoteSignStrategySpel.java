@@ -22,7 +22,7 @@ import com.luokuiai.flovira.plugin.modes.sb.helper.SpelHelper;
 import java.util.Map;
 
 /**
- * spel会签表达式 spel@@#{@user.eval()}
+ * spel会签表达式 spel@@#{&#64;user.eval()}
  *
  * @author warm
  */

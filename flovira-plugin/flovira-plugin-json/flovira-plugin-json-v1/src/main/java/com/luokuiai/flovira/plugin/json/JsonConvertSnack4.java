@@ -52,7 +52,7 @@ public class JsonConvertSnack4 implements JsonConvert {
      * 将字符串转为bean
      *
      * @param jsonStr json字符串
-     * @param clazz   Class<T>
+     * @param clazz   {@code Class<T>}
      * @return T
      */
     @Override
@@ -64,7 +64,7 @@ public class JsonConvertSnack4 implements JsonConvert {
      * 将字符串转为集合
      *
      * @param jsonStr json字符串
-     * @return List<T>
+     * @return {@code List<T>}
      */
     @Override
     public <T> List<T> strToList(String jsonStr) {

@@ -22,8 +22,8 @@ import java.util.List;
 
 /**
  * @author vanlin
- * @className FlowFormMapper
- * @description
+ * 流程表单Mapper
+ *
  * @since 2024/8/19 14:30
  */
 public interface FlowFormMapper extends FloviraMapper<FlowForm> {

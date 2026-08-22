@@ -37,7 +37,7 @@ public interface NodeService extends IFloviraService<Node> {
      * 根据流程编码获取已发布流程节点集合
      *
      * @param flowCode 流程编码
-     * @return List<Node>
+     * @return {@code List<Node>}
      */
     List<Node> getPublishByFlowCode(String flowCode);
 
@@ -45,7 +45,7 @@ public interface NodeService extends IFloviraService<Node> {
      * 根据流程编码获取开启的唯一流程的流程节点集合
      *
      * @param nodeCodes 流程节点code集合
-     * @return List<Node>
+     * @return {@code List<Node>}
      */
     List<Node> getByNodeCodes(List<String> nodeCodes, Long definitionId);
 
@@ -120,7 +120,7 @@ public interface NodeService extends IFloviraService<Node> {
      * 根据流程定义id获取中间节点集合
      *
      * @param definitionId 流程定义id
-     * @return List<Node>
+     * @return {@code List<Node>}
      */
     List<Node> getBetweenNode(Long definitionId);
 
@@ -150,7 +150,7 @@ public interface NodeService extends IFloviraService<Node> {
      * @param anyNodeCode  anyNodeCode不为空，则可跳转anyNodeCode节点（优先级最高）
      * @param skipType     跳转类型（PASS审批通过 REJECT退回）
      * @param variable     流程变量,下一个节点是网关需要判断跳转条件,并行网关返回多个节点
-     * @return List<Node>
+     * @return {@code List<Node>}
      * @author xiarg
      * @since 2024/8/21 16:48
      */
@@ -180,7 +180,7 @@ public interface NodeService extends IFloviraService<Node> {
      * @param variable    流程变量,下一个节点是网关需要判断跳转条件,并行网关返回多个节点
      * @param pathWayData 办理过程中途径数据，用于渲染流程图
      * @param flowCombine 流程数据集合
-     * @return List<Node>
+     * @return {@code List<Node>}
      */
     List<Node> getNextNodeList(Node nowNode, String anyNodeCode, String skipType, Map<String, Object> variable,
                                PathWayData pathWayData, FlowCombine flowCombine);
@@ -205,7 +205,7 @@ public interface NodeService extends IFloviraService<Node> {
      * @param nextNode    下一个节点
      * @param pathWayData 办理过程中途径数据，用于渲染流程图
      * @param flowCombine 流程数据集合
-     * @return List<Node>
+     * @return {@code List<Node>}
      */
     List<Node> getNextByCheckGateway(Map<String, Object> variable, Node nextNode, PathWayData pathWayData
         , FlowCombine flowCombine);

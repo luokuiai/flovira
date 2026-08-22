@@ -39,7 +39,7 @@ public interface HisTaskService extends IFloviraService<HisTask> {
      *
      * @param taskId         任务id
      * @param cooperateTypes 协作类型集合
-     * @return List<HisTask>
+     * @return {@code List<HisTask>}
      */
     List<HisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer... cooperateTypes);
 
@@ -48,7 +48,7 @@ public interface HisTaskService extends IFloviraService<HisTask> {
      *
      * @param instanceId 流程实例id
      * @param nodeCodes  节点编码集合
-     * @return List<HisTask>
+     * @return {@code List<HisTask>}
      */
     List<HisTask> getByInsAndNodeCodes(Long instanceId, List<String> nodeCodes);
 

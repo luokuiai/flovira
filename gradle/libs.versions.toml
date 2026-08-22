@@ -17,6 +17,7 @@ com-easy-query-sql-springboot-starter = "3.1.79"
 com-easy-query-sql-springboot4-starter = "3.1.79"
 com-fasterxml-jackson-core-jackson-databind = "2.13.5"
 com-google-code-gson-gson = "2.9.0"
+com-google-code-findbugs-jsr305 = "3.0.2"
 junit-junit = "4.13.2"
 org-mybatis-mybatis = "3.5.15"
 org-mybatis-spring-boot-mybatis-spring-boot-starter = "4.0.1"
@@ -55,6 +56,7 @@ com-easy-query-sql-springboot-starter = { module = "com.easy-query:sql-springboo
 com-easy-query-sql-springboot4-starter = { module = "com.easy-query:sql-springboot4-starter", version.ref = "com-easy-query-sql-springboot4-starter" }
 com-fasterxml-jackson-core-jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "com-fasterxml-jackson-core-jackson-databind" }
 com-google-code-gson-gson = { module = "com.google.code.gson:gson", version.ref = "com-google-code-gson-gson" }
+com-google-code-findbugs-jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "com-google-code-findbugs-jsr305" }
 junit-junit = { module = "junit:junit", version.ref = "junit-junit" }
 org-mybatis-mybatis = { module = "org.mybatis:mybatis", version.ref = "org-mybatis-mybatis" }
 org-mybatis-spring-boot-mybatis-spring-boot-starter = { module = "org.mybatis.spring.boot:mybatis-spring-boot-starter", version.ref = "org-mybatis-spring-boot-mybatis-spring-boot-starter" }

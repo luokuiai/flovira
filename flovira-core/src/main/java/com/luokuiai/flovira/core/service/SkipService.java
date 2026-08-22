@@ -42,7 +42,7 @@ public interface SkipService extends IFloviraService<Skip> {
      * 根据流程定义id查询节点跳转线
      *
      * @param definitionId 流程定义id
-     * @return List<Skip>
+     * @return {@code List<Skip>}
      */
     List<Skip> getByDefId(Long definitionId);
 
@@ -51,7 +51,7 @@ public interface SkipService extends IFloviraService<Skip> {
      *
      * @param definitionId 流程定义id
      * @param nowNodeCode  其实节点编码
-     * @return List<Skip>
+     * @return {@code List<Skip>}
      */
     List<Skip> getByDefIdAndNowNodeCode(Long definitionId, String nowNodeCode);
 }

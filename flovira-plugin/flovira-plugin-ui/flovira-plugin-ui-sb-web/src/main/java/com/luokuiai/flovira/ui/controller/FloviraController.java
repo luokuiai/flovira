@@ -81,7 +81,7 @@ public class FloviraController {
      * 保存流程json字符串
      *
      * @param defJson 流程数据集合
-     * @return ApiResult<Void>
+     * @return {@code ApiResult<Void>}
      * @throws Exception 异常
      * @author xiarg
      * @since 2024/10/29 16:31
@@ -96,7 +96,7 @@ public class FloviraController {
      * 获取流程定义数据(包含节点和跳转)
      *
      * @param id 流程定义id
-     * @return ApiResult<DefVo>
+     * @return {@code ApiResult<DefVo>}
      * @author xiarg
      * @since 2024/10/29 16:31
      */
@@ -109,7 +109,7 @@ public class FloviraController {
      * 获取流程图
      *
      * @param id 流程实例id
-     * @return ApiResult<DefJson>
+     * @return {@code ApiResult<DefJson>}
      */
     @GetMapping("/query-flow-chart/{id}")
     public ApiResult<DefJson> queryFlowChart(@PathVariable("id") Long id) {
@@ -169,7 +169,7 @@ public class FloviraController {
      * @param taskId 当前任务id
      * @return {@link ApiResult< FlowDto >}
      * @author liangli
-     * @date 2024/8/21 17:08
+     * Date: 2024/8/21 17:08
      **/
     @GetMapping(value = "/execute/load/{taskId}")
     public ApiResult<FlowDto> load(@PathVariable("taskId") Long taskId) {
