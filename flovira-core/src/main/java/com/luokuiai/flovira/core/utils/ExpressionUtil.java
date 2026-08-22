@@ -111,7 +111,7 @@ public class ExpressionUtil {
      *
      * @param expression 表达式，比如“${flag}或者# { &#064;user.notify(#listenerVariable) } ” ，或者自定义策略
      * @param variable   流程变量
-     * @return List<String>
+     * @return {@code List<String>}
      */
     public static List<String> evalVariable(String expression, Map<String, Object> variable) {
         List<String> value = getValue(HandlerStrategy.EXPRESSION_STRATEGY_LIST, expression, variable

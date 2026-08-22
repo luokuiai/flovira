@@ -11,8 +11,8 @@ import java.util.Objects;
 
 /**
  * @author vanlin
- * @className FlowFormDaoImpl
- * @description
+ * 流程表单DAO实现
+ *
  * @since 2024/12/9 14:29
  */
 public class FlowFormDaoImpl extends FloviraDaoImpl<FlowForm, FlowFormProxy> implements FlowFormDao<FlowForm> {

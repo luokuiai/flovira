@@ -15,8 +15,6 @@
  */
 package com.luokuiai.flovira.core.utils;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.*;
 
 /**
@@ -24,6 +22,7 @@ import java.util.*;
  *
  * @author warm
  */
+@SuppressWarnings({"deprecation", "removal"})
 public class ServiceLoaderUtil {
 
     /**
@@ -124,8 +123,8 @@ public class ServiceLoaderUtil {
             return Thread.currentThread().getContextClassLoader();
         } else {
             // 绕开权限检查
-            return AccessController.doPrivileged(
-                (PrivilegedAction<ClassLoader>) () -> Thread.currentThread().getContextClassLoader());
+            return java.security.AccessController.doPrivileged(
+                (java.security.PrivilegedAction<ClassLoader>) () -> Thread.currentThread().getContextClassLoader());
         }
     }
 
@@ -141,8 +140,8 @@ public class ServiceLoaderUtil {
             return ClassLoader.getSystemClassLoader();
         } else {
             // 绕开权限检查
-            return AccessController.doPrivileged(
-                (PrivilegedAction<ClassLoader>) ClassLoader::getSystemClassLoader);
+            return java.security.AccessController.doPrivileged(
+                (java.security.PrivilegedAction<ClassLoader>) ClassLoader::getSystemClassLoader);
         }
     }
 

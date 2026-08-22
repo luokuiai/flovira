@@ -21,7 +21,7 @@ import com.luokuiai.flovira.plugin.modes.sb.helper.SpelHelper;
 import java.util.Map;
 
 /**
- * 办理人表达式spel: @@spel@@|#{@user.evalVar()}
+ * 办理人表达式spel: @@spel@@|#{&#64;user.evalVar()}
  *
  * @author warm
  */

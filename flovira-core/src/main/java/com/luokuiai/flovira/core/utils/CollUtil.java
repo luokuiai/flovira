@@ -186,7 +186,7 @@ public class CollUtil {
      * @param list  需要合并得集合
      * @param lists 需要合并得包含多个集合得集合
      * @param <T>   List中的泛型
-     * @return List<T>
+     * @return {@code List<T>}
      * @author xiarg
      * @since 2024/5/10 15:45
      */

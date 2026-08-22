@@ -19,8 +19,8 @@ import com.luokuiai.flovira.orm.entity.FlowForm;
 
 /**
  * @author vanlin
- * @className FlowFormMapper
- * @description
+ * 流程表单Mapper
+ *
  * @since 2024-9-23 16:19
  */
 public interface FlowFormMapper extends FloviraMapper<FlowForm> {

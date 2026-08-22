@@ -37,7 +37,7 @@ public interface JsonConvert {
      * 将字符串转为bean
      *
      * @param jsonStr json字符串
-     * @param clazz   Class<T>
+     * @param clazz   {@code Class<T>}
      * @return T
      */
     <T> T strToBean(String jsonStr, Class<T> clazz);
@@ -47,7 +47,7 @@ public interface JsonConvert {
      * 将字符串转为集合
      *
      * @param jsonStr json字符串
-     * @return List<T>
+     * @return {@code List<T>}
      */
     <T> List<T> strToList(String jsonStr);
 

@@ -87,7 +87,7 @@ public interface InsService extends IFloviraService<Instance> {
      * 根据流程定义id，查询流程实例集合
      *
      * @param definitionId 流程定义id
-     * @return List<Instance>
+     * @return {@code List<Instance>}
      */
     List<Instance> getByDefId(Long definitionId);
 

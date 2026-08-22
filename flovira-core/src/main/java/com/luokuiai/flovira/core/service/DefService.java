@@ -133,7 +133,7 @@ public interface DefService extends IFloviraService<Definition> {
      * 根据流程定义code列表查询流程定义
      *
      * @param flowCodeList 流程定义code列表
-     * @return List<Definition>
+     * @return {@code List<Definition>}
      */
     List<Definition> queryByCodeList(List<String> flowCodeList);
 
@@ -195,7 +195,7 @@ public interface DefService extends IFloviraService<Definition> {
      * 根据流程定义code查询流程定义
      *
      * @param flowCode 流程定义code
-     * @return List<Definition>
+     * @return {@code List<Definition>}
      */
     List<Definition> getByFlowCode(String flowCode);
 
