@@ -190,7 +190,7 @@ public class BeanConfig {
         FlowEngine.setFlowConfig(flovira);
         setExpression();
         after(flovira);
-        log.info("【flovira】，加载完成");
+        log.info("[flovira] loaded successfully");
         return flovira;
     }
 
