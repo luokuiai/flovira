@@ -53,6 +53,7 @@ public class FlowEngine {
     private static final SubprocessService subprocessService = null;
     private static final WaitService waitService = null;
     private static final TimeoutService timeoutService = null;
+    private static final ProgressService progressService = null;
 
     private static Supplier<Definition> defSupplier;
     private static Supplier<Node> nodeSupplier;
@@ -128,6 +129,10 @@ public class FlowEngine {
 
     public static TimeoutService timeoutService() {
         return getObj(timeoutService, TimeoutService.class);
+    }
+
+    public static ProgressService progressService() {
+        return getObj(progressService, ProgressService.class);
     }
 
     public static void setNewDef(Supplier<Definition> supplier) {

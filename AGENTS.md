@@ -191,9 +191,21 @@ bun run build
 - AI / agent 的一次性调研、决策记录、临时计划放 `.codex/` 或 `docs/`，不要塞进源码包，也不要当作长期必读入口。
 - 临时 / 备份代码、注释掉的旧实现、压测入口不留在源码树，确认无引用后删除（git 历史可追溯）。
 
-## git 提交规范
+## Git 协作规范
 
-提交信息前缀沿用 README 约定（中文项目）：
+### 分支规范
+
+- 日常功能、修复、重构和文档分支默认从 `develop` 创建；发布或紧急修复分支仅在用户明确指定时使用其它基线。
+- 分支名统一使用 `<type>/<kebab-case-topic>`，例如 `feat/progress-preview`、`fix/json-provider-loading`、`docs/contribution-rules`。
+- `type` 使用仓库已有类别：`feat`、`fix`、`perf`、`refactor`、`docs`、`test`、`build`、`ci`、`update`、`upgrade`、`revert`。
+- 一个分支只承载一个清晰目标，不把无关修复、格式化或治理改动混入功能分支。
+
+### Commit 规范
+
+- Commit message 必须使用英文，格式为 `<type>: <imperative summary>`，例如 `feat: add workflow progress preview service`。
+- 默认不使用 scope，不写 `feat(core): ...`；确需引入 scope 时，必须先更新本规范并统一仓库历史约定。
+- Subject 使用祈使语气，首字母小写，不加句号；建议不超过 50 个字符，硬上限 72 个字符。
+- 提交信息类型前缀沿用 README 约定：
 
 ```
 init: 初始化
@@ -206,6 +218,21 @@ style: 代码风格相关无影响运行结果的
 update: 其他修改
 upgrade: 升级版本
 ```
+
+- 每个 commit 只包含一个逻辑变更；日志文案、功能实现、重构、文档治理等不同目标必须拆成独立提交。
+- Subject 已能说明意图时不写 body；需要解释非显然原因、迁移要求或兼容性影响时使用英文 body，每行不超过 72 个字符。
+- 破坏性变更使用 `<type>!: ...`，并在 body 中增加 `BREAKING CHANGE: ...`，说明影响和迁移方式。
+- Commit 前检查 staged diff、`git diff --cached --check` 和相关验证结果，不提交构建产物、临时文件或任务范围外改动。
+
+### Pull Request 规范
+
+- PR 默认以 `develop` 为 base；除非用户明确要求，不向 `main` 或发布分支直接发起日常功能 PR。
+- PR 标题必须使用英文，并遵循与 commit subject 相同的 Conventional Commit 格式，例如 `feat: add workflow progress preview service`。
+- PR 必须使用 [`.github/pull_request_template.md`](.github/pull_request_template.md)，保留 `## Summary` 和 `## Changes` 两个标题，不另造重复结构。
+- `Summary` 使用一个简短英文段落，说明 SDK 目标、最终结果和 reviewer 需要关注的影响。
+- `Changes` 使用 3–7 条具体、可审查的英文 bullet；其中至少一条写明实际执行的测试、编译或静态检查，不得声称未运行的验证。
+- 创建 PR 前确认分支已推送、工作区干净、commit 全部为英文原子提交，并确认 diff 不包含无关文件。
+- PR 未完成或验证仍有已知阻塞时创建 Draft；满足合并条件后再转为 Ready for review。
 
 ## 构建与发布命令
 

@@ -121,6 +121,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public ProgressService progressService() {
+        return new ProgressServiceImpl();
+    }
+
+    @Bean
     public FlowHisTaskDao hisTaskDao() {
         return new FlowHisTaskDaoImpl();
     }
@@ -190,7 +195,7 @@ public class BeanConfig {
         FlowEngine.setFlowConfig(flovira);
         setExpression();
         after(flovira);
-        log.info("【flovira】，加载完成");
+        log.info("[flovira] loaded successfully");
         return flovira;
     }
 
