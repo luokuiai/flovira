@@ -121,6 +121,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public ProgressService progressService() {
+        return new ProgressServiceImpl();
+    }
+
+    @Bean
     public FlowHisTaskDao hisTaskDao() {
         return new FlowHisTaskDaoImpl();
     }
