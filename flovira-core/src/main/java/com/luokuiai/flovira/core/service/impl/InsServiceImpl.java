@@ -136,6 +136,8 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
         ListenerUtil.endCreateListener(new ListenerVariable(definition, instance, startNode, flowParams.getVariable()
             , null, nextNodes, addTasks).setFlowParams(flowParams));
 
+        CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariable());
+
         return instance;
     }
 

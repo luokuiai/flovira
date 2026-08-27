@@ -39,6 +39,7 @@ import java.util.Map;
 public final class ApproverRuleUtil {
 
     public static final String EXT_CONFIG = "approverRule";
+    public static final String CARBON_COPY_EXT_CONFIG = "carbonCopyRule";
     public static final String SUBJECT_USER = "USER";
     public static final String SELECTION_RESOURCE = "RESOURCE";
     public static final String SELECTION_RELATION = "RELATION";
@@ -48,7 +49,11 @@ public final class ApproverRuleUtil {
     }
 
     public static ApproverRule read(Node node) {
-        String value = FlowEngine.nodeService().getExt(node).get(EXT_CONFIG);
+        return read(node, EXT_CONFIG);
+    }
+
+    public static ApproverRule read(Node node, String configCode) {
+        String value = FlowEngine.nodeService().getExt(node).get(configCode);
         if (StringUtils.isEmpty(value)) {
             return null;
         }
@@ -58,7 +63,15 @@ public final class ApproverRuleUtil {
     }
 
     public static List<String> resolve(Node node, FlowParams flowParams) {
-        ApproverRule rule = read(node);
+        return resolve(node, flowParams, EXT_CONFIG);
+    }
+
+    public static List<String> resolveCarbonCopy(Node node, FlowParams flowParams) {
+        return resolve(node, flowParams, CARBON_COPY_EXT_CONFIG);
+    }
+
+    private static List<String> resolve(Node node, FlowParams flowParams, String configCode) {
+        ApproverRule rule = read(node, configCode);
         if (rule == null) {
             return StringUtils.str2List(node.getPermissionFlag(), FlowCons.SPLIT_AT);
         }

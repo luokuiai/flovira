@@ -1,5 +1,5 @@
-const NODE_TYPE_MAP = {0: 'start', 1: 'between', 2: 'end', 3: 'serial', 4: 'parallel', 5: 'inclusive', 6: 'subProcess', 7: 'wait'}
-const JSON_EXT_CODES = ['approverRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig']
+const NODE_TYPE_MAP = {0: 'start', 1: 'between', 2: 'end', 3: 'serial', 4: 'parallel', 5: 'inclusive', 6: 'subProcess', 7: 'wait', 8: 'carbonCopy'}
+const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig']
 
 /**
  * 将flovira的定义json数据转成LogicFlow支持的数据格式

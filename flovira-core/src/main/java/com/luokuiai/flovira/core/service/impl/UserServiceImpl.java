@@ -18,6 +18,7 @@ package com.luokuiai.flovira.core.service.impl;
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.entity.User;
+import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.enums.UserType;
 import com.luokuiai.flovira.core.orm.dao.FlowUserDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
@@ -57,8 +58,10 @@ public class UserServiceImpl extends FloviraServiceImpl<FlowUserDao<User>, User>
     @Override
     public List<User> taskAddUser(Task task) {
         // 遍历权限集合，生成流程节点的权限
+        String userType = NodeType.isCarbonCopy(task.getNodeType())
+            ? UserType.CARBON_COPY.getKey() : UserType.APPROVAL.getKey();
         List<User> userList = StreamUtils.toList(task.getPermissionList()
-            , permission -> structureUser(task.getId(), permission, UserType.APPROVAL.getKey()));
+            , permission -> structureUser(task.getId(), permission, userType));
         task.setUserList(userList);
         return userList;
     }

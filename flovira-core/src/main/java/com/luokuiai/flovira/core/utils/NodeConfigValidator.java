@@ -47,6 +47,13 @@ public final class NodeConfigValidator {
                         + previousNodeCode + " and " + node.getNodeCode());
                 }
             }
+            if (NodeType.isCarbonCopy(node.getNodeType())) {
+                if (ApproverRuleUtil.read(node, ApproverRuleUtil.CARBON_COPY_EXT_CONFIG) == null
+                    && StringUtils.isEmpty(node.getPermissionFlag())) {
+                    throw new IllegalStateException("Carbon copy recipients are required on node "
+                        + node.getNodeCode());
+                }
+            }
             NodeTimeoutConfig timeoutConfig = TimeoutConfigUtil.read(node);
             if (timeoutConfig != null) {
                 TimeoutConfigUtil.validate(node, timeoutConfig);

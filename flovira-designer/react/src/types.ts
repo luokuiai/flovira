@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type FloviraNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
+export type FloviraNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
 export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
 
 export interface ApproverSubject {

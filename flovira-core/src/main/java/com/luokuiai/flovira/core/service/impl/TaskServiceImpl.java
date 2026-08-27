@@ -238,6 +238,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         if (containsSubprocessTask(addTasks)) {
             FlowEngine.subprocessService().onTasksCreated(addTasks);
         }
+        CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariable());
         if (NodeType.isEnd(r.instance.getNodeType()) && isSubprocessChild(r.instance)) {
             FlowEngine.subprocessService().onInstanceTerminal(r.instance, SubprocessOutcome.SUCCEEDED);
         }
@@ -571,6 +572,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             .setCreateTime(now)
             .setPermissionList(NodeType.isWait(node.getNodeType())
                 ? Collections.<String>emptyList()
+                : NodeType.isCarbonCopy(node.getNodeType())
+                ? ApproverRuleUtil.resolveCarbonCopy(node, flowParams)
                 : ApproverRuleUtil.resolve(node, flowParams));
 
         TimeoutConfigUtil.applySnapshot(node, addTask, now);

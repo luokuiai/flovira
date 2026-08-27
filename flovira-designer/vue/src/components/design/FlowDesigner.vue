@@ -319,7 +319,7 @@ const tooltipPosition = ref({ x: 0, y: 0 });
 const tooltipEdge = ref({});
 
 const handleOptionClick = (item: any) => {
-  if (item.icon === "between" || item.icon === "subProcess" || item.icon === "wait") {
+  if (item.icon === "between" || item.icon === "subProcess" || item.icon === "wait" || item.icon === "carbonCopy") {
     addBetweenNode(lf.value, item.tooltipEdge, item.icon, item.label);
   } else {
     addGatewayNode(lf.value, item.tooltipEdge, item.icon);

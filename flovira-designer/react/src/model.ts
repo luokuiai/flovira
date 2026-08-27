@@ -13,7 +13,7 @@ import type {
 
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
-  nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7'],
+  nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
   approverStrategies: [
     { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true },
     { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true },
@@ -47,6 +47,7 @@ const NODE_NAMES: Record<FloviraNodeType, string> = {
   '5': '包含网关',
   '6': '子流程',
   '7': '等待节点',
+  '8': '抄送节点',
 }
 
 let sequence = 0
@@ -62,7 +63,7 @@ export const nodeName = (type: FloviraNodeType): string => NODE_NAMES[type]
 
 export const createNode = (type: FloviraNodeType, name = NODE_NAMES[type]): FloviraNode => ({
   nodeType: type,
-  nodeCode: createId(type === '6' ? 'subprocess' : type === '7' ? 'wait' : 'node'),
+  nodeCode: createId(type === '6' ? 'subprocess' : type === '7' ? 'wait' : type === '8' ? 'carbonCopy' : 'node'),
   nodeName: name,
   nodeRatio: '0',
   ext: '[]',
@@ -282,8 +283,8 @@ export const setNodeExtConfig = (
   return { ...node, ext: JSON.stringify(ext) }
 }
 
-export const getApproverRule = (node: FloviraNode): ApproverRule => {
-  const config = getNodeExtConfig(node, 'approverRule')
+const getParticipantRule = (node: FloviraNode, code: string): ApproverRule => {
+  const config = getNodeExtConfig(node, code)
   return {
     schemaVersion: 1,
     strategy: String(config.strategy || 'USER'),
@@ -294,6 +295,12 @@ export const getApproverRule = (node: FloviraNode): ApproverRule => {
   }
 }
 
+export const getApproverRule = (node: FloviraNode): ApproverRule =>
+  getParticipantRule(node, 'approverRule')
+
+export const getCarbonCopyRule = (node: FloviraNode): ApproverRule =>
+  getParticipantRule(node, 'carbonCopyRule')
+
 export const setApproverRule = (
   node: FloviraNode,
   strategy: ApproverStrategy | string,
@@ -302,6 +309,22 @@ export const setApproverRule = (
   relationType?: string,
   selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
 ): FloviraNode => setNodeExtConfig(node, 'approverRule', {
+  schemaVersion: 1,
+  strategy,
+  selectionType,
+  relationType,
+  subjects,
+  expression: strategy === 'EXPRESSION' ? expression : undefined,
+})
+
+export const setCarbonCopyRule = (
+  node: FloviraNode,
+  strategy: ApproverStrategy | string,
+  subjects: ApproverSubject[] = [],
+  expression = '',
+  relationType?: string,
+  selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
+): FloviraNode => setNodeExtConfig(node, 'carbonCopyRule', {
   schemaVersion: 1,
   strategy,
   selectionType,
@@ -378,6 +401,15 @@ export const validateDefinition = (definition: FloviraDefinition): FlowValidatio
         if (invalid) {
           issues.push({ code: 'APPROVER_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 未配置办理人` })
         }
+      }
+    }
+    if (node.nodeType === '8') {
+      const carbonCopy = getCarbonCopyRule(node)
+      const invalid = carbonCopy.strategy === 'EXPRESSION'
+        ? !String(carbonCopy.expression || '').trim()
+        : carbonCopy.selectionType === 'RESOURCE' && carbonCopy.subjects.length === 0
+      if (invalid) {
+        issues.push({ code: 'CARBON_COPY_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 未配置抄送人` })
       }
     }
     if (node.nodeType === '7' && !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/.test(String(getWaitConfig(node).waitKey || ''))) {

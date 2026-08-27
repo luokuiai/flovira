@@ -46,7 +46,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import {
-  startIcon, betweenIcon, subProcessIcon, waitIcon, endIcon,
+  startIcon, betweenIcon, subProcessIcon, waitIcon, carbonCopyIcon, endIcon,
   serialIcon, parallelIcon, inclusiveIcon,
 } from '@/components/design/classics/js/sidebarIcons'
 import type { PaletteNode } from '@/designer/types'
@@ -84,6 +84,7 @@ const defaultFlowNodes = computed<PaletteNode[]>(() => ([
   { type: 'between', text: t('sidebar.between'), label: t('sidebar.between'), icon: betweenIcon, properties: { collaborativeWay: '1' } },
   { type: 'subProcess', text: t('sidebar.subprocess'), label: t('sidebar.subprocess'), icon: subProcessIcon, properties: { ext: {} } },
   { type: 'wait', text: t('sidebar.wait'), label: t('sidebar.wait'), icon: waitIcon, properties: { ext: {} } },
+  { type: 'carbonCopy', text: t('sidebar.carbonCopy'), label: t('sidebar.carbonCopy'), icon: carbonCopyIcon, properties: { ext: {} } },
   { type: 'end', text: t('sidebar.end'), label: t('sidebar.end'), icon: endIcon },
 ]))
 const defaultGatewayNodes = computed<PaletteNode[]>(() => ([
@@ -253,6 +254,7 @@ function handleDragInNode(item: PaletteNode) {
 .item-between .item-icon-wrap { background: linear-gradient(135deg, #eff6ff, #dbeafe); }
 .item-subProcess .item-icon-wrap { background: linear-gradient(135deg, #faf5ff, #f3e8ff); }
 .item-wait .item-icon-wrap    { background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
+.item-carbonCopy .item-icon-wrap { background: linear-gradient(135deg, #f0fdfa, #ccfbf1); }
 .item-end .item-icon-wrap     { background: linear-gradient(135deg, #fef2f2, #fee2e2); }
 .item-serial .item-icon-wrap  { background: linear-gradient(135deg, #fffbeb, #fef3c7); }
 .item-parallel .item-icon-wrap{ background: linear-gradient(135deg, #ecfeff, #cffafe); }

@@ -48,7 +48,7 @@ public class DesignerCapabilities {
 
     public static DesignerCapabilities defaults() {
         return new DesignerCapabilities()
-            .setNodeTypes(Arrays.asList("0", "1", "2", "3", "4", "5", "6", "7"))
+            .setNodeTypes(Arrays.asList("0", "1", "2", "3", "4", "5", "6", "7", "8"))
             .setApproverStrategies(Arrays.asList(
                 DesignerApproverStrategy.resource(ApproverStrategy.USER, "用户", "USER", null),
                 DesignerApproverStrategy.resource(ApproverStrategy.ROLE, "角色", "ROLE",
