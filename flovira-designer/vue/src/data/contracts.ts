@@ -1,4 +1,4 @@
-export type DesignerNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
+export type DesignerNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
 export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
 
 export interface ApproverSubject {
@@ -88,7 +88,7 @@ export type ApiResponse<T> = T | { data?: T }
 
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
-  nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7'],
+  nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
   approverStrategies: [
     { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true },
     { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true },
@@ -121,6 +121,7 @@ const PALETTE_NODE_TYPES: Record<string, DesignerNodeType> = {
   inclusive: '5',
   subProcess: '6',
   wait: '7',
+  carbonCopy: '8',
 }
 
 export function filterPaletteNodes<T extends { type: string }>(

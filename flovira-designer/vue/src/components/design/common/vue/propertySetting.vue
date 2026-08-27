@@ -43,6 +43,7 @@ import start from '@/components/design/common/vue/start.vue'
 import between from '@/components/design/common/vue/between.vue'
 import subProcess from '@/components/design/common/vue/subProcess.vue'
 import wait from '@/components/design/common/vue/wait.vue'
+import carbonCopy from '@/components/design/common/vue/carbonCopy.vue'
 import serial from '@/components/design/common/vue/gateway.vue'
 import parallel from '@/components/design/common/vue/gateway.vue'
 import inclusive from '@/components/design/common/vue/gateway.vue'
@@ -78,6 +79,7 @@ const COMPONENT_LIST = {
   between,
   subProcess,
   wait,
+  carbonCopy,
   serial,
   parallel,
   inclusive,
@@ -141,6 +143,8 @@ const title = computed(() => {
     return t('property.titleSubprocess')
   } else if (props.node && props.node.type === 'wait') {
     return t('property.titleWait')
+  } else if (props.node && props.node.type === 'carbonCopy') {
+    return t('property.titleCarbonCopy')
   }
   return t('property.titleBetween')
 });

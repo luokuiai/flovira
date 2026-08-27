@@ -72,4 +72,34 @@ describe('approver rule definition conversion', () => {
     const ext = JSON.parse(exported.nodeList[0].ext)
     expect(ext.find((item) => item.code === 'approverRule').value).toBe(approverRule)
   })
+
+  test('preserves carbon copy type and recipient rule during round trip', () => {
+    const carbonCopyRule = JSON.stringify({
+      schemaVersion: 1,
+      strategy: 'USER',
+      selectionType: 'RESOURCE',
+      subjects: [{ id: 'user:auditor', type: 'USER', name: 'Auditor' }],
+    })
+    const logic = json2LogicFlowJson({
+      flowCode: 'carbon-copy-flow',
+      flowName: 'Carbon copy flow',
+      modelValue: 'CLASSICS',
+      version: '1',
+      nodeList: [{
+        nodeType: 8,
+        nodeCode: 'CARBON_COPY',
+        nodeName: 'Carbon copy',
+        nodeRatio: 0,
+        skipList: [],
+        ext: JSON.stringify([{ code: 'carbonCopyRule', value: carbonCopyRule }]),
+      }],
+    })
+
+    expect(logic.nodes[0].type).toBe('carbonCopy')
+    expect(logic.nodes[0].properties.ext.carbonCopyRule).toBe(carbonCopyRule)
+    const exported = JSON.parse(logicFlowJsonToFlovira(logic))
+    const ext = JSON.parse(exported.nodeList[0].ext)
+    expect(exported.nodeList[0].nodeType).toBe('8')
+    expect(ext.find((item) => item.code === 'carbonCopyRule').value).toBe(carbonCopyRule)
+  })
 })

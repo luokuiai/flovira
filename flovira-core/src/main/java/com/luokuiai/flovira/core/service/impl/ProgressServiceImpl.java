@@ -124,7 +124,9 @@ public class ProgressServiceImpl implements ProgressService {
     private ProgressNode toProgressNode(Node node, FlowParams flowParams) {
         List<String> handlers = Collections.emptyList();
         if (!NodeType.isWait(node.getNodeType())) {
-            Task task = FlowEngine.newTask().setPermissionList(ApproverRuleUtil.resolve(node, flowParams));
+            Task task = FlowEngine.newTask().setPermissionList(NodeType.isCarbonCopy(node.getNodeType())
+                ? ApproverRuleUtil.resolveCarbonCopy(node, flowParams)
+                : ApproverRuleUtil.resolve(node, flowParams));
             ExpressionUtil.evalVariable(Collections.singletonList(task), flowParams);
             handlers = new ArrayList<>(task.getPermissionList());
         }

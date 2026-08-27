@@ -18,6 +18,7 @@ import {
   GitFork,
   Hourglass,
   LocateFixed,
+  Mail,
   Network,
   Plus,
   Redo2,
@@ -41,6 +42,7 @@ import {
   filterNodeTypes,
   findApproverStrategy,
   getApproverRule,
+  getCarbonCopyRule,
   getSubprocessConfig,
   getTimeoutConfig,
   getWaitConfig,
@@ -50,6 +52,7 @@ import {
   serializeDefinition,
   setSubprocessConfig,
   setApproverRule,
+  setCarbonCopyRule,
   setTimeoutConfig,
   setWaitConfig,
   updateNode,
@@ -82,9 +85,10 @@ const NODE_META: Record<FloviraNodeType, {
   '5': { label: '包含网关', icon: Network, shell: 'border-violet-200', header: 'bg-violet-600' },
   '6': { label: '子流程', icon: Box, shell: 'border-purple-200', header: 'bg-purple-600' },
   '7': { label: '等待', icon: Hourglass, shell: 'border-emerald-200', header: 'bg-emerald-700' },
+  '8': { label: '抄送', icon: Mail, shell: 'border-teal-200', header: 'bg-teal-600' },
 }
 
-const INSERT_TYPES: FloviraNodeType[] = ['1', '7', '6', '3', '4', '5']
+const INSERT_TYPES: FloviraNodeType[] = ['1', '8', '7', '6', '3', '4', '5']
 
 const extractSubprocesses = (
   value: DesignerResourcePage | { data?: DesignerResourcePage },
@@ -121,9 +125,10 @@ const summaryFor = (node: FloviraNode, subprocesses: SubprocessDefinition[]): st
   }
   if (node.nodeType === '7') return String(getWaitConfig(node).waitKey || '未配置等待标识')
   if (['3', '4', '5'].includes(node.nodeType)) return `${node.skipList.length} 条分支`
-  const rule = getApproverRule(node)
-  if (rule.strategy === 'EXPRESSION') return rule.expression || '未配置办理人'
-  return rule.subjects.map((subject) => subject.name || subject.id).join('、') || '未配置办理人'
+  const rule = node.nodeType === '8' ? getCarbonCopyRule(node) : getApproverRule(node)
+  const emptyLabel = node.nodeType === '8' ? '未配置抄送人' : '未配置办理人'
+  if (rule.strategy === 'EXPRESSION') return rule.expression || emptyLabel
+  return rule.subjects.map((subject) => subject.name || subject.id).join('、') || emptyLabel
 }
 
 export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesignerProps>(
@@ -266,12 +271,15 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     }), [commit, definition, dirty, locateStart, redo, undo])
 
     const selectedNode = definition.nodeList.find((node) => node.nodeCode === selectedCode)
-    const selectedApproverRule = selectedNode?.nodeType === '1' ? getApproverRule(selectedNode) : null
+    const selectedApproverRule = selectedNode?.nodeType === '8'
+      ? getCarbonCopyRule(selectedNode)
+      : selectedNode?.nodeType === '1' ? getApproverRule(selectedNode) : null
+    const setSelectedParticipantRule = selectedNode?.nodeType === '8' ? setCarbonCopyRule : setApproverRule
     const selectedApproverStrategy = selectedApproverRule
       ? findApproverStrategy(capabilities, selectedApproverRule.strategy)
       : undefined
     useEffect(() => {
-      if (!selectedNode || selectedNode.nodeType !== '1'
+      if (!selectedNode || !['1', '8'].includes(selectedNode.nodeType)
         || selectedApproverStrategy?.selectionType !== 'RESOURCE'
         || !selectedApproverStrategy.resourceType
         || !dataProvider?.queryResources) {
@@ -559,9 +567,9 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               <Field label="节点编码">
                 <input value={selectedNode.nodeCode} disabled />
               </Field>
-              {selectedNode.nodeType === '1' && (
+              {['1', '8'].includes(selectedNode.nodeType) && (
                 <>
-                  <Field label="办理人类型">
+                  <Field label={selectedNode.nodeType === '8' ? '抄送人类型' : '办理人类型'}>
                     <select
                       value={String(selectedApproverRule?.strategy || 'USER')}
                       disabled={disabled}
@@ -570,7 +578,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                         setApproverKeyword('')
                         setApproverPage(1)
                         commit(updateNode(definition, selectedNode.nodeCode,
-                          setApproverRule(selectedNode, event.target.value, [], '', strategy?.relationType,
+                          setSelectedParticipantRule(selectedNode, event.target.value, [], '', strategy?.relationType,
                             strategy?.selectionType || 'RESOURCE')))
                       }}
                     >
@@ -580,23 +588,23 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     </select>
                   </Field>
                   {selectedApproverStrategy?.selectionType === 'EXPRESSION' ? (
-                    <Field label="办理人表达式">
+                    <Field label={selectedNode.nodeType === '8' ? '抄送人表达式' : '办理人表达式'}>
                       <input
                         value={String(selectedApproverRule?.expression || '')}
                         disabled={disabled}
                         placeholder="例如 ${approverIds}"
                         onChange={(event) => commit(updateNode(definition, selectedNode.nodeCode,
-                          setApproverRule(selectedNode, selectedApproverRule?.strategy || 'EXPRESSION', [], event.target.value,
+                          setSelectedParticipantRule(selectedNode, selectedApproverRule?.strategy || 'EXPRESSION', [], event.target.value,
                             selectedApproverStrategy.relationType, selectedApproverStrategy.selectionType)))}
                       />
                     </Field>
                   ) : selectedApproverStrategy?.selectionType === 'RESOURCE' ? (
                     <div className="mb-5">
-                      <Field label="搜索办理人">
+                      <Field label={selectedNode.nodeType === '8' ? '搜索抄送人' : '搜索办理人'}>
                         <input
                           value={approverKeyword}
                           disabled={disabled || !dataProvider?.queryResources}
-                          placeholder={`搜索${approverStrategyOptions(capabilities).find((item) => item.value === selectedApproverRule?.strategy)?.label || '办理人'}`}
+                          placeholder={`搜索${approverStrategyOptions(capabilities).find((item) => item.value === selectedApproverRule?.strategy)?.label || (selectedNode.nodeType === '8' ? '抄送人' : '办理人')}`}
                           onChange={(event) => {
                             setApproverKeyword(event.target.value)
                             setApproverPage(1)
@@ -625,7 +633,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                                       ? [...current, { id: item.id, type: item.resourceType, name: item.name }]
                                       : [{ id: item.id, type: item.resourceType, name: item.name }]
                                   commit(updateNode(definition, selectedNode.nodeCode,
-                                    setApproverRule(selectedNode, String(selectedApproverRule?.strategy || 'USER'),
+                                    setSelectedParticipantRule(selectedNode, String(selectedApproverRule?.strategy || 'USER'),
                                       subjects, '', selectedApproverStrategy.relationType,
                                       selectedApproverStrategy.selectionType)))
                                 }}

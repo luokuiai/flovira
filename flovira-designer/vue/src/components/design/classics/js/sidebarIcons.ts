@@ -15,6 +15,7 @@ const COLOR = {
   inclusive: '146,84,222', // 紫：包含
   subProcess: '146,84,222', // 紫：子流程
   wait: '34,139,94',       // 绿：等待事件
+  carbonCopy: '13,148,136', // 青绿：抄送
 }
 
 const stroke = (rgb) => `rgb(${rgb})`
@@ -62,6 +63,13 @@ export const waitIcon = `
 <svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg">
   <rect x="5" y="5" width="90" height="70" rx="8" fill="${rgba(COLOR.wait, 0.10)}" stroke="${stroke(COLOR.wait)}" stroke-width="1.8"/>
   <path d="M35 17h30M35 63h30M39 18c0 12 8 13 11 22-3 9-11 10-11 22M61 18c0 12-8 13-11 22 3 9 11 10 11 22" fill="none" stroke="${stroke(COLOR.wait)}" stroke-width="2.5"/>
+</svg>`
+
+export const carbonCopyIcon = `
+<svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg">
+  <rect x="5" y="5" width="90" height="70" rx="8" fill="${rgba(COLOR.carbonCopy, 0.10)}" stroke="${stroke(COLOR.carbonCopy)}" stroke-width="1.8"/>
+  <rect x="24" y="21" width="52" height="38" rx="4" fill="${ICON_BG}" stroke="${stroke(COLOR.carbonCopy)}" stroke-width="1.8"/>
+  <path d="M25 24l25 19 25-19" fill="none" stroke="${stroke(COLOR.carbonCopy)}" stroke-width="2"/>
 </svg>`
 
 /**
@@ -131,6 +139,7 @@ export const nodeIcons = {
   between: betweenIcon,
   subProcess: subProcessIcon,
   wait: waitIcon,
+  carbonCopy: carbonCopyIcon,
   end: endIcon,
   serial: serialIcon,
   parallel: parallelIcon,

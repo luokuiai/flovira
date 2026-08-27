@@ -106,6 +106,7 @@ const zh: WfMessageTree = {
     between: '中间节点',
     subprocess: '子流程',
     wait: '等待节点',
+    carbonCopy: '抄送节点',
     end: '结束',
     serial: '互斥网关',
     parallel: '并行网关',
@@ -120,7 +121,15 @@ const zh: WfMessageTree = {
     titleEnd: '设置结束属性',
     titleBetween: '设置中间属性'
     ,titleSubprocess: '设置子流程属性',
-    titleWait: '设置等待节点属性'
+    titleWait: '设置等待节点属性',
+    titleCarbonCopy: '设置抄送节点属性'
+  },
+  carbonCopy: {
+    recipientType: '抄送人类型',
+    recipient: '抄送人',
+    expression: '抄送人表达式',
+    selectRecipient: '选择抄送人',
+    unconfigured: '未配置抄送人'
   },
   wait: {
     key: '等待事件键',
@@ -357,6 +366,7 @@ const en: WfMessageTree = {
     between: 'Task',
     subprocess: 'Subprocess',
     wait: 'Wait',
+    carbonCopy: 'Carbon Copy',
     end: 'End',
     serial: 'Exclusive',
     parallel: 'Parallel',
@@ -371,7 +381,15 @@ const en: WfMessageTree = {
     titleEnd: 'End Properties',
     titleBetween: 'Task Properties',
     titleSubprocess: 'Subprocess Properties',
-    titleWait: 'Wait Properties'
+    titleWait: 'Wait Properties',
+    titleCarbonCopy: 'Carbon Copy Properties'
+  },
+  carbonCopy: {
+    recipientType: 'Recipient Type',
+    recipient: 'Recipient',
+    expression: 'Recipient Expression',
+    selectRecipient: 'Select Recipients',
+    unconfigured: 'No recipients configured'
   },
   wait: {
     key: 'Wait Event Key',

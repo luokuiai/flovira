@@ -8,6 +8,7 @@ import {
   filterNodeTypes,
   getSubprocessConfig,
   getApproverRule,
+  getCarbonCopyRule,
   getTimeoutConfig,
   getWaitConfig,
   insertNodeAfter,
@@ -15,6 +16,7 @@ import {
   serializeDefinition,
   setSubprocessConfig,
   setApproverRule,
+  setCarbonCopyRule,
   setTimeoutConfig,
   setWaitConfig,
   updateNode,
@@ -111,6 +113,27 @@ describe('Flovira definition model', () => {
       expression: '',
     })
     expect(JSON.parse(String(node.ext))).toContainEqual(expect.objectContaining({ code: 'approverRule' }))
+  })
+
+  test('round trips and validates carbon copy recipients', () => {
+    const source = createInitialDefinition()
+    const approval = source.nodeList.find((node) => node.nodeType === '1')!
+    let definition = insertNodeAfter(source, approval.nodeCode, '8')
+    const carbonCopy = definition.nodeList.find((node) => node.nodeType === '8')!
+
+    expect(validateDefinition(definition).issues).toContainEqual(expect.objectContaining({
+      code: 'CARBON_COPY_REQUIRED',
+    }))
+
+    const configured = setCarbonCopyRule(carbonCopy, 'USER', [
+      { id: 'user:auditor', type: 'USER', name: '审计员' },
+    ])
+    definition = updateNode(definition, carbonCopy.nodeCode, configured)
+
+    expect(getCarbonCopyRule(configured).subjects).toEqual([
+      { id: 'user:auditor', type: 'USER', name: '审计员' },
+    ])
+    expect(validateDefinition(definition).issues.some((issue) => issue.code === 'CARBON_COPY_REQUIRED')).toBe(false)
   })
 
   test('validates a 128 business-node definition without truncation', () => {

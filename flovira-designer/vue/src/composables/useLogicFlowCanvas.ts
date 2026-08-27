@@ -8,6 +8,7 @@ import StartC from '@/components/design/classics/js/start'
 import BetweenC from '@/components/design/classics/js/between'
 import SubProcessC from '@/components/design/classics/js/subProcess'
 import WaitC from '@/components/design/classics/js/wait'
+import CarbonCopyC from '@/components/design/classics/js/carbonCopy'
 import SerialC from '@/components/design/classics/js/serial'
 import ParallelC from '@/components/design/classics/js/parallel'
 import InclusiveC from '@/components/design/classics/js/inclusive'
@@ -17,6 +18,7 @@ import StartM from '@/components/design/mimic/js/start'
 import BetweenM from '@/components/design/mimic/js/between'
 import SubProcessM from '@/components/design/mimic/js/subProcess'
 import WaitM from '@/components/design/mimic/js/wait'
+import CarbonCopyM from '@/components/design/mimic/js/carbonCopy'
 import SerialM from '@/components/design/mimic/js/serial'
 import ParallelM from '@/components/design/mimic/js/parallel'
 import InclusiveM from '@/components/design/mimic/js/inclusive'
@@ -561,6 +563,7 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
       lf.value.register(BetweenC)
       lf.value.register(SubProcessC)
       lf.value.register(WaitC)
+      lf.value.register(CarbonCopyC)
       lf.value.register(SerialC)
       lf.value.register(ParallelC)
       lf.value.register(InclusiveC)
@@ -571,6 +574,7 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
       lf.value.register(BetweenM)
       lf.value.register(SubProcessM)
       lf.value.register(WaitM)
+      lf.value.register(CarbonCopyM)
       lf.value.register(SerialM)
       lf.value.register(ParallelM)
       lf.value.register(InclusiveM)
