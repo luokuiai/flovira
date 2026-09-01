@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,8 +16,11 @@
  */
 package com.luokuiai.flovira.core.service;
 
+import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.dto.FormDefinition;
 import com.luokuiai.flovira.core.entity.Form;
 import com.luokuiai.flovira.core.orm.service.IFloviraService;
+import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.core.utils.page.Page;
 
 /**
@@ -95,4 +99,39 @@ public interface FormService extends IFloviraService<Form> {
      * @return 保存结果
      */
     boolean saveContent(Long id, String formContent);
+
+    /**
+     * 保存 Flovira 标准表单定义。
+     *
+     * @param id 表单id
+     * @param definition 标准表单定义
+     * @return 保存结果
+     */
+    default boolean saveDefinition(Long id, FormDefinition definition) {
+        String content = definition == null ? null : FlowEngine.jsonConvert.objToStr(definition);
+        return saveContent(id, content);
+    }
+
+    /**
+     * 读取 Flovira 标准表单定义。
+     *
+     * @param id 表单id
+     * @return 标准表单定义，无内容时返回 null
+     */
+    default FormDefinition getDefinition(Long id) {
+        return parseDefinition(getById(id));
+    }
+
+    /**
+     * 解析 Flovira 标准表单定义。
+     *
+     * @param form 表单实体
+     * @return 标准表单定义，无内容时返回 null
+     */
+    default FormDefinition parseDefinition(Form form) {
+        if (form == null || StringUtils.isEmpty(form.getFormContent())) {
+            return null;
+        }
+        return FlowEngine.jsonConvert.strToBean(form.getFormContent(), FormDefinition.class);
+    }
 }

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,7 +17,13 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.constant.FlowCons;
 import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.dto.FormChangeRecord;
+import com.luokuiai.flovira.core.dto.FormDefinition;
+import com.luokuiai.flovira.core.dto.FormFieldDefinition;
+import com.luokuiai.flovira.core.dto.FormFieldChange;
+import com.luokuiai.flovira.core.entity.Form;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
@@ -27,11 +34,14 @@ import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
+import com.luokuiai.flovira.core.service.FormService;
 import com.luokuiai.flovira.core.service.HisTaskService;
 import com.luokuiai.flovira.core.utils.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 
 /**
  * 历史任务记录Service业务层处理
@@ -40,6 +50,8 @@ import java.util.List;
  * @since 2023-03-29
  */
 public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTask>, HisTask> implements HisTaskService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HisTaskServiceImpl.class);
 
     @Override
     public HisTaskService setDao(FlowHisTaskDao<HisTask> floviraDao) {
@@ -218,6 +230,51 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
     }
 
     @Override
+    public List<FormChangeRecord> getFormChanges(Long instanceId) {
+        List<HisTask> source = getByInsId(instanceId);
+        if (CollUtil.isEmpty(source)) {
+            return new ArrayList<FormChangeRecord>();
+        }
+        List<HisTask> hisTasks = new ArrayList<HisTask>(source);
+        hisTasks.sort((left, right) -> compareHistoryOrder(left, right));
+
+        List<FormChangeRecord> records = new ArrayList<FormChangeRecord>();
+        Map<String, Map<String, String>> fieldLabelCache = new HashMap<String, Map<String, String>>();
+        Map<String, Object> previousFormData = null;
+        for (HisTask hisTask : hisTasks) {
+            if (hisTask == null || SkipType.NONE.getKey().equals(hisTask.getSkipType())) {
+                continue;
+            }
+            Map<String, Object> currentFormData = getFormData(hisTask);
+            if (currentFormData == null) {
+                continue;
+            }
+            if (previousFormData == null) {
+                previousFormData = new LinkedHashMap<String, Object>(currentFormData);
+                continue;
+            }
+
+            List<FormFieldChange> changes = compareFormData(previousFormData, currentFormData);
+            if (CollUtil.isNotEmpty(changes)) {
+                fillFieldLabels(hisTask, changes, fieldLabelCache);
+                records.add(new FormChangeRecord()
+                    .setHisTaskId(hisTask.getId())
+                    .setTaskId(hisTask.getTaskId())
+                    .setInstanceId(hisTask.getInstanceId())
+                    .setNodeCode(hisTask.getNodeCode())
+                    .setNodeName(hisTask.getNodeName())
+                    .setApprover(hisTask.getApprover())
+                    .setChangeTime(eventTime(hisTask))
+                    .setFormCustom(hisTask.getFormCustom())
+                    .setFormPath(hisTask.getFormPath())
+                    .setChanges(changes));
+            }
+            previousFormData = new LinkedHashMap<String, Object>(currentFormData);
+        }
+        return records;
+    }
+
+    @Override
     public List<HisTask> listByBusinessKey(String businessType, String businessId) {
         List<Instance> instances = FlowEngine.insService().listByBusinessKey(businessType, businessId);
         if (CollUtil.isEmpty(instances)) {
@@ -256,5 +313,154 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
 
     private String getFlowStatus(FlowParams flowParams) {
         return StringUtils.emptyDefault(flowParams.getHisStatus(), flowParams.getFlowStatus());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getFormData(HisTask hisTask) {
+        Map<String, Object> variables = hisTask.getVariableMap();
+        if (MapUtil.isEmpty(variables)) {
+            return null;
+        }
+        Object formData = variables.get(FlowCons.FORM_DATA);
+        return formData instanceof Map ? (Map<String, Object>) formData : null;
+    }
+
+    private List<FormFieldChange> compareFormData(Map<String, Object> previous, Map<String, Object> current) {
+        Set<String> fieldKeys = new LinkedHashSet<String>();
+        fieldKeys.addAll(previous.keySet());
+        fieldKeys.addAll(current.keySet());
+
+        List<FormFieldChange> changes = new ArrayList<FormFieldChange>();
+        for (String fieldKey : fieldKeys) {
+            boolean existed = previous.containsKey(fieldKey);
+            boolean exists = current.containsKey(fieldKey);
+            Object beforeValue = previous.get(fieldKey);
+            Object afterValue = current.get(fieldKey);
+            if (existed && exists && valuesEqual(beforeValue, afterValue)) {
+                continue;
+            }
+            String changeType = !existed ? FormFieldChange.ADDED
+                : !exists ? FormFieldChange.REMOVED : FormFieldChange.UPDATED;
+            changes.add(new FormFieldChange()
+                .setFieldKey(fieldKey)
+                .setFieldLabel(fieldKey)
+                .setChangeType(changeType)
+                .setBeforeValue(beforeValue)
+                .setAfterValue(afterValue));
+        }
+        return changes;
+    }
+
+    private boolean valuesEqual(Object left, Object right) {
+        if (left instanceof Number && right instanceof Number) {
+            try {
+                return new BigDecimal(left.toString()).compareTo(new BigDecimal(right.toString())) == 0;
+            } catch (NumberFormatException ignored) {
+                // NaN and infinity fall back to the regular object comparison.
+            }
+        }
+        return Objects.deepEquals(left, right);
+    }
+
+    private void fillFieldLabels(HisTask hisTask, List<FormFieldChange> changes,
+        Map<String, Map<String, String>> fieldLabelCache) {
+        Map<String, String> labels = getFieldLabels(hisTask, fieldLabelCache);
+        if (MapUtil.isEmpty(labels)) {
+            return;
+        }
+        for (FormFieldChange change : changes) {
+            String label = labels.get(change.getFieldKey());
+            if (StringUtils.isNotEmpty(label)) {
+                change.setFieldLabel(label);
+            }
+        }
+    }
+
+    private Map<String, String> getFieldLabels(HisTask hisTask,
+        Map<String, Map<String, String>> fieldLabelCache) {
+        if (!FlowCons.FORM_CUSTOM_Y.equals(hisTask.getFormCustom())
+            || StringUtils.isEmpty(hisTask.getFormPath())) {
+            return Collections.emptyMap();
+        }
+        String formPath = hisTask.getFormPath();
+        if (fieldLabelCache.containsKey(formPath)) {
+            return fieldLabelCache.get(formPath);
+        }
+
+        Map<String, String> labels = Collections.emptyMap();
+        Long formId = parseFormId(formPath);
+        if (formId != null) {
+            FormService formService = FlowEngine.formService();
+            Form form = formService == null ? null : formService.getById(formId);
+            labels = parseFieldLabels(formService, form);
+        }
+        fieldLabelCache.put(formPath, labels);
+        return labels;
+    }
+
+    private Long parseFormId(String formPath) {
+        try {
+            return Long.valueOf(formPath);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private Map<String, String> parseFieldLabels(FormService formService, Form form) {
+        if (formService == null || form == null || StringUtils.isEmpty(form.getFormContent())
+            || FlowEngine.jsonConvert == null) {
+            return Collections.emptyMap();
+        }
+        FormDefinition definition;
+        try {
+            definition = formService.parseDefinition(form);
+        } catch (RuntimeException e) {
+            LOGGER.debug("Unable to parse form definition for form id {}", form.getId(), e);
+            return Collections.emptyMap();
+        }
+        if (definition == null || !FormDefinition.VERSION_1.equals(definition.getSchemaVersion())
+            || CollUtil.isEmpty(definition.getFields())) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> labels = new HashMap<String, String>();
+        for (FormFieldDefinition field : definition.getFields()) {
+            if (field != null && StringUtils.isNotEmpty(field.getKey())
+                && StringUtils.isNotEmpty(field.getLabel())) {
+                labels.put(field.getKey(), field.getLabel());
+            }
+        }
+        return labels;
+    }
+
+    private int compareHistoryOrder(HisTask left, HisTask right) {
+        if (left == right) {
+            return 0;
+        }
+        if (left == null) {
+            return 1;
+        }
+        if (right == null) {
+            return -1;
+        }
+        int timeCompare = compareNullable(eventTime(left), eventTime(right));
+        return timeCompare != 0 ? timeCompare : compareNullable(left.getId(), right.getId());
+    }
+
+    private Date eventTime(HisTask hisTask) {
+        return hisTask.getUpdateTime() != null ? hisTask.getUpdateTime() : hisTask.getCreateTime();
+    }
+
+    private <T extends Comparable<T>> int compareNullable(T left, T right) {
+        if (left == right) {
+            return 0;
+        }
+        if (left == null) {
+            return 1;
+        }
+        if (right == null) {
+            return -1;
+        }
+        return left.compareTo(right);
     }
 }
