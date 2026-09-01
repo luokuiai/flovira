@@ -91,12 +91,16 @@ public interface Form extends RootEntity {
     Form setIsPublish(Integer isPublish);
 
     /**
-     * 表单类型（0内置表单 存 form_content        1外挂表单 存form_path）
+     * 表单类型（0内置表单，1外挂表单）。外挂表单可同时保存字段定义和业务页面路径。
      */
     Integer getFormType();
 
     Form setFormType(Integer formType);
 
+    /**
+     * 表单定义内容，标准结构见 {@link com.luokuiai.flovira.core.dto.FormDefinition}，
+     * 旧的自定义内容仍可保存。
+     */
     String getFormContent();
 
     Form setFormContent(String formContent);
