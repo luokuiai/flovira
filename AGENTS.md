@@ -92,7 +92,10 @@
 ## 品牌与版权保护
 
 - 不要移除、替换或弱化 `flovira`、`Flovira`、`dromara`、`com.luokuiai` 包名 / groupId、模块名、启动 banner、作者信息（`warm` / `290631660@qq.com` 等 `developers`）、README 中的 Star/赞助商/文档/演示链接，除非用户明确要求。
-- **每个 Java 文件保留 Apache 2.0 license header**（`Copyright 2024-2025, Warm-Flow (290631660@qq.com).` 开头的注释块）。新增 Java 文件必须照抄现有 header、`package`、Lombok 与注释风格。
+- **每个 Java 文件保留 Apache 2.0 license header**。
+- 已有或派生自 Warm-Flow 的文件必须保留 `Copyright 2024-2025, Warm-Flow (290631660@qq.com).` 及其它原有归属声明。
+- LuokuiAI 独立新增且未复制上游实质代码的文件使用 `Copyright 2026, LuokuiAI (luokuiai@gmail.com).`。
+- 同时包含上游与 LuokuiAI 实质代码的文件保留原声明并追加 LuokuiAI 声明。新增文件的 `package`、Lombok 与注释风格仍与所在模块保持一致。
 - 保留现有中文 README、中文注释、类注释中的 `@author warm` 与 `@since`，不要批量改成英文或通用模板。
 - 不改动 `LICENSE`，不弱化「永久开源免费、无商业版」的项目声明。
 
