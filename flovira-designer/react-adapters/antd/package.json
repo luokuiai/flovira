@@ -1,6 +1,6 @@
 {
   "name": "@luokuiai/flovira-react-adapter-antd",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha.0",
   "description": "Ant Design adapter for the Flovira React designer",
   "author": "warm",
   "license": "MIT",
@@ -35,7 +35,7 @@
     "build": "vite build"
   },
   "peerDependencies": {
-    "@luokuiai/flovira-react-designer": "^1.0.0",
+    "@luokuiai/flovira-react-designer": ">=1.0.0-alpha.0 <2.0.0",
     "antd": "^6.0.0",
     "react": ">=18.2.0",
     "react-dom": ">=18.2.0"

@@ -114,7 +114,7 @@
     },
     "react": {
       "name": "@luokuiai/flovira-react-designer",
-      "version": "1.0.0",
+      "version": "1.0.0-alpha.0",
       "dependencies": {
         "lucide-react": "^0.563.0",
       },
@@ -138,7 +138,7 @@
     },
     "react-adapters/antd": {
       "name": "@luokuiai/flovira-react-adapter-antd",
-      "version": "1.0.0",
+      "version": "1.0.0-alpha.0",
       "devDependencies": {
         "@luokuiai/flovira-react-designer": "workspace:*",
         "@testing-library/react": "^16.3.0",
@@ -155,7 +155,7 @@
         "vitest": "^3.2.7",
       },
       "peerDependencies": {
-        "@luokuiai/flovira-react-designer": "^1.0.0",
+        "@luokuiai/flovira-react-designer": ">=1.0.0-alpha.0 <2.0.0",
         "antd": "^6.0.0",
         "react": ">=18.2.0",
         "react-dom": ">=18.2.0",
@@ -163,7 +163,7 @@
     },
     "react-adapters/lumen": {
       "name": "@luokuiai/flovira-react-adapter-lumen",
-      "version": "1.0.0",
+      "version": "1.0.0-alpha.0",
       "devDependencies": {
         "@luokuiai/flovira-react-designer": "workspace:*",
         "@luokuiai/lumen-ui": "1.0.0-alpha.7",
@@ -180,7 +180,7 @@
         "vitest": "^3.2.7",
       },
       "peerDependencies": {
-        "@luokuiai/flovira-react-designer": "^1.0.0",
+        "@luokuiai/flovira-react-designer": ">=1.0.0-alpha.0 <2.0.0",
         "@luokuiai/lumen-ui": "1.0.0-alpha.7",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0",
@@ -188,7 +188,7 @@
     },
     "vue": {
       "name": "@luokuiai/flovira-vue-designer",
-      "version": "1.0.0",
+      "version": "1.0.0-alpha.0",
       "devDependencies": {
         "@iconify-json/ep": "^1.2.4",
         "@iconify/types": "2.0.0",
