@@ -6,6 +6,7 @@
 
 - `vue/`：Vue 3 设计器组件库，npm 包 `@luokuiai/flovira-vue-designer`。
 - `react/`：React 设计器组件库，npm 包 `@luokuiai/flovira-react-designer`。
+- `react-adapters/`：React 设计器的可选 UI 框架适配包；适配包不得把具体 UI 框架依赖带入核心 React 设计器。
 - `examples/`：通过 Bun `workspace:*` 消费上述包的集成示例。
 
 两个组件库只共享仓库工作区，不合并 npm 包、框架依赖或公共 API。后端只提供设计器 API，本模块不得重新引入 WebJar、内嵌页面或后端静态资源打包链路。
@@ -25,4 +26,4 @@ bun run build:designer
 bun run build:demos
 ```
 
-npm 发布使用 Lerna 固定版本模式：在 `main` 执行 `bun run release` 同步 Vue/React 包版本并推送 `vX.Y.Z` tag，GitHub Actions 通过 npm Trusted Publishing 发布两个包。不要手工只修改或发布其中一个包。
+npm 发布使用 Lerna 固定版本模式：在 `main` 执行 `bun run release` 同步 Vue、React 与 React UI 适配包版本并推送 `vX.Y.Z` tag，GitHub Actions 通过 npm Trusted Publishing 发布全部公开包。不要手工只修改或发布其中一个包。

@@ -188,6 +188,7 @@ public class BeanConfig {
         setNewEntity();
         FrameInvoker.setCfgFunction((key) -> Objects.requireNonNull(SpringUtil.getBean(Environment.class)).getProperty(key));
         FrameInvoker.setBeanFunction(SpringUtil::getBean);
+        FrameInvoker.setBeansFunction(SpringUtil::getBeans);
         FlowEngine.setTransactionExecutor(SpringUtil.getBean(com.luokuiai.flovira.core.transaction.TransactionExecutor.class));
         FlowEngine.setTimeoutSchedulerLock(FrameInvoker.getBean(TimeoutSchedulerLock.class));
         FloviraProperties flovira = SpringUtil.getBean(FloviraProperties.class);

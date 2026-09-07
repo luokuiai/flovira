@@ -2,6 +2,7 @@ import type {
   ApproverRule,
   ApproverStrategy,
   ApproverSubject,
+  DesignerApproverOption,
   DesignerApproverStrategy,
   DesignerCapabilities,
   FloviraDefinition,
@@ -11,14 +12,40 @@ import type {
   FlowValidationResult,
 } from './types'
 
+const MULTI_APPROVER_OPTION: DesignerApproverOption = {
+  code: 'approvalMode',
+  name: '多人审批策略',
+  defaultValue: 'OR',
+  nodeTypes: ['1'],
+  condition: 'MULTIPLE',
+  choices: [
+    { value: 'OR', label: '或签' },
+    { value: 'VOTE', label: '票签' },
+    { value: 'COUNTERSIGN', label: '会签' },
+  ],
+}
+
+const SAME_AS_STARTER_OPTION: DesignerApproverOption = {
+  code: 'sameAsStarterAction',
+  name: '审批人与提交人为同一人时',
+  defaultValue: 'SELF_APPROVE',
+  nodeTypes: ['1'],
+  condition: 'ALWAYS',
+  choices: [
+    { value: 'SELF_APPROVE', label: '本人审批' },
+    { value: 'AUTO_SKIP_OR_TRANSFER', label: '跳过或由其他人审批' },
+    { value: 'TRANSFER_TO_ORG_MANAGER', label: '转交部门负责人' },
+  ],
+}
+
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
   approverStrategies: [
-    { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true },
-    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true },
-    { code: 'ORGANIZATION', name: '组织', selectionType: 'RESOURCE', resourceType: 'ORGANIZATION', relationType: 'ORGANIZATION_MEMBERS', multiple: true },
-    { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false },
+    { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, editorType: 'DIALOG', resultCardinality: 'ONE_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
+    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
+    { code: 'ORGANIZATION', name: '组织', selectionType: 'RESOURCE', resourceType: 'ORGANIZATION', relationType: 'ORGANIZATION_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
+    { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false, editorType: 'INLINE', resultCardinality: 'EXACTLY_ONE', options: [SAME_AS_STARTER_OPTION] },
   ],
   approvalModes: ['OR', 'VOTE', 'COUNTERSIGN'],
   returnPolicies: ['PREVIOUS', 'ANY', 'REJECT'],
@@ -50,13 +77,24 @@ const NODE_NAMES: Record<FloviraNodeType, string> = {
   '8': '抄送节点',
 }
 
-let sequence = 0
-
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
-export const createId = (prefix: string): string => {
-  sequence += 1
-  return `${prefix}_${Date.now().toString(36)}_${sequence.toString(36)}`
+export const createId = (_prefix?: string): string => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+  const bytes = new Uint8Array(16)
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes)
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256)
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const value = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`
 }
 
 export const nodeName = (type: FloviraNodeType): string => NODE_NAMES[type]
@@ -292,6 +330,9 @@ const getParticipantRule = (node: FloviraNode, code: string): ApproverRule => {
     relationType: config.relationType ? String(config.relationType) : undefined,
     subjects: Array.isArray(config.subjects) ? config.subjects as ApproverSubject[] : [],
     expression: String(config.expression || ''),
+    config: config.config && typeof config.config === 'object'
+      ? config.config as Record<string, unknown>
+      : undefined,
   }
 }
 
@@ -308,13 +349,15 @@ export const setApproverRule = (
   expression = '',
   relationType?: string,
   selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
+  config?: Record<string, unknown>,
 ): FloviraNode => setNodeExtConfig(node, 'approverRule', {
   schemaVersion: 1,
   strategy,
   selectionType,
   relationType,
   subjects,
-  expression: strategy === 'EXPRESSION' ? expression : undefined,
+  expression: selectionType === 'EXPRESSION' ? expression : undefined,
+  config,
 })
 
 export const setCarbonCopyRule = (
@@ -324,13 +367,15 @@ export const setCarbonCopyRule = (
   expression = '',
   relationType?: string,
   selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
+  config?: Record<string, unknown>,
 ): FloviraNode => setNodeExtConfig(node, 'carbonCopyRule', {
   schemaVersion: 1,
   strategy,
   selectionType,
   relationType,
   subjects,
-  expression: strategy === 'EXPRESSION' ? expression : undefined,
+  expression: selectionType === 'EXPRESSION' ? expression : undefined,
+  config,
 })
 
 export const findApproverStrategy = (
@@ -395,7 +440,7 @@ export const validateDefinition = (definition: FloviraDefinition): FlowValidatio
       const configured = getNodeExtConfig(node, 'approverRule')
       if (Object.keys(configured).length > 0) {
       const approver = getApproverRule(node)
-      const invalid = approver.strategy === 'EXPRESSION'
+      const invalid = approver.selectionType === 'EXPRESSION'
         ? !String(approver.expression || '').trim()
         : approver.selectionType === 'RESOURCE' && approver.subjects.length === 0
         if (invalid) {
@@ -405,7 +450,7 @@ export const validateDefinition = (definition: FloviraDefinition): FlowValidatio
     }
     if (node.nodeType === '8') {
       const carbonCopy = getCarbonCopyRule(node)
-      const invalid = carbonCopy.strategy === 'EXPRESSION'
+      const invalid = carbonCopy.selectionType === 'EXPRESSION'
         ? !String(carbonCopy.expression || '').trim()
         : carbonCopy.selectionType === 'RESOURCE' && carbonCopy.subjects.length === 0
       if (invalid) {

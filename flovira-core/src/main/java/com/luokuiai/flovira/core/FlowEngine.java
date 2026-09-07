@@ -18,6 +18,7 @@ package com.luokuiai.flovira.core;
 
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.entity.*;
+import com.luokuiai.flovira.core.handler.ApproverResolver;
 import com.luokuiai.flovira.core.handler.DataFillHandler;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.core.handler.PermissionHandler;
@@ -250,6 +251,21 @@ public class FlowEngine {
      */
     public static BusinessRelationProvider businessRelationProvider() {
         return getObj(null, BusinessRelationProvider.class);
+    }
+
+    /**
+     * 按策略编码查找接入方注册的办理人解析器。
+     *
+     * @param strategy 策略编码
+     * @return 未注册时返回 null，由引擎使用内置默认解析逻辑
+     */
+    public static ApproverResolver approverResolver(String strategy) {
+        for (ApproverResolver resolver : FrameInvoker.getBeans(ApproverResolver.class)) {
+            if (resolver != null && strategy != null && strategy.equals(resolver.getStrategy())) {
+                return resolver;
+            }
+        }
+        return null;
     }
 
     public static Flovira getFlowConfig() {
