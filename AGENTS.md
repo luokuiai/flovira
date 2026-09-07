@@ -25,7 +25,7 @@
   - `flovira-plugin-modes`：Spring 框架模式与 SpEL 表达式实现（`*-sb`）。
   - `flovira-plugin-json`：独立 JSON 序列化实现（`*-json-jackson`、`*-json-jackson3`、`*-json-gson`），使用方只选择一个。
   - `flovira-plugin-ui`：设计器 / 流程图后端 API（`*-ui-core`、`*-ui-sb-web`），不内嵌前端静态资源。
-- `flovira-designer`：流程设计器前端工作区；`vue/` 与 `react/` 分别发布独立 npm 包，`examples/` 提供各技术栈消费示例。
+- `flovira-designer`：流程设计器前端工作区；`vue/` 与 `react/` 分别发布独立 npm 包，`react-adapters/` 提供可选 UI 框架适配，`examples/` 提供各技术栈消费示例。
 - `sql/`：建表脚本按数据库分目录：`mysql/`、`oracle/`、`postgresql/`、`sqlserver/`；本 fork 从 1.0.0 重新起版，MySQL 与 PostgreSQL 使用完整的 `flovira-v1.sql` 初始化脚本，不继承 Warm-Flow 或旧 Flovira 升级链。
 - 测试不在本仓库：官方测试在独立仓库 `flovira-test`（gitee），本仓库无 `src/test`。
 
@@ -250,7 +250,7 @@ bun run build                          # 构建设计器组件库和全部 demo
 
 - 发布远程 Maven 仓库前必须配置目标仓库、凭证、签名和 Central 发布流程；不得把凭证写入仓库。
 - `.github/workflows/publish.yml` 在 `develop` 推送时发布 Maven Snapshot，在 `vX.Y.Z` tag 时发布 Maven 正式版本。
-- `.github/workflows/publish-npm.yml` 在 `vX.Y.Z` tag 时通过 npm Trusted Publishing 发布 Vue/React Designer；两个 npm 包必须分别在 npm 网站配置该 workflow 为 Trusted Publisher。
+- `.github/workflows/publish-npm.yml` 在 `vX.Y.Z` tag 时通过 npm Trusted Publishing 发布 Vue/React Designer 及 React UI 适配包；每个公开 npm 包必须分别在 npm 网站配置该 workflow 为 Trusted Publisher。
 
 ## 安全边界
 

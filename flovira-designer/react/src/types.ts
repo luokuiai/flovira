@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactElement, ReactNode } from 'react'
 
 export type FloviraNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
 export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
@@ -16,9 +16,28 @@ export interface ApproverRule {
   relationType?: string
   subjects: ApproverSubject[]
   expression?: string
+  config?: Record<string, unknown>
 }
 
 export type ApproverSelectionType = 'RESOURCE' | 'RELATION' | 'EXPRESSION'
+export type ApproverEditorType = 'NONE' | 'INLINE' | 'DIALOG'
+export type ApproverResultCardinality = 'EXACTLY_ONE' | 'ONE_OR_MORE' | 'ZERO_OR_ONE' | 'ZERO_OR_MORE'
+export type ApproverOptionCondition = 'ALWAYS' | 'MULTIPLE' | 'EMPTY'
+
+export interface DesignerApproverOptionChoice {
+  value: string
+  label: string
+  disabled?: boolean
+}
+
+export interface DesignerApproverOption {
+  code: string
+  name: string
+  choices: DesignerApproverOptionChoice[]
+  defaultValue?: string
+  nodeTypes?: FloviraNodeType[]
+  condition?: ApproverOptionCondition
+}
 
 export interface DesignerApproverStrategy {
   code: ApproverStrategy | string
@@ -27,6 +46,14 @@ export interface DesignerApproverStrategy {
   resourceType?: string
   relationType?: string
   multiple: boolean
+  /** How this strategy is configured in the node drawer. Defaults from selectionType. */
+  editorType?: ApproverEditorType
+  /** Stable key used by the host to select a business-specific editor. */
+  editorKey?: string
+  /** Runtime result range after the strategy resolves selected values to concrete people. */
+  resultCardinality?: ApproverResultCardinality
+  /** Additional strategy-specific choices persisted in ApproverRule.config. */
+  options?: DesignerApproverOption[]
 }
 
 export interface WaitConfig {
@@ -132,13 +159,9 @@ export interface DesignerSubject {
   metadata?: Record<string, unknown>
 }
 
-export type ProviderResponse<T> = T | { data?: T }
-
-export interface DesignerDataProvider {
-  capabilities(): Promise<ProviderResponse<DesignerCapabilities>>
-  queryResources(query: DesignerResourceQuery): Promise<ProviderResponse<DesignerResourcePage>>
-  resolveRelationship(query: DesignerRelationshipQuery): Promise<ProviderResponse<DesignerSubject[]>>
-}
+export type DesignerResourceLoader = (
+  query: DesignerResourceQuery,
+) => Promise<DesignerResourcePage | { data?: DesignerResourcePage }>
 
 export interface FlowValidationIssue {
   code: string
@@ -163,16 +186,155 @@ export interface NodeRendererContext {
   summary: string
 }
 
+export type DesignerButtonVariant = 'default' | 'primary' | 'danger' | 'text'
+export type DesignerControlSize = 'default' | 'compact' | 'icon'
+
+export interface DesignerButtonProps {
+  children: ReactNode
+  variant?: DesignerButtonVariant
+  size?: DesignerControlSize
+  disabled?: boolean
+  title?: string
+  ariaLabel?: string
+  className?: string
+  onPress(): void
+}
+
+export interface DesignerInputProps {
+  value: string | number
+  type?: 'text' | 'number'
+  disabled?: boolean
+  placeholder?: string
+  ariaLabel?: string
+  min?: number
+  className?: string
+  onValueChange(value: string): void
+}
+
+export interface DesignerSelectOption {
+  value: string
+  label: ReactNode
+  disabled?: boolean
+}
+
+export interface DesignerSelectProps {
+  value: string
+  options: DesignerSelectOption[]
+  disabled?: boolean
+  ariaLabel?: string
+  className?: string
+  onValueChange(value: string): void
+}
+
+export interface DesignerCheckboxProps {
+  checked: boolean
+  disabled?: boolean
+  ariaLabel?: string
+  className?: string
+  children?: ReactNode
+  onCheckedChange(checked: boolean): void
+}
+
+export interface DesignerRadioGroupProps {
+  value: string
+  options: DesignerSelectOption[]
+  disabled?: boolean
+  ariaLabel?: string
+  className?: string
+  direction?: 'horizontal' | 'vertical'
+  onValueChange(value: string): void
+}
+
+export interface DesignerFieldProps {
+  label: ReactNode
+  hint?: ReactNode
+  children: ReactNode
+  className?: string
+}
+
+export interface DesignerTooltipProps {
+  content: ReactNode
+  children: ReactElement
+  placement?: 'top' | 'bottom' | 'left' | 'right'
+  disabled?: boolean
+}
+
+export interface DesignerDropdownMenuItem {
+  value: string
+  label: ReactNode
+  icon?: ReactNode
+  color?: string
+  disabled?: boolean
+}
+
+export interface DesignerDropdownMenuProps {
+  trigger: ReactElement
+  items: DesignerDropdownMenuItem[]
+  align?: 'left' | 'right'
+  onSelect(value: string): void
+}
+
+export interface DesignerDrawerProps {
+  open: boolean
+  title: ReactNode
+  children: ReactNode
+  width?: number
+  ariaLabel?: string
+  onClose(): void
+}
+
+export interface DesignerDialogProps {
+  open: boolean
+  title: ReactNode
+  children: ReactNode
+  width?: number
+  ariaLabel?: string
+  confirmText?: ReactNode
+  cancelText?: ReactNode
+  confirmDisabled?: boolean
+  onConfirm(): void
+  onClose(): void
+}
+
+export interface ApproverEditorRenderContext {
+  node: FloviraNode
+  strategy: DesignerApproverStrategy
+  rule: ApproverRule
+  selected: ApproverSubject[]
+  multiple: boolean
+  disabled: boolean
+  onChange(subjects: ApproverSubject[]): void
+  onRuleChange(rule: ApproverRule): void
+}
+
+export interface DesignerUiAdapter {
+  Button: ComponentType<DesignerButtonProps>
+  Input: ComponentType<DesignerInputProps>
+  Select: ComponentType<DesignerSelectProps>
+  Checkbox: ComponentType<DesignerCheckboxProps>
+  RadioGroup: ComponentType<DesignerRadioGroupProps>
+  Field: ComponentType<DesignerFieldProps>
+  Tooltip: ComponentType<DesignerTooltipProps>
+  DropdownMenu: ComponentType<DesignerDropdownMenuProps>
+  Drawer: ComponentType<DesignerDrawerProps>
+  Dialog?: ComponentType<DesignerDialogProps>
+}
+
 export interface ReactFlowDesignerProps {
   value?: FloviraDefinition | string
   defaultValue?: FloviraDefinition | string
   disabled?: boolean
   className?: string
-  dataProvider?: Partial<DesignerDataProvider>
+  capabilities?: DesignerCapabilities
+  queryResources?: DesignerResourceLoader
   maxHistory?: number
   onChange?: (change: ReactFlowDesignerChange) => void
   onSave?: (definition: FloviraDefinition, json: string) => void | Promise<void>
   renderNode?: (context: NodeRendererContext) => ReactNode
+  /** Render a strategy editor for INLINE or DIALOG strategies. */
+  renderApproverEditor?: (context: ApproverEditorRenderContext) => ReactNode
+  /** Override individual controls to integrate the designer with a host UI library. */
+  ui?: Partial<DesignerUiAdapter>
 }
 
 export interface ReactFlowDesignerRef {

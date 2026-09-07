@@ -7,15 +7,17 @@
   "workspaces": [
     "vue",
     "react",
+    "react-adapters/*",
     "examples/*"
   ],
   "scripts": {
     "build:vue-designer": "bun run --cwd vue build:lib",
     "build:react-designer": "bun run --cwd react build",
-    "build:demos": "bun run --cwd examples/vue-element-plus build && bun run --cwd examples/vue-antdv build && bun run --cwd examples/vue-naive build && bun run --cwd examples/react build",
-    "build:designer": "bun run build:vue-designer && bun run build:react-designer",
+    "build:react-adapters": "bun run --cwd react-adapters/lumen build && bun run --cwd react-adapters/antd build",
+    "build:demos": "bun run --cwd examples/vue-element-plus build && bun run --cwd examples/vue-antdv build && bun run --cwd examples/vue-naive build && bun run --cwd examples/react build && bun run --cwd examples/react-lumen build && bun run --cwd examples/react-antd build",
+    "build:designer": "bun run build:vue-designer && bun run build:react-designer && bun run build:react-adapters",
     "build": "bun run build:designer && bun run build:demos",
-    "test": "bun run --cwd vue test && bun run --cwd react test",
+    "test": "bun run --cwd vue test && bun run --cwd react test && bun run --cwd react-adapters/lumen test && bun run --cwd react-adapters/antd test",
     "check": "bun run test && bun run build:designer",
     "release": "bunx lerna@10.0.1 version --no-private"
   }

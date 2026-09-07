@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   approverStrategyOptions,
   createInitialDefinition,
+  createId,
   createNode,
   DEFAULT_DESIGNER_CAPABILITIES,
   deleteNode,
@@ -24,6 +25,15 @@ import {
 } from './model'
 
 describe('Flovira definition model', () => {
+  test('creates UUID identifiers for persisted workflow elements', () => {
+    const first = createId('node')
+    const second = createId('skip')
+
+    expect(first).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(second).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(first).not.toBe(second)
+  })
+
   test('filters node and approver controls using host capabilities', () => {
     const capabilities = {
       ...DEFAULT_DESIGNER_CAPABILITIES,
@@ -102,7 +112,7 @@ describe('Flovira definition model', () => {
   test('round trips the shared semantic approver rule', () => {
     const node = setApproverRule(createNode('1'), 'ROLE', [
       { id: 'role:finance', type: 'ROLE', name: '财务角色' },
-    ])
+    ], '', undefined, 'RESOURCE', { tenantScope: 'current' })
 
     expect(getApproverRule(node)).toEqual({
       schemaVersion: 1,
@@ -111,6 +121,7 @@ describe('Flovira definition model', () => {
       relationType: undefined,
       subjects: [{ id: 'role:finance', type: 'ROLE', name: '财务角色' }],
       expression: '',
+      config: { tenantScope: 'current' },
     })
     expect(JSON.parse(String(node.ext))).toContainEqual(expect.objectContaining({ code: 'approverRule' }))
   })

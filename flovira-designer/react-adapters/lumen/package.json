@@ -1,0 +1,58 @@
+{
+  "name": "@luokuiai/flovira-react-adapter-lumen",
+  "version": "1.0.0-alpha.0",
+  "description": "Lumen UI adapter for the Flovira React designer",
+  "author": "warm",
+  "license": "MIT",
+  "type": "module",
+  "module": "./dist/flovira-react-adapter-lumen.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/flovira-react-adapter-lumen.js"
+    },
+    "./style.css": "./dist/flovira-react-adapter-lumen.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luokuiai/flovira.git",
+    "directory": "flovira-designer/react-adapters/lumen"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "peerDependencies": {
+    "@luokuiai/flovira-react-designer": ">=1.0.0-alpha.0 <2.0.0",
+    "@luokuiai/lumen-ui": "1.0.0-alpha.7",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "devDependencies": {
+    "@luokuiai/flovira-react-designer": "workspace:*",
+    "@luokuiai/lumen-ui": "1.0.0-alpha.7",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^6.0.3",
+    "vite": "^7.0.0",
+    "vite-plugin-dts": "^5.0.2",
+    "vitest": "^3.2.7"
+  }
+}

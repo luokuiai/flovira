@@ -1,0 +1,25 @@
+{
+  "name": "flovira-react-antd-designer-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5185",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 5185"
+  },
+  "dependencies": {
+    "@luokuiai/flovira-react-adapter-antd": "workspace:*",
+    "@luokuiai/flovira-react-designer": "workspace:*",
+    "antd": "6.6.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.0.0"
+  }
+}

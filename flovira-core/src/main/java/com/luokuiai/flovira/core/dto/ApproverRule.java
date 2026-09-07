@@ -21,6 +21,7 @@ import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 节点审批人规则。
@@ -40,4 +41,5 @@ public class ApproverRule {
     private String relationType;
     private List<BusinessSubject> subjects = new ArrayList<BusinessSubject>();
     private String expression;
+    private Map<String, Object> config;
 }

@@ -19,8 +19,7 @@ function App() {
     <main>
       <ReactFlowDesigner
         defaultValue={initial}
-        dataProvider={{
-          queryResources: async () => ({
+        queryResources={async () => ({
             items: [
               {
                 id: 'finance_review',
@@ -38,8 +37,7 @@ function App() {
               },
             ],
             total: 2,
-          }),
-        }}
+          })}
         onSave={(definition) => setSaved(definition)}
       />
       {saved && <div className="save-toast" role="status">已保存 {saved.flowName}</div>}

@@ -24,6 +24,7 @@ import com.luokuiai.flovira.core.dto.BusinessSubject;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
+import com.luokuiai.flovira.core.handler.ApproverResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,9 +78,12 @@ public final class ApproverRuleUtil {
         }
 
         List<String> resolved;
+        ApproverResolver resolver = FlowEngine.approverResolver(rule.getStrategy());
         String relationType = relationType(rule);
         String selectionType = selectionType(rule);
-        if (SELECTION_EXPRESSION.equals(selectionType)) {
+        if (resolver != null) {
+            resolved = resolver.resolve(node, rule, flowParams);
+        } else if (SELECTION_EXPRESSION.equals(selectionType)) {
             resolved = Collections.singletonList(rule.getExpression());
         } else if (StringUtils.isNotEmpty(relationType)) {
             resolved = resolveRelations(rule.getSubjects(), relationType, flowParams);
@@ -105,6 +109,9 @@ public final class ApproverRuleUtil {
         if (rule == null || rule.getSchemaVersion() != ApproverRule.CURRENT_SCHEMA_VERSION
             || StringUtils.isEmpty(rule.getStrategy())) {
             throw new IllegalStateException("Unsupported approver rule");
+        }
+        if (FlowEngine.approverResolver(rule.getStrategy()) != null) {
+            return;
         }
         String selectionType = selectionType(rule);
         if (!SELECTION_RESOURCE.equals(selectionType) && !SELECTION_RELATION.equals(selectionType)
