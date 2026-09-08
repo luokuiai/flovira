@@ -116,17 +116,9 @@ public interface Definition extends RootEntity {
 
     Definition setPublishStatus(Integer publishStatus);
 
-    /**
-     * 审批表单是否自定义（Y=是 N=否）
-     * @return 是否自定义
-     */
-    String getFormCustom();
+    String getFormId();
 
-    Definition setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Definition setFormPath(String formPath);
+    Definition setFormId(String formId);
 
     String getExt();
 
@@ -173,8 +165,7 @@ public interface Definition extends RootEntity {
             .setFlowName(this.getFlowName())
             .setCategory(this.getCategory())
             .setVersion(this.getVersion())
-            .setFormCustom(this.getFormCustom())
-            .setFormPath(this.getFormPath())
+            .setFormId(this.getFormId())
             .setListenerType(this.getListenerType())
             .setListenerPath(this.getListenerPath())
             .setExt(this.getExt())

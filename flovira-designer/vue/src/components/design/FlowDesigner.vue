@@ -25,7 +25,7 @@
     <wf-header class="wf-designer-body" :style="headerStyle">
       <!-- 画布工具栏（抽为 FlowDesignerToolbar 子组件；画布操作仍由容器持有，props 入 / 事件出） -->
       <BaseInfo :style="baseInfoStyle" ref="baseInfoRef" v-if="!onlyDesignShow" v-show="activeStep === 0"
-                :logic-json="logicJson" :category-list="categoryList" :form-path-list="formPathList"
+                :logic-json="logicJson" :category-list="categoryList" :form-options="formOptions"
                 :definition-id="definitionId" :disabled="disabled"
                 @update:flow-name="handleFlowNameUpdate"
                 @validate-error="handleBaseInfoValidateError"/>
@@ -49,7 +49,7 @@
         <PropertySetting ref="propertySettingRef" :node="nodeClick" :lf="lf" :disabled="disabled"
                          display-mode="panel"
                          :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips"
-                         :form-path-list="formPathList" @visibility-change="handlePropertyVisibilityChange">
+                         :form-options="formOptions" @visibility-change="handlePropertyVisibilityChange">
           <!-- 属性面板插槽透传：FlowDesigner → PropertySetting → 节点属性子组件（start/between/gateway/end/skip）。
                消费方可用 #node-form-extra（透出 { form, disabled }）等具名插槽往节点属性抽屉注入自定义表单项。
                透传全部插槽：节点子组件未声明的插槽自动忽略，header-*/logo 等不会渲染到属性面板。 -->
@@ -165,7 +165,7 @@ const skipConditionShow = ref(true);
 const nodes = ref<any[]>([]);
 const skips = ref<any[]>([]);
 const categoryList = ref<any[]>([]);
-const formPathList = ref<any[]>([]);
+const formOptions = ref<any[]>([]);
 // 画布容器 DOM（LogicFlow 挂载点），交给 useLogicFlowCanvas 管理
 const containerRef = ref<HTMLElement>();
 // 控制侧边栏显示：延迟到画布初始化完成后显示，避免与 LogicFlow DOM 初始化冲突
@@ -347,15 +347,15 @@ onMounted(() => {
 
 async function loadDesignerTrees() {
   try {
-    const [categories, formPaths] = await Promise.all([
+    const [categories, forms] = await Promise.all([
       designerResourceItems({ resourceType: 'CATEGORY', pageNum: 1, pageSize: 1000 }),
-      designerResourceItems({ resourceType: 'FORM_PATH', pageNum: 1, pageSize: 1000 }),
+      designerResourceItems({ resourceType: 'FORM', pageNum: 1, pageSize: 1000 }),
     ]);
     categoryList.value = resourcesToTree(categories);
-    formPathList.value = resourcesToTree(formPaths);
+    formOptions.value = resourcesToTree(forms);
   } catch (_) {
     categoryList.value = [];
-    formPathList.value = [];
+    formOptions.value = [];
   }
 }
 

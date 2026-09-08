@@ -124,16 +124,10 @@ public class FlowInstance implements Instance {
     private Integer activityStatus;
 
     /**
-     * 审批表单是否自定义（Y=是 N=否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
     @TableField(exist = false)
-    private String formCustom;
-
-    /**
-     * 审批表单是否自定义（Y=是 N=否）
-     */
-    @TableField(exist = false)
-    private String formPath;
+    private String formId;
 
     /**
      * 流程定义json

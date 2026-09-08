@@ -1,5 +1,5 @@
 -- Flovira 1.0.0 MySQL initialization schema.
--- This is a fresh-install baseline and is not an upgrade from Warm-Flow or earlier Flovira releases.
+-- Fresh-install baseline; migrate existing databases separately.
 
 CREATE TABLE `flow_definition`
 (
@@ -9,8 +9,7 @@ CREATE TABLE `flow_definition`
     `category`        varchar(100)             DEFAULT NULL COMMENT '流程类别',
     `version`         varchar(20)     NOT NULL COMMENT '流程版本',
     `publish_status`      tinyint(1)      NOT NULL DEFAULT '0' COMMENT '是否发布（0未发布 1已发布 9失效）',
-    `form_custom`     char(1)                  DEFAULT 'N' COMMENT '审批表单是否自定义（Y是 N否）',
-    `form_path`       varchar(100)             DEFAULT NULL COMMENT '审批表单路径',
+    `form_id`       varchar(100)             DEFAULT NULL COMMENT '外部业务表单标识',
     `activity_status` tinyint(1)      NOT NULL DEFAULT '1' COMMENT '流程激活状态（0挂起 1激活）',
     `listener_type`   varchar(100)             DEFAULT NULL COMMENT '监听器类型',
     `listener_path`   varchar(400)             DEFAULT NULL COMMENT '监听器路径',
@@ -37,8 +36,7 @@ CREATE TABLE `flow_node`
     `any_node_skip`   varchar(100)  DEFAULT NULL COMMENT '任意结点跳转',
     `listener_type`   varchar(100)  DEFAULT NULL COMMENT '监听器类型',
     `listener_path`   varchar(400)  DEFAULT NULL COMMENT '监听器路径',
-    `form_custom`     char(1)       DEFAULT 'N' COMMENT '审批表单是否自定义（Y是 N否）',
-    `form_path`       varchar(100)  DEFAULT NULL COMMENT '审批表单路径',
+    `form_id`       varchar(100)  DEFAULT NULL COMMENT '外部业务表单标识',
     `version`         varchar(20)     NOT NULL COMMENT '版本',
     `created_at`     datetime      DEFAULT NULL COMMENT '创建时间',
     `created_by`       varchar(64)          DEFAULT '' COMMENT '创建人',
@@ -104,8 +102,7 @@ CREATE TABLE `flow_task`
     `node_name`     varchar(100) DEFAULT NULL COMMENT '节点名称',
     `node_type`     tinyint(1)   NOT NULL COMMENT '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
     `flow_status`     varchar(20) NOT NULL COMMENT '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）',
-    `form_custom`   char(1)      DEFAULT 'N' COMMENT '审批表单是否自定义（Y是 N否）',
-    `form_path`     varchar(100) DEFAULT NULL COMMENT '审批表单路径',
+    `form_id`     varchar(100) DEFAULT NULL COMMENT '外部业务表单标识',
     `created_at`   datetime     DEFAULT NULL COMMENT '创建时间',
     `created_by`       varchar(64)          DEFAULT '' COMMENT '创建人',
     `updated_at`   datetime     DEFAULT NULL COMMENT '更新时间',
@@ -138,8 +135,7 @@ CREATE TABLE `flow_his_task`
     `collaborator`     varchar(500)                  DEFAULT NULL COMMENT '协作人',
     `skip_type`        varchar(10)                  NOT NULL COMMENT '流转类型（PASS通过 REJECT退回 NONE无动作）',
     `flow_status`      varchar(20)                  NOT NULL COMMENT '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）',
-    `form_custom`      char(1)                      DEFAULT 'N' COMMENT '审批表单是否自定义（Y是 N否）',
-    `form_path`        varchar(100)                 DEFAULT NULL COMMENT '审批表单路径',
+    `form_id`        varchar(100)                 DEFAULT NULL COMMENT '外部业务表单标识',
     `message`          varchar(500)                 DEFAULT NULL COMMENT '审批意见',
     `variables`         TEXT                         DEFAULT NULL COMMENT '任务变量',
     `ext`              TEXT                         DEFAULT NULL COMMENT '业务详情 存业务表对象json字符串',

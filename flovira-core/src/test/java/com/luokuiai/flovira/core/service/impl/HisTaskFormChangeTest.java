@@ -18,15 +18,14 @@ package com.luokuiai.flovira.core.service.impl;
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.constant.FlowCons;
 import com.luokuiai.flovira.core.dto.FormChangeRecord;
-import com.luokuiai.flovira.core.dto.FormDefinition;
-import com.luokuiai.flovira.core.dto.FormFieldDefinition;
 import com.luokuiai.flovira.core.dto.FormFieldChange;
-import com.luokuiai.flovira.core.entity.Form;
+import com.luokuiai.flovira.core.dto.FlowDto;
+import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.enums.SkipType;
+import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
-import com.luokuiai.flovira.core.json.JsonConvert;
-import com.luokuiai.flovira.core.service.FormService;
+import com.luokuiai.flovira.core.service.HisTaskService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.After;
 import org.junit.Before;
@@ -40,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -52,24 +50,11 @@ public class HisTaskFormChangeTest {
 
     @Before
     public void setUp() {
-        FormDefinition definition = new FormDefinition().setFields(Arrays.asList(
-            new FormFieldDefinition()
-                .setKey("amount")
-                .setLabel("申请金额")
-                .setDataType(FormFieldDefinition.NUMBER)
-        ));
-        Form form = TestEntityFactory.create(Form.class)
-            .setId(20L)
-            .setFormContent("standard-form-definition");
-        FormServiceImpl formService = new FormServiceImpl() {
-            @Override
-            public Form getById(Long id) {
-                return Long.valueOf(20L).equals(id) ? form : null;
-            }
+        FormFieldProvider provider = formId -> {
+            assertEquals("expense:v2", formId);
+            return java.util.Collections.singletonMap("amount", "申请金额");
         };
-        FrameInvoker.setBeanFunction(type -> FormService.class.equals(type)
-            ? formService : null);
-        FlowEngine.jsonConvert = new DefinitionJsonConvert(definition);
+        FrameInvoker.setBeanFunction(type -> FormFieldProvider.class.equals(type) ? provider : null);
     }
 
     @After
@@ -95,8 +80,7 @@ public class HisTaskFormChangeTest {
         assertEquals("manager", record.getApprover());
         assertEquals("manager", record.getNodeCode());
         assertEquals(Long.valueOf(3L), record.getHisTaskId());
-        assertEquals(FlowCons.FORM_CUSTOM_Y, record.getFormCustom());
-        assertEquals("20", record.getFormPath());
+        assertEquals("expense:v2", record.getFormId());
         assertEquals(3, record.getChanges().size());
 
         Map<String, FormFieldChange> changes = byField(record.getChanges());
@@ -123,18 +107,8 @@ public class HisTaskFormChangeTest {
     }
 
     @Test
-    public void shouldReadStandardDefinitionWithoutRenderer() {
-        FormDefinition definition = FlowEngine.formService().getDefinition(20L);
-
-        assertEquals(FormDefinition.VERSION_1, definition.getSchemaVersion());
-        assertEquals(1, definition.getFields().size());
-        assertEquals("amount", definition.getFields().get(0).getKey());
-        assertNull(definition.getRenderer());
-    }
-
-    @Test
-    public void shouldFallBackToFieldKeyWhenLegacyContentCannotBeParsed() {
-        FlowEngine.jsonConvert = new DefinitionJsonConvert(null);
+    public void shouldFallBackToFieldKeyWithoutBusinessProvider() {
+        FrameInvoker.setBeanFunction(type -> null);
         HisTask submitted = history(1L, 1000L, "applicant", "start", SkipType.PASS.getKey(),
             formData("amount", 100));
         HisTask approved = history(2L, 2000L, "manager", "manager", SkipType.PASS.getKey(),
@@ -144,6 +118,48 @@ public class HisTaskFormChangeTest {
             .getFormChanges(10L);
 
         assertEquals("amount", records.get(0).getChanges().get(0).getFieldLabel());
+    }
+
+    @Test
+    public void shouldLoadHistoricalFormWithoutCurrentDefinitionOrFormService() {
+        HisTask task = history(1L, 1000L, "manager", "approval", SkipType.PASS.getKey(),
+            formData("amount", 100));
+        HisTaskService service = new HisTaskServiceImpl() {
+            @Override
+            public HisTask getById(java.io.Serializable id) {
+                return task;
+            }
+        };
+        FrameInvoker.setBeanFunction(type -> HisTaskService.class.equals(type) ? service : null);
+        FlowDto result = new TaskServiceImpl().hisLoad(1L, new FlowParams());
+        assertEquals("expense:v2", result.getFormId());
+        assertEquals(formData("amount", 100), result.getData());
+    }
+
+    @Test
+    public void shouldQueryBusinessLabelsOncePerFormInOneHistoryRequest() {
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        FormFieldProvider provider = formId -> {
+            calls.incrementAndGet();
+            return java.util.Collections.singletonMap("amount", "申请金额");
+        };
+        FrameInvoker.setBeanFunction(type -> FormFieldProvider.class.equals(type) ? provider : null);
+        new HistoryService(Arrays.asList(
+            history(1L, 1000L, "applicant", "start", SkipType.PASS.getKey(), formData("amount", 100)),
+            history(2L, 2000L, "manager", "approval", SkipType.PASS.getKey(), formData("amount", 120)),
+            history(3L, 3000L, "finance", "finance", SkipType.PASS.getKey(), formData("amount", 150))
+        )).getFormChanges(10L);
+        assertEquals(1, calls.get());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void shouldPropagateBusinessProviderFailure() {
+        FormFieldProvider provider = formId -> { throw new IllegalStateException("business unavailable"); };
+        FrameInvoker.setBeanFunction(type -> FormFieldProvider.class.equals(type) ? provider : null);
+        new HistoryService(Arrays.asList(
+            history(1L, 1000L, "applicant", "start", SkipType.PASS.getKey(), formData("amount", 100)),
+            history(2L, 2000L, "manager", "approval", SkipType.PASS.getKey(), formData("amount", 120))
+        )).getFormChanges(10L);
     }
 
     private static HisTask history(Long id, long updatedAt, String approver, String nodeCode,
@@ -156,8 +172,7 @@ public class HisTaskFormChangeTest {
             .setNodeName(nodeCode)
             .setApprover(approver)
             .setSkipType(skipType)
-            .setFormCustom(FlowCons.FORM_CUSTOM_Y)
-            .setFormPath("20")
+            .setFormId("expense:v2")
             .setUpdatedAt(new Date(updatedAt));
         Map<String, Object> variables = new LinkedHashMap<String, Object>();
         variables.put(FlowCons.FORM_DATA, formData);
@@ -195,36 +210,4 @@ public class HisTaskFormChangeTest {
         }
     }
 
-    private static class DefinitionJsonConvert implements JsonConvert {
-
-        private final FormDefinition definition;
-
-        private DefinitionJsonConvert(FormDefinition definition) {
-            this.definition = definition;
-        }
-
-        @Override
-        public Map<String, Object> strToMap(String jsonStr) {
-            return new LinkedHashMap<String, Object>();
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <T> T strToBean(String jsonStr, Class<T> clazz) {
-            if (definition == null) {
-                throw new IllegalArgumentException("legacy content");
-            }
-            return (T) definition;
-        }
-
-        @Override
-        public <T> List<T> strToList(String jsonStr) {
-            return new ArrayList<T>();
-        }
-
-        @Override
-        public String objToStr(Object variable) {
-            return "standard-form-definition";
-        }
-    }
 }

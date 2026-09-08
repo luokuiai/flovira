@@ -102,14 +102,10 @@ public class FlowDefinition implements Definition {
     private Integer publishStatus;
 
     /**
-     * 审批表单是否自定义（Y是 N否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单路径
-     */
-    private String formPath;
+    @TableField(updateStrategy = FieldStrategy.NOT_NULL)
+    private String formId;
 
     /**
      * 流程激活状态（0挂起 1激活）

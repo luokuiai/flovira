@@ -9,7 +9,7 @@
     </header>
     <div class="property-panel-body">
       <component v-if="componentType" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled"
-                 :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips" :form-path-list="formPathList">
+                 :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips" :form-options="formOptions">
         <template v-slot:[key]="data" v-for="(item, key) in $slots">
           <slot :name="key" v-bind="data || {}"></slot>
         </template>
@@ -28,7 +28,7 @@
       :before-close="handleClose"
       class="property-drawer-modern">
       <component v-if="componentType" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled" :skipConditionShow="skipConditionShow"
-                 :nodes="nodes" :skips="skips" :form-path-list="formPathList">
+                 :nodes="nodes" :skips="skips" :form-options="formOptions">
         <template v-slot:[key]="data" v-for="(item, key) in $slots">
           <slot :name="key" v-bind="data || {}"></slot>
         </template>
@@ -105,7 +105,7 @@ interface PropertySettingProps {
   /** 画布边列表 */
   skips?: any[];
   /** 自定义表单路径树 */
-  formPathList?: any[];
+  formOptions?: any[];
 }
 const props = withDefaults(defineProps<PropertySettingProps>(), {
   displayMode: 'drawer',
@@ -116,7 +116,7 @@ const props = withDefaults(defineProps<PropertySettingProps>(), {
   skipConditionShow: true,
   nodes: () => [],
   skips: () => [],
-  formPathList: () => [],
+  formOptions: () => [],
 });
 const emit = defineEmits<{
   (e: 'visibility-change', visible: boolean): void;
@@ -208,8 +208,6 @@ watch(() => props.node, n => {
           }
       }
 
-      n.properties.formCustom = JSON.stringify(n.properties) === "{}" ? "N" : (n.properties.formCustom ?
-          n.properties.formCustom : props.formPathList && props.formPathList.length > 0 ? "Y" :"N");
       let listenerTypes = n.properties.listenerType ? n.properties.listenerType.split(",") : [];
       let listenerPaths = n.properties.listenerPath ? n.properties.listenerPath.split("@@") : [];
       n.properties.listenerRows = listenerTypes && listenerTypes.length > 0 ? listenerTypes.map((type, index) => ({
@@ -294,15 +292,10 @@ watch(() => form.value.listenerRows?.map(e => e.listenerPath), (n) => {
   })
 }, { deep: true });
 
-watch(() => form.value.formCustom, (n) => {
-  props.lf.setProperties(objId.value, {
-    formCustom: n || ""
-  })
-});
 
-watch(() => form.value.formPath, (n) => {
+watch(() => form.value.formId, (n) => {
   props.lf.setProperties(objId.value, {
-    formPath: n
+    formId: n
   })
 });
 

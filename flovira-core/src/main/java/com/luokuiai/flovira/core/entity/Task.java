@@ -125,13 +125,9 @@ public interface Task extends RootEntity {
 
     Task setUserList(List<User> userList);
 
-    String getFormCustom();
+    String getFormId();
 
-    Task setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Task setFormPath(String formPath);
+    Task setFormId(String formId);
 
     Date getTimeoutAt();
 

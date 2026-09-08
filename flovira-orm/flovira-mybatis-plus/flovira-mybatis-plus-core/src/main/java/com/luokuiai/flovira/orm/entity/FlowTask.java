@@ -129,14 +129,9 @@ public class FlowTask implements Task {
     private List<User> userList;
 
     /**
-     * 审批表单是否自定义（Y=是 N=否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单
-     */
-    private String formPath;
+    private String formId;
 
     private Date timeoutAt;
 

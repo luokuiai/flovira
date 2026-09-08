@@ -142,17 +142,9 @@ public interface Instance extends RootEntity {
 
     Instance setFlowStatus(String flowStatus);
 
-    /**
-     * 审批表单是否自定义（Y是 N否）
-     * @return  （Y是 N否）
-     */
-    String getFormCustom();
+    String getFormId();
 
-    Instance setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Instance setFormPath(String formPath);
+    Instance setFormId(String formId);
 
     String getDefJson();
 

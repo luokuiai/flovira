@@ -162,13 +162,8 @@ public class FlowHisTask implements HisTask {
     private String ext;
 
     /**
-     * 审批表单是否自定义（Y=是 N=否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单路径
-     */
-    private String formPath;
+    private String formId;
 
 }

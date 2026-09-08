@@ -111,6 +111,8 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         }
         FlowCombine flowCombine = DefJson.copyCombine(defJson);
         Definition definition = flowCombine.getDefinition();
+        // 保存完整设计时，空表单引用表示清除绑定，不能被 ORM 的非空更新策略忽略。
+        definition.setFormId(StringUtils.emptyDefault(definition.getFormId(), ""));
         Long id = definition.getId();
         // 如果是新增的流程定义
         if (ObjectUtil.isNull(id)) {

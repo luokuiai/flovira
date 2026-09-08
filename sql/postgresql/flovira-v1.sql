@@ -1,5 +1,5 @@
 -- Flovira 1.0.0 PostgreSQL initialization schema.
--- This is a fresh-install baseline and is not an upgrade from Warm-Flow or earlier Flovira releases.
+-- Fresh-install baseline; migrate existing databases separately.
 
 CREATE TABLE flow_definition
 (
@@ -9,8 +9,7 @@ CREATE TABLE flow_definition
     category        varchar(100) NULL,
     "version"       varchar(20)  NOT NULL,
     publish_status      int2         NOT NULL DEFAULT 0,
-    form_custom     bpchar(1)    NULL     DEFAULT 'N':: character varying,
-    form_path       varchar(100) NULL,
+    form_id       varchar(100) NULL,
     activity_status int2         NOT NULL DEFAULT 1,
     listener_type   varchar(100) NULL,
     listener_path   varchar(400) NULL,
@@ -31,8 +30,7 @@ COMMENT ON COLUMN flow_definition.flow_name IS '流程名称';
 COMMENT ON COLUMN flow_definition.category IS '流程类别';
 COMMENT ON COLUMN flow_definition."version" IS '流程版本';
 COMMENT ON COLUMN flow_definition.publish_status IS '是否发布（0未发布 1已发布 9失效）';
-COMMENT ON COLUMN flow_definition.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_definition.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_definition.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_definition.activity_status IS '流程激活状态（0挂起 1激活）';
 COMMENT ON COLUMN flow_definition.listener_type IS '监听器类型';
 COMMENT ON COLUMN flow_definition.listener_path IS '监听器路径';
@@ -57,8 +55,7 @@ CREATE TABLE flow_node
     any_node_skip   varchar(100)  NULL,
     listener_type   varchar(100)  NULL,
     listener_path   varchar(400)  NULL,
-    form_custom     bpchar(1)     NULL DEFAULT 'N':: character varying,
-    form_path       varchar(100)  NULL,
+    form_id       varchar(100)  NULL,
     "version"       varchar(20)   NOT NULL,
     created_at     timestamp     NULL,
     created_by       varchar(64)   NULL     DEFAULT '':: character varying,
@@ -82,8 +79,7 @@ COMMENT ON COLUMN flow_node.coordinate IS '坐标';
 COMMENT ON COLUMN flow_node.any_node_skip IS '任意结点跳转';
 COMMENT ON COLUMN flow_node.listener_type IS '监听器类型';
 COMMENT ON COLUMN flow_node.listener_path IS '监听器路径';
-COMMENT ON COLUMN flow_node.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_node.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_node.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_node."version" IS '版本';
 COMMENT ON COLUMN flow_node.created_at IS '创建时间';
 COMMENT ON COLUMN flow_node.created_by IS '创建人';
@@ -186,8 +182,7 @@ CREATE TABLE flow_task
     node_name     varchar(100) NULL,
     node_type     int2         NOT NULL,
     flow_status      varchar(20)  NOT NULL,
-    form_custom   bpchar(1)    NULL DEFAULT 'N':: character varying,
-    form_path     varchar(100) NULL,
+    form_id     varchar(100) NULL,
     created_at   timestamp    NULL,
     created_by     varchar(64)  NULL     DEFAULT '':: character varying,
     updated_at   timestamp    NULL,
@@ -210,8 +205,7 @@ COMMENT ON COLUMN flow_task.node_code IS '节点编码';
 COMMENT ON COLUMN flow_task.node_name IS '节点名称';
 COMMENT ON COLUMN flow_task.node_type IS '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 COMMENT ON COLUMN flow_task.flow_status IS '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
-COMMENT ON COLUMN flow_task.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_task.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_task.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_task.created_at IS '创建时间';
 COMMENT ON COLUMN flow_task.created_by IS '创建人';
 COMMENT ON COLUMN flow_task.updated_at IS '更新时间';
@@ -242,8 +236,7 @@ CREATE TABLE flow_his_task
     collaborator     varchar(500)  NULL,
     skip_type        varchar(10)  NULL,
     flow_status      varchar(20)  NOT NULL,
-    form_custom      bpchar(1)    NULL     DEFAULT 'N':: character varying,
-    form_path        varchar(100) NULL,
+    form_id        varchar(100) NULL,
     ext              text         NULL,
     message          varchar(500) NULL,
     variables         text         NULL,
@@ -269,8 +262,7 @@ COMMENT ON COLUMN flow_his_task.cooperation_type IS '协作方式(1审批 2转�
 COMMENT ON COLUMN flow_his_task.collaborator IS '协作人';
 COMMENT ON COLUMN flow_his_task.skip_type IS '流转类型（PASS通过 REJECT退回 NONE无动作）';
 COMMENT ON COLUMN flow_his_task.flow_status IS '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
-COMMENT ON COLUMN flow_his_task.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_his_task.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_his_task.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_his_task.message IS '审批意见';
 COMMENT ON COLUMN flow_his_task.variables IS '任务变量';
 COMMENT ON COLUMN flow_his_task.ext IS '扩展字段，预留给业务系统使用';

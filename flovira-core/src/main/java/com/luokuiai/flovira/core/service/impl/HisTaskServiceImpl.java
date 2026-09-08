@@ -20,10 +20,8 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.constant.FlowCons;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.FormChangeRecord;
-import com.luokuiai.flovira.core.dto.FormDefinition;
-import com.luokuiai.flovira.core.dto.FormFieldDefinition;
 import com.luokuiai.flovira.core.dto.FormFieldChange;
-import com.luokuiai.flovira.core.entity.Form;
+import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
@@ -34,7 +32,6 @@ import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
-import com.luokuiai.flovira.core.service.FormService;
 import com.luokuiai.flovira.core.service.HisTaskService;
 import com.luokuiai.flovira.core.utils.*;
 import org.slf4j.Logger;
@@ -127,8 +124,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setApprover(flowParams.getHandler())
             .setSkipType(flowParams.getSkipType())
             .setFlowStatus(StringUtils.emptyDefault(flowStatus, FlowStatus.APPROVAL.getKey()))
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
             .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
@@ -154,8 +150,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setApprover(flowParams.getHandler())
             .setSkipType(SkipType.NONE.getKey())
             .setFlowStatus(flowStatus)
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
             .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
@@ -184,8 +179,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : SkipType.isReject(flowParams.getSkipType())
                 ? FlowStatus.REJECT.getKey() : FlowStatus.PASS.getKey())
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
             .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
@@ -213,8 +207,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : isPass
                 ? FlowStatus.PASS.getKey() : FlowStatus.REJECT.getKey())
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
             .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
@@ -265,8 +258,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
                     .setNodeName(hisTask.getNodeName())
                     .setApprover(hisTask.getApprover())
                     .setChangeTime(eventTime(hisTask))
-                    .setFormCustom(hisTask.getFormCustom())
-                    .setFormPath(hisTask.getFormPath())
+                    .setFormId(hisTask.getFormId())
                     .setChanges(changes));
             }
             previousFormData = new LinkedHashMap<String, Object>(currentFormData);
@@ -300,8 +292,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : SkipType.isReject(flowParams.getSkipType())
                 ? FlowStatus.REJECT.getKey() : FlowStatus.PASS.getKey())
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
             .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
@@ -378,58 +369,19 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
 
     private Map<String, String> getFieldLabels(HisTask hisTask,
         Map<String, Map<String, String>> fieldLabelCache) {
-        if (!FlowCons.FORM_CUSTOM_Y.equals(hisTask.getFormCustom())
-            || StringUtils.isEmpty(hisTask.getFormPath())) {
+        String formId = hisTask.getFormId();
+        if (StringUtils.isEmpty(formId)) {
             return Collections.emptyMap();
         }
-        String formPath = hisTask.getFormPath();
-        if (fieldLabelCache.containsKey(formPath)) {
-            return fieldLabelCache.get(formPath);
+        if (fieldLabelCache.containsKey(formId)) {
+            return fieldLabelCache.get(formId);
         }
-
-        Map<String, String> labels = Collections.emptyMap();
-        Long formId = parseFormId(formPath);
-        if (formId != null) {
-            FormService formService = FlowEngine.formService();
-            Form form = formService == null ? null : formService.getById(formId);
-            labels = parseFieldLabels(formService, form);
+        FormFieldProvider provider = FlowEngine.formFieldProvider();
+        Map<String, String> labels = provider == null ? Collections.emptyMap() : provider.getFieldLabels(formId);
+        if (labels == null) {
+            labels = Collections.emptyMap();
         }
-        fieldLabelCache.put(formPath, labels);
-        return labels;
-    }
-
-    private Long parseFormId(String formPath) {
-        try {
-            return Long.valueOf(formPath);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private Map<String, String> parseFieldLabels(FormService formService, Form form) {
-        if (formService == null || form == null || StringUtils.isEmpty(form.getFormContent())
-            || FlowEngine.jsonConvert == null) {
-            return Collections.emptyMap();
-        }
-        FormDefinition definition;
-        try {
-            definition = formService.parseDefinition(form);
-        } catch (RuntimeException e) {
-            LOGGER.debug("Unable to parse form definition for form id {}", form.getId(), e);
-            return Collections.emptyMap();
-        }
-        if (definition == null || !FormDefinition.VERSION_1.equals(definition.getSchemaVersion())
-            || CollUtil.isEmpty(definition.getFields())) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, String> labels = new HashMap<String, String>();
-        for (FormFieldDefinition field : definition.getFields()) {
-            if (field != null && StringUtils.isNotEmpty(field.getKey())
-                && StringUtils.isNotEmpty(field.getLabel())) {
-                labels.put(field.getKey(), field.getLabel());
-            }
-        }
+        fieldLabelCache.put(formId, labels);
         return labels;
     }
 

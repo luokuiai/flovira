@@ -21,6 +21,7 @@ import com.luokuiai.flovira.core.entity.*;
 import com.luokuiai.flovira.core.handler.ApproverResolver;
 import com.luokuiai.flovira.core.handler.DataFillHandler;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
+import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.handler.PermissionHandler;
 import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
@@ -50,7 +51,6 @@ public class FlowEngine {
     private static final TaskService taskService = null;
     private static final HisTaskService hisTaskService = null;
     private static final UserService userService = null;
-    private static final FormService formService = null;
     private static final ChartService chartService = null;
     private static final SubprocessService subprocessService = null;
     private static final WaitService waitService = null;
@@ -64,7 +64,6 @@ public class FlowEngine {
     private static Supplier<Task> taskSupplier;
     private static Supplier<HisTask> hisTaskSupplier;
     private static Supplier<User> userSupplier;
-    private static Supplier<Form> formSupplier;
     private static Supplier<SubprocessRun> subprocessRunSupplier;
     private static Supplier<SubprocessChild> subprocessChildSupplier;
     private static Supplier<SubprocessEvent> subprocessEventSupplier;
@@ -111,10 +110,6 @@ public class FlowEngine {
 
     public static UserService userService() {
         return getObj(userService, UserService.class);
-    }
-
-    public static FormService formService() {
-        return getObj(formService, FormService.class);
     }
 
     public static ChartService chartService() {
@@ -193,14 +188,6 @@ public class FlowEngine {
         return userSupplier.get();
     }
 
-    public static void setNewForm(Supplier<Form> supplier) {
-        FlowEngine.formSupplier = supplier;
-    }
-
-    public static Form newForm() {
-        return formSupplier.get();
-    }
-
     public static void setNewSubprocessRun(Supplier<SubprocessRun> supplier) {
         subprocessRunSupplier = supplier;
     }
@@ -251,6 +238,13 @@ public class FlowEngine {
      */
     public static BusinessRelationProvider businessRelationProvider() {
         return getObj(null, BusinessRelationProvider.class);
+    }
+
+    /**
+     * 可选的业务表单字段名称提供者，通过 FrameInvoker 注册。
+     */
+    public static FormFieldProvider formFieldProvider() {
+        return getObj(null, FormFieldProvider.class);
     }
 
     /**

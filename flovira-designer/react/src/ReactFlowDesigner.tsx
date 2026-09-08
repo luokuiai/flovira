@@ -1,4 +1,5 @@
 import { NodeControlEditor } from './NodeControlEditor'
+import { BusinessFormField } from './BusinessFormField'
 import {
   forwardRef,
   useCallback,
@@ -825,6 +826,14 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <UiField label="节点编码">
                   <UiInput value={selectedNode.nodeCode} disabled onValueChange={() => undefined} />
                 </UiField>
+                {['0', '1'].includes(selectedNode.nodeType) && (
+                  <BusinessFormField
+                    value={String((selectedNode.nodeType === '0' ? definition.formId : selectedNode.formId) || '')}
+                    inherited={selectedNode.nodeType !== '0'} disabled={disabled}
+                    queryResources={queryResources} ui={components}
+                    onChange={(formId) => selectedNode.nodeType === '0'
+                      ? commit({ ...definition, formId }) : changeSelected({ formId })} />
+                )}
               </div>
               {['1', '8'].includes(selectedNode.nodeType) && (
                 <div className="frd-settings-group">

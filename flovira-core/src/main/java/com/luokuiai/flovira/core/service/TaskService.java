@@ -544,7 +544,7 @@ public interface TaskService extends IFloviraService<Task> {
     void mergeVariable(Instance instance, Map<String, Object> variable);
 
     /**
-     * 获取表单及数据(使用表单场景)
+     * 获取业务表单标识及数据
      *
      * @param taskId
      * @param flowParams
@@ -553,7 +553,7 @@ public interface TaskService extends IFloviraService<Task> {
     FlowDto load(Long taskId, FlowParams flowParams);
 
     /**
-     * 获取表单及数据(使用表单场景)
+     * 获取业务表单标识及数据
      *
      * @param hisTaskId
      * @param flowParams

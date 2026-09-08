@@ -91,8 +91,6 @@ const routes = [
   ])],
 
   // ===== 表单 =====
-  ['GET', '/flovira/form-content/:id', () => ok({})],
-  ['POST', '/flovira/form-content', () => ok(true, '保存成功(mock)')],
   ['GET', '/flovira/execute/load/:id', () => ok({})],
   ['POST', '/flovira/execute/handle', () => ok(true, '办理成功(mock)')],
   ['GET', '/flovira/execute/hisLoad/:taskId', () => ok({})],

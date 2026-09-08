@@ -1,3 +1,4 @@
+-- Flovira 1.0.0 baseline schema for fresh Oracle installations.
 create table FLOW_DEFINITION
 (
     ID              NUMBER(20)            not null,
@@ -6,8 +7,7 @@ create table FLOW_DEFINITION
     CATEGORY        VARCHAR2(100),
     VERSION         VARCHAR2(20)          not null,
     PUBLISH_STATUS      NUMBER(1)   default 0 not null,
-    FORM_CUSTOM     VARCHAR2(1) default 'N',
-    FORM_PATH       VARCHAR2(100),
+    FORM_ID       VARCHAR2(100),
     ACTIVITY_STATUS NUMBER(1)   default 1,
     LISTENER_TYPE   VARCHAR2(100),
     LISTENER_PATH   VARCHAR2(500),
@@ -30,8 +30,7 @@ comment on column FLOW_DEFINITION.FLOW_NAME is '流程名称';
 comment on column FLOW_DEFINITION.CATEGORY is '流程类别';
 comment on column FLOW_DEFINITION.VERSION is '流程版本';
 comment on column FLOW_DEFINITION.PUBLISH_STATUS is '是否发布 (0未发布 1已发布 9失效)';
-comment on column FLOW_DEFINITION.FORM_CUSTOM is '审批表单是否自定义 (Y是 N否)';
-comment on column FLOW_DEFINITION.FORM_PATH is '审批表单路径';
+comment on column FLOW_DEFINITION.FORM_ID is '外部业务表单标识';
 comment on column FLOW_DEFINITION.ACTIVITY_STATUS is '流程激活状态（0挂起 1激活）';
 comment on column FLOW_DEFINITION.LISTENER_TYPE is '监听器类型';
 comment on column FLOW_DEFINITION.LISTENER_PATH is '监听器路径';
@@ -56,8 +55,7 @@ create table FLOW_NODE
     ANY_NODE_SKIP   VARCHAR2(100),
     LISTENER_TYPE   VARCHAR2(100),
     LISTENER_PATH   VARCHAR2(500),
-    FORM_CUSTOM     VARCHAR2(1)   default 'N',
-    FORM_PATH       VARCHAR2(100),
+    FORM_ID       VARCHAR2(100),
     VERSION         VARCHAR2(20),
     CREATED_AT     DATE,
     CREATED_BY       VARCHAR2(64) default '',
@@ -82,10 +80,7 @@ comment on column FLOW_NODE.COORDINATE is '坐标';
 comment on column FLOW_NODE.ANY_NODE_SKIP is '任意结点跳转';
 comment on column FLOW_NODE.LISTENER_TYPE is '监听器类型';
 comment on column FLOW_NODE.LISTENER_PATH is '监听器路径';
-comment on column FLOW_NODE.HANDLER_TYPE is '处理器类型';
-comment on column FLOW_NODE.HANDLER_PATH is '处理器路径';
-comment on column FLOW_NODE.FORM_CUSTOM is '审批表单是否自定义 (Y是 N否)';
-comment on column FLOW_NODE.FORM_PATH is '审批表单路径';
+comment on column FLOW_NODE.FORM_ID is '外部业务表单标识';
 comment on column FLOW_NODE.VERSION is '版本';
 comment on column FLOW_NODE.CREATED_AT is '创建时间';
 comment on column FLOW_NODE.CREATED_BY is '创建人';
@@ -192,8 +187,7 @@ create table FLOW_TASK
     NODE_NAME     VARCHAR2(100),
     NODE_TYPE     NUMBER(1),
     FLOW_STATUS   VARCHAR2(20),
-    FORM_CUSTOM   VARCHAR2(1) default 'N',
-    FORM_PATH     VARCHAR2(100),
+    FORM_ID     VARCHAR2(100),
     CREATED_AT   DATE,
     CREATED_BY     VARCHAR2(64) default '',
     UPDATED_AT   DATE,
@@ -225,8 +219,7 @@ comment on column FLOW_TASK.TIMEOUT_CLAIMED_AT is '节点超时领取时间';
 create index IDX_FLOW_TASK_TIMEOUT_DUE on FLOW_TASK (TIMEOUT_STATUS, TIMEOUT_AT, TIMEOUT_CLAIMED_AT);
 create index IDX_FLOW_TASK_INSTANCE_NODE on FLOW_TASK (TENANT_ID, INSTANCE_ID, NODE_TYPE);
 comment on column FLOW_TASK.FLOW_STATUS is '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
-comment on column FLOW_TASK.FORM_CUSTOM is '审批表单是否自定义 (Y是 N否)';
-comment on column FLOW_TASK.FORM_PATH is '审批表单路径';
+comment on column FLOW_TASK.FORM_ID is '外部业务表单标识';
 comment on column FLOW_TASK.CREATED_AT is '创建时间';
 comment on column FLOW_TASK.CREATED_BY is '创建人';
 comment on column FLOW_TASK.UPDATED_AT is '更新时间';
@@ -250,8 +243,7 @@ create table FLOW_HIS_TASK
     COLLABORATOR     VARCHAR2(500),
     SKIP_TYPE        VARCHAR2(10),
     FLOW_STATUS      VARCHAR2(20),
-    FORM_CUSTOM      VARCHAR2(1) default 'N',
-    FORM_PATH        VARCHAR2(100),
+    FORM_ID        VARCHAR2(100),
     MESSAGE          VARCHAR2(500),
     variables         CLOB,
     EXT              CLOB,
@@ -277,8 +269,7 @@ comment on column FLOW_HIS_TASK.TARGET_NODE_CODE is '目标节点编码';
 comment on column FLOW_HIS_TASK.TARGET_NODE_NAME is '目标节点名称';
 comment on column FLOW_HIS_TASK.SKIP_TYPE is '流转类型（PASS通过 REJECT退回 NONE无动作）';
 comment on column FLOW_HIS_TASK.FLOW_STATUS is '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
-comment on column FLOW_HIS_TASK.FORM_CUSTOM is '审批表单是否自定义 (Y是 N否)';
-comment on column FLOW_HIS_TASK.FORM_PATH is '审批表单路径';
+comment on column FLOW_HIS_TASK.FORM_ID is '外部业务表单标识';
 comment on column FLOW_HIS_TASK.MESSAGE is '审批意见';
 comment on column FLOW_HIS_TASK.variables is '任务变量';
 comment on column FLOW_HIS_TASK.EXT is '扩展字段，预留给业务系统使用';

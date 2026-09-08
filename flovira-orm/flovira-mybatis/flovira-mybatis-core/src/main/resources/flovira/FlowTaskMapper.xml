@@ -17,8 +17,7 @@
         <result property="tenantId" column="tenant_id"/>
         <result property="businessId" column="business_id"/>
         <result property="flowName" column="flow_name"/>
-        <result property="formCustom" column="form_custom"/>
-        <result property="formPath" column="form_path"/>
+        <result property="formId" column="form_id"/>
         <result property="deleted" column="deleted"/>
         <result property="createdBy" column="created_by"/>
         <result property="updatedBy" column="updated_by"/>
@@ -38,8 +37,7 @@
                t.flow_status,
                t.definition_id,
                t.instance_id,
-               t.form_custom,
-               t.form_path,
+               t.form_id,
                t.created_at,
                t.updated_at,
                t.deleted,
@@ -73,8 +71,7 @@
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and t.flow_status = #{entity.flowStatus}</if>
             <if test="entity.definitionId != null ">and t.definition_id = #{entity.definitionId}</if>
             <if test="entity.instanceId != null ">and t.instance_id = #{entity.instanceId}</if>
-            <if test="entity.formCustom != null  and entity.formCustom != ''">and t.form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null  and entity.formPath != ''">and t.form_path = #{entity.formPath}</if>
+            <if test="entity.formId != null  and entity.formId != ''">and t.form_id = #{entity.formId}</if>
             <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
@@ -93,8 +90,7 @@
         flow_status,
         definition_id,
         instance_id,
-        form_custom,
-        form_path,
+        form_id,
         created_at,
         updated_at,
         deleted,
@@ -117,8 +113,7 @@
             #{item.flowStatus},
             #{item.definitionId},
             #{item.instanceId},
-            #{item.formCustom},
-            #{item.formPath},
+            #{item.formId},
             #{item.createdAt},
             #{item.updatedAt},
             #{item.deleted},
@@ -143,8 +138,7 @@
         flow_status,
         definition_id,
         instance_id,
-        form_custom,
-        form_path,
+        form_id,
         created_at,
         updated_at,
         deleted,
@@ -166,8 +160,7 @@
             #{item.flowStatus},
             #{item.definitionId},
             #{item.instanceId},
-            #{item.formCustom},
-            #{item.formPath},
+            #{item.formId},
             #{item.createdAt},
             #{item.updatedAt},
             #{item.deleted},
@@ -278,8 +271,7 @@
             <if test="flowStatus != null and flowStatus != ''">flow_status,</if>
             <if test="definitionId != null">definition_id,</if>
             <if test="instanceId != null">instance_id,</if>
-            <if test="formCustom != null and formCustom != ''">form_custom,</if>
-            <if test="formPath != null and formPath != ''">form_path,</if>
+            <if test="formId != null and formId != ''">form_id,</if>
             <if test="createdAt != null">created_at,</if>
             <if test="updatedAt != null">updated_at,</if>
             <if test="deleted != null and deleted != ''">deleted,</if>
@@ -300,8 +292,7 @@
             <if test="flowStatus != null and flowStatus != ''">#{flowStatus},</if>
             <if test="definitionId != null">#{definitionId},</if>
             <if test="instanceId != null">#{instanceId},</if>
-            <if test="formCustom != null and formCustom != ''">#{formCustom},</if>
-            <if test="formPath != null and formPath != ''">#{formPath},</if>
+            <if test="formId != null and formId != ''">#{formId},</if>
             <if test="createdAt != null">#{createdAt},</if>
             <if test="updatedAt != null">#{updatedAt},</if>
             <if test="deleted != null and deleted != ''">#{deleted},</if>
@@ -325,8 +316,7 @@
             <if test="flowStatus != null and flowStatus != ''">#{flowStatus},</if>
             <if test="definitionId != null">definition_id = #{definitionId},</if>
             <if test="instanceId != null">instance_id = #{instanceId},</if>
-            <if test="formCustom != null and formCustom != ''">form_custom = #{formCustom},</if>
-            <if test="formPath != null and formPath != ''">form_path = #{formPath},</if>
+            <if test="formId != null and formId != ''">form_id = #{formId},</if>
             <if test="createdAt != null">created_at = #{createdAt},</if>
             <if test="updatedAt != null">updated_at = #{updatedAt},</if>
             <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
@@ -437,8 +427,7 @@
             <if test="flowStatus != null and flowStatus != ''">and flow_status = #{flowStatus}</if>
             <if test="definitionId != null">and definition_id = #{definitionId}</if>
             <if test="instanceId != null">and instance_id = #{instanceId}</if>
-            <if test="formCustom != null and formCustom != ''">and form_custom = #{formCustom}</if>
-            <if test="formPath != null and formPath != ''">and form_path = #{formPath}</if>
+            <if test="formId != null and formId != ''">and form_id = #{formId}</if>
             <if test="createdAt != null">and created_at = #{createdAt}</if>
             <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
@@ -456,8 +445,7 @@
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and flow_status = #{entity.flowStatus}</if>
             <if test="entity.definitionId != null">and definition_id = #{entity.definitionId}</if>
             <if test="entity.instanceId != null">and instance_id = #{entity.instanceId}</if>
-            <if test="entity.formCustom != null and entity.formCustom != ''">and form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null and entity.formPath != ''">and form_path = #{entity.formPath}</if>
+            <if test="entity.formId != null and entity.formId != ''">and form_id = #{entity.formId}</if>
             <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>

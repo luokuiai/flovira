@@ -38,7 +38,7 @@ public class WaitTimeoutSchemaContractTest {
         List<String> scripts = Arrays.asList(
             "../sql/mysql/flovira-v1.sql",
             "../sql/postgresql/flovira-v1.sql",
-            "../sql/oracle/oracle-wram-flow-all.sql"
+            "../sql/oracle/flovira-v1.sql"
         );
         for (String path : scripts) {
             String sql = new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8)

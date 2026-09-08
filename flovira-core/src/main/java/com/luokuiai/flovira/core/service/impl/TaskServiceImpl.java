@@ -579,11 +579,11 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         TimeoutConfigUtil.applySnapshot(node, addTask, now);
 
-        if (StringUtils.isNotEmpty(node.getFormCustom()) && StringUtils.isNotEmpty(node.getFormPath())) {
-            // 节点有自定义表单则使用
-            addTask.setFormCustom(node.getFormCustom()).setFormPath(node.getFormPath());
+        if (StringUtils.isNotEmpty(node.getFormId())) {
+            // 节点指定表单时覆盖流程默认表单，并保存任务快照
+            addTask.setFormId(node.getFormId());
         } else {
-            addTask.setFormCustom(definition.getFormCustom()).setFormPath(definition.getFormPath());
+            addTask.setFormId(definition.getFormId());
         }
 
         return addTask;
@@ -1097,16 +1097,13 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             , flowParams.getVariables(), r.task);
 
         FlowDto flowDto = new FlowDto();
-        if (FlowCons.FORM_CUSTOM_Y.equals(r.nowNode.getFormCustom())) {
+        flowDto.setFormId(r.task.getFormId());
+        if (StringUtils.isNotEmpty(r.nowNode.getFormId())) {
             ListenerUtil.execute(listenerVariable, Listener.LISTENER_FORM_LOAD, r.nowNode.getListenerPath()
                 , r.nowNode.getListenerType());
-            Form form = FlowEngine.formService().getById(Long.valueOf(r.task.getFormPath()));
-            flowDto.setForm(form);
-        } else if (StringUtils.isEmpty(r.nowNode.getFormCustom()) && FlowCons.FORM_CUSTOM_Y.equals(r.definition.getFormCustom())) {
+        } else {
             ListenerUtil.execute(listenerVariable, Listener.LISTENER_FORM_LOAD, r.definition.getListenerPath()
                 , r.definition.getListenerType());
-            Form form = FlowEngine.formService().getById(Long.valueOf(r.definition.getFormPath()));
-            flowDto.setForm(form);
         }
         flowDto.setData(r.instance.getVariableMap().get(FlowCons.FORM_DATA));
 
@@ -1118,21 +1115,9 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         HisTask hisTask = FlowEngine.hisTaskService().getById(hisTaskId);
         AssertUtil.isNull(hisTask, ExceptionCons.NOT_FOUND_FLOW_TASK);
 
-        Definition definition = FlowEngine.defService().getById(hisTask.getDefinitionId());
-        AssertUtil.isNull(definition, ExceptionCons.NOT_FOUNT_DEF);
-
-        Node nowNode = CollUtil.getOne(FlowEngine.nodeService()
-            .getByNodeCodes(Collections.singletonList(hisTask.getNodeCode()), hisTask.getDefinitionId()));
-        AssertUtil.isNull(nowNode, ExceptionCons.LOST_CUR_NODE);
-
         FlowDto flowDto = new FlowDto();
-        if (FlowCons.FORM_CUSTOM_Y.equals(nowNode.getFormCustom())) {
-            Form form = FlowEngine.formService().getById(Long.valueOf(hisTask.getFormPath()));
-            flowDto.setForm(form);
-        } else if (StringUtils.isEmpty(nowNode.getFormCustom()) && FlowCons.FORM_CUSTOM_Y.equals(definition.getFormCustom())) {
-            Form form = FlowEngine.formService().getById(Long.valueOf(definition.getFormPath()));
-            flowDto.setForm(form);
-        }
+        // 历史记录使用办理时的表单引用，不重新读取当前流程配置。
+        flowDto.setFormId(hisTask.getFormId());
         flowDto.setData(hisTask.getVariableMap().get(FlowCons.FORM_DATA));
 
         return flowDto;

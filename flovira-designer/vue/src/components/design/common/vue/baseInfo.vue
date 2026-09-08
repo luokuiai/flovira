@@ -21,29 +21,11 @@
               check-strictly/>
         </wf-form-item>
 
-        <wf-form-item :label="t('baseInfo.formCustom')" prop="formCustom">
-          <wf-switch
-            v-model="form.formCustom"
-            size="large"
-            active-value="Y"
-            inactive-value="N"
-            :active-text="t('common.yes')"
-            :inactive-text="t('common.no')" />
-          <span class="form-tip">{{ form.formCustom === 'Y' ? t('baseInfo.formCustomTipY') : t('baseInfo.formCustomTipN') }}</span>
-        </wf-form-item>
-
-        <wf-form-item :label="t('baseInfo.formPath')" prop="formPath" v-if="form.formCustom === 'N'">
-          <wf-input v-model="form.formPath" :placeholder="t('baseInfo.formPathPlaceholder')" maxlength="100"/>
-        </wf-form-item>
-
-        <wf-form-item :label="t('baseInfo.formKey')" prop="formPath" v-else-if="form.formCustom === 'Y'">
-            <wf-tree-select
-                v-model="form.formPath"
-                :data="formPathList"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
-                :placeholder="t('baseInfo.categoryPlaceholder')"
-                check-strictly/>
+        <wf-form-item :label="t('baseInfo.formId')" prop="formId">
+          <wf-tree-select v-if="formOptions.length" v-model="form.formId"
+              :data="formOptions" :props="{ value: 'id', label: 'name', children: 'children' }"
+              value-key="id" :placeholder="t('baseInfo.formIdPlaceholder')" clearable check-strictly/>
+          <wf-input v-else v-model="form.formId" :placeholder="t('baseInfo.formIdPlaceholder')" maxlength="100"/>
         </wf-form-item>
       </div>
 
@@ -135,7 +117,7 @@ interface BaseInfoProps {
   /** 流程类别树 */
   categoryList?: any[];
   /** 自定义表单路径树 */
-  formPathList?: any[];
+  formOptions?: any[];
   /** 流程定义 id（新建态为 null） */
   definitionId?: string | null;
 }
@@ -143,7 +125,7 @@ const props = withDefaults(defineProps<BaseInfoProps>(), {
   disabled: false,
   logicJson: () => ({}),
   categoryList: () => [],
-  formPathList: () => [],
+  formOptions: () => [],
   definitionId: null,
 });
 
@@ -152,8 +134,7 @@ const form = ref({
   flowCode: "",
   flowName: "",
   category: "",
-  formCustom: "N",
-  formPath: "",
+  formId: "",
   listenerType: "",
   listenerPath: "",
   listenerRows: []
@@ -162,11 +143,6 @@ const form = ref({
 watch(() => props.logicJson, newValue => {
   if (newValue && Object.keys(newValue).length > 0) {
     Object.assign(form.value, newValue);
-    // 自定义表单为「是/否」开关项：新建流程 definition.formCustom 为 null，会覆盖默认值导致开关失去取值，
-    // 进而触发 required 校验（点「流程设计」被拦）。此处兜底回「否」，与 propertySetting 的空值默认范式一致。
-    if (!form.value.formCustom) {
-      form.value.formCustom = "N";
-    }
     setListenerData();
   }
 });
@@ -181,9 +157,6 @@ const rules = computed(() => ({
   ],
   flowName: [
     { required: true, message: t('baseInfo.ruleFlowNameRequired'), trigger: "blur" }
-  ],
-  formCustom: [
-    { required: true, message: t('baseInfo.ruleFormCustomRequired'), trigger: "change" }
   ],
   listenerType: [
     { required: true, message: t('baseInfo.ruleListenerRequired'), trigger: ['change', 'blur'] }

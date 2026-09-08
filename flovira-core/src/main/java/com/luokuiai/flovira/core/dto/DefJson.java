@@ -74,14 +74,9 @@ public class DefJson {
     private Integer publishStatus;
 
     /**
-     * 审批表单是否自定义（Y=是 N=否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单是否自定义（Y=是 N=否）
-     */
-    private String formPath;
+    private String formId;
 
     /**
      * 监听器类型
@@ -137,12 +132,6 @@ public class DefJson {
      */
     private List<Tree> categoryList;
 
-    /**
-     * 自定义表单的唯一标识：如formCode+version
-     */
-    private List<Tree> formPathList;
-
-
     public static DefJson copyDef(Definition definition) {
         DefJson defJson = new DefJson()
                 .setFlowCode(definition.getFlowCode())
@@ -150,8 +139,7 @@ public class DefJson {
                 .setVersion(definition.getVersion())
                 .setPublishStatus(definition.getPublishStatus())
                 .setCategory(definition.getCategory())
-                .setFormCustom(definition.getFormCustom())
-                .setFormPath(definition.getFormPath())
+                .setFormId(definition.getFormId())
                 .setListenerType(definition.getListenerType())
                 .setListenerPath(definition.getListenerPath())
                 .setExt(definition.getExt())
@@ -172,8 +160,7 @@ public class DefJson {
                     .setAnyNodeSkip(node.getAnyNodeSkip())
                     .setListenerType(node.getListenerType())
                     .setListenerPath(node.getListenerPath())
-                    .setFormCustom(node.getFormCustom())
-                    .setFormPath(node.getFormPath())
+                    .setFormId(node.getFormId())
                     .setExt(node.getExt())
                     .setCreatedBy(node.getCreatedBy())
                     .setUpdatedBy(node.getUpdatedBy());
@@ -206,8 +193,7 @@ public class DefJson {
                 .setFlowName(defJson.getFlowName())
                 .setVersion(defJson.getVersion())
                 .setCategory(defJson.getCategory())
-                .setFormCustom(defJson.getFormCustom())
-                .setFormPath(defJson.getFormPath())
+                .setFormId(defJson.getFormId())
                 .setListenerType(defJson.getListenerType())
                 .setListenerPath(defJson.getListenerPath())
                 .setExt(defJson.getExt())
@@ -228,8 +214,7 @@ public class DefJson {
                     .setAnyNodeSkip(nodeJson.getAnyNodeSkip())
                     .setListenerType(nodeJson.getListenerType())
                     .setListenerPath(nodeJson.getListenerPath())
-                    .setFormCustom(nodeJson.getFormCustom())
-                    .setFormPath(nodeJson.getFormPath())
+                    .setFormId(nodeJson.getFormId())
                     .setExt(nodeJson.getExt())
                     .setCreatedBy(nodeJson.getCreatedBy())
                     .setUpdatedBy(nodeJson.getUpdatedBy());

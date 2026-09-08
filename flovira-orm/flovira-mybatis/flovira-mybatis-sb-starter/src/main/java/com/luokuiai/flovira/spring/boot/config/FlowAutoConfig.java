@@ -56,7 +56,7 @@ public class FlowAutoConfig extends BeanConfig {
 
     private void loadXml(SqlSessionFactory sqlSessionFactory) {
         List<String> mapperList = Arrays.asList("flovira/FlowDefinitionMapper.xml", "flovira/FlowHisTaskMapper.xml"
-            , "flovira/FlowInstanceMapper.xml", "flovira/FlowNodeMapper.xml", "flovira/FlowFormMapper.xml"
+            , "flovira/FlowInstanceMapper.xml", "flovira/FlowNodeMapper.xml"
             , "flovira/FlowSkipMapper.xml", "flovira/FlowTaskMapper.xml", "flovira/FlowUserMapper.xml"
             , "flovira/FlowSubprocessRunMapper.xml", "flovira/FlowSubprocessChildMapper.xml"
             , "flovira/FlowSubprocessEventMapper.xml");

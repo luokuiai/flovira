@@ -1,6 +1,21 @@
 import { describe, expect, test } from 'bun:test'
 import { json2LogicFlowJson, logicFlowJsonToFlovira } from './tool'
 
+test('preserves external form IDs and supports clearing node overrides', () => {
+  const logic = json2LogicFlowJson({ formId: 'expense:v2', nodeList: [{
+    nodeType: '1', nodeCode: 'approval', nodeName: '审批', nodeRatio: '0', formId: 'finance:v1', skipList: [],
+  }] })
+  let saved = JSON.parse(logicFlowJsonToFlovira(logic))
+  expect(saved.formId).toBe('expense:v2')
+  expect(saved.nodeList[0].formId).toBe('finance:v1')
+  expect(saved).not.toHaveProperty('formCustom')
+  expect(saved.nodeList[0]).not.toHaveProperty('formPath')
+  logic.nodes[0].properties.formId = ''
+  saved = JSON.parse(logicFlowJsonToFlovira(logic))
+  expect(saved.nodeList[0].formId).toBeUndefined()
+  expect(saved.formId).toBe('expense:v2')
+})
+
 describe('wait and timeout definition conversion', () => {
   test('preserves versioned wait and timeout JSON during round trip', () => {
     const waitConfig = JSON.stringify({ schemaVersion: 1, waitKey: 'order.paid' })

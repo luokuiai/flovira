@@ -79,8 +79,8 @@ const CATEGORY_LIST: any[] = [
   { id: 'finance', name: '财务流程', children: [] }
 ]
 
-// 已发布表单唯一标识（baseInfo 自定义表单=是 时的 tree-select，结构 { id, name, children }）
-const FORM_PATH_LIST: any[] = [
+// 业务系统提供的表单选项，结构 { id, name, children }
+const FORM_LIST: any[] = [
   { id: 'form-leave', name: '请假申请表', children: [] },
   { id: 'form-reimburse', name: '报销申请表', children: [] },
   { id: 'form-purchase', name: '采购审批表', children: [] }
@@ -175,8 +175,8 @@ export function createMockProvider(): DataProvider {
         }))
       } else if (query.resourceType === 'CATEGORY') {
         rows = flattenTreeResources(CATEGORY_LIST, 'CATEGORY')
-      } else if (query.resourceType === 'FORM_PATH') {
-        rows = flattenTreeResources(FORM_PATH_LIST, 'FORM_PATH')
+      } else if (query.resourceType === 'FORM') {
+        rows = flattenTreeResources(FORM_LIST, 'FORM')
       } else if (query.resourceType === 'SUBPROCESS') {
         rows = [
           { id: '2001', code: 'expense-review', name: '报销审批', resourceType: 'SUBPROCESS', metadata: { version: '1.0.0' } },

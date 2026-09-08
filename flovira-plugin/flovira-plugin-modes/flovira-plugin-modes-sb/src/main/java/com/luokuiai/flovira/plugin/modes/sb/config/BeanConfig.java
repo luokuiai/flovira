@@ -147,16 +147,6 @@ public class BeanConfig {
     }
 
     @Bean
-    public FlowFormDao formDao() {
-        return new FlowFormDaoImpl();
-    }
-
-    @Bean
-    public FormService flowFormService(FlowFormDao formDao) {
-        return new FormServiceImpl().setDao(formDao);
-    }
-
-    @Bean
     public FlowSubprocessRunDao subprocessRunDao() {
         return new FlowSubprocessRunDaoImpl();
     }
@@ -218,7 +208,6 @@ public class BeanConfig {
         FlowEngine.setNewSkip(FlowSkip::new);
         FlowEngine.setNewTask(FlowTask::new);
         FlowEngine.setNewUser(FlowUser::new);
-        FlowEngine.setNewForm(FlowForm::new);
         FlowEngine.setNewSubprocessRun(FlowSubprocessRun::new);
         FlowEngine.setNewSubprocessChild(FlowSubprocessChild::new);
         FlowEngine.setNewSubprocessEvent(FlowSubprocessEvent::new);

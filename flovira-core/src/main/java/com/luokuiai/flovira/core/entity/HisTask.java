@@ -152,12 +152,8 @@ public interface HisTask extends RootEntity {
 
     HisTask setExt(String ext);
 
-    String getFormCustom();
+    String getFormId();
 
-    HisTask setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    HisTask setFormPath(String formPath);
+    HisTask setFormId(String formId);
 
 }

@@ -53,7 +53,7 @@ export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   timeoutNodeTypes: ['1', '7'],
   operations: ['SAVE', 'PUBLISH', 'VALIDATE', 'IMPORT', 'EXPORT'],
   resourceTypes: [
-    'USER', 'ROLE', 'ORGANIZATION', 'SUBJECT', 'CATEGORY', 'FORM_PATH',
+    'USER', 'ROLE', 'ORGANIZATION', 'SUBJECT', 'CATEGORY', 'FORM',
     'FORM_FIELD', 'DICTIONARY', 'SUBPROCESS', 'NODE_EXTENSION', 'LISTENER',
   ],
 }

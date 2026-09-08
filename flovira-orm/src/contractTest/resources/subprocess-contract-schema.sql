@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS flow_task;
 CREATE TABLE flow_task (
     id bigint PRIMARY KEY, definition_id bigint NOT NULL, instance_id bigint NOT NULL,
     node_code varchar(100) NOT NULL, node_name varchar(100), node_type smallint NOT NULL,
-    flow_status varchar(20) NOT NULL, form_custom char(1) DEFAULT 'N', form_path varchar(100),
+    flow_status varchar(20) NOT NULL, form_id varchar(100),
     created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp,
     updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40),
     timeout_at timestamp, timeout_action varchar(32), timeout_config text,

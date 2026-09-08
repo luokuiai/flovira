@@ -84,6 +84,8 @@ export interface FloviraSkip extends Record<string, unknown> {
 }
 
 export interface FloviraNode extends Record<string, unknown> {
+  /** 外部业务表单标识；留空继承流程表单。 */
+  formId?: string | null
   nodeType: FloviraNodeType
   nodeCode: string
   nodeName: string
@@ -107,6 +109,8 @@ export interface NodeControlConfig {
 }
 
 export interface FloviraDefinition extends Record<string, unknown> {
+  /** 外部业务表单标识，由业务系统解析。 */
+  formId?: string | null
   id?: string | number
   flowCode?: string
   flowName?: string

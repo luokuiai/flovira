@@ -111,13 +111,9 @@ public interface Node extends RootEntity {
 
     Node setListenerPath(String listenerPath);
 
-    String getFormCustom();
+    String getFormId();
 
-    Node setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Node setFormPath(String formPath);
+    Node setFormId(String formId);
 
     String getExt();
 
@@ -154,8 +150,7 @@ public interface Node extends RootEntity {
             .setAnyNodeSkip(this.getAnyNodeSkip())
             .setListenerType(this.getListenerType())
             .setListenerPath(this.getListenerPath())
-            .setFormCustom(this.getFormCustom())
-            .setFormPath(this.getFormPath())
+            .setFormId(this.getFormId())
             .setExt(this.getExt());
     }
 }

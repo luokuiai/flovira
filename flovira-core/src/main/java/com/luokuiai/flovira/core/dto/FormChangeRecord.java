@@ -51,9 +51,7 @@ public class FormChangeRecord implements Serializable {
 
     private Date changeTime;
 
-    private String formCustom;
-
-    private String formPath;
+    private String formId;
 
     private List<FormFieldChange> changes = new ArrayList<FormFieldChange>();
 }

@@ -16,8 +16,7 @@ export const json2LogicFlowJson = (definition) => {
   graphData.flowName = definition.flowName
   graphData.category = definition.category
   graphData.version = definition.version
-  graphData.formCustom = definition.formCustom
-  graphData.formPath = definition.formPath
+  graphData.formId = definition.formId
   graphData.listenerType = definition.listenerType
   graphData.listenerPath = definition.listenerPath
 
@@ -61,8 +60,7 @@ export const json2LogicFlowJson = (definition) => {
       lfNode.properties.anyNodeSkip = node.anyNodeSkip
       lfNode.properties.listenerType = node.listenerType
       lfNode.properties.listenerPath = node.listenerPath
-      lfNode.properties.formCustom = node.formCustom
-      lfNode.properties.formPath = node.formPath
+      lfNode.properties.formId = node.formId
       lfNode.properties.status = node.status
       lfNode.properties.chartStatusColor = definition.chartStatusColor
       lfNode.properties.promptContent = node.promptContent
@@ -194,8 +192,7 @@ export const logicFlowJsonToFlovira = (data) => {
   definition.flowName = data.flowName
   definition.category = data.category
   definition.version = data.version
-  definition.formCustom = data.formCustom
-  definition.formPath = data.formPath
+  definition.formId = data.formId
   definition.listenerType = data.listenerType
   definition.listenerPath = data.listenerPath
   // 流程节点
@@ -211,9 +208,8 @@ export const logicFlowJsonToFlovira = (data) => {
     node.anyNodeSkip = anyNode.properties.anyNodeSkip
     node.listenerType = anyNode.properties.listenerType
     node.listenerPath = anyNode.properties.listenerPath
-    node.formCustom = anyNode.properties.formCustom
-    if (anyNode.properties.formPath && String(anyNode.properties.formPath).trim()) {
-      node.formPath = anyNode.properties.formPath.trim()
+    if (anyNode.properties.formId && String(anyNode.properties.formId).trim()) {
+      node.formId = anyNode.properties.formId.trim()
     }
     node.ext = [];
     for (const key in anyNode.properties.ext) {
