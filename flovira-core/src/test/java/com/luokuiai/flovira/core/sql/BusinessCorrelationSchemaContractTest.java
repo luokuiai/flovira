@@ -28,7 +28,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * 四库业务关联字段和索引契约测试
+ * 三库业务关联字段和索引契约测试
  *
  * @author warm
  */
@@ -39,8 +39,7 @@ public class BusinessCorrelationSchemaContractTest {
         List<String> scripts = Arrays.asList(
             "../sql/mysql/flovira-v1.sql",
             "../sql/postgresql/flovira-v1.sql",
-            "../sql/oracle/oracle-wram-flow-all.sql",
-            "../sql/sqlserver/sqlserver.sql"
+            "../sql/oracle/oracle-wram-flow-all.sql"
         );
         for (String path : scripts) {
             String sql = new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8)

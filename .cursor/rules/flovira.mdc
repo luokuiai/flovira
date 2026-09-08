@@ -26,7 +26,7 @@ alwaysApply: true
 - `flovira-orm`：ORM 适配，按「ORM(mybatis / mybatis-plus / easy-query) × (sb/sb3/sb4)」矩阵实现 `FloviraDao`。
 - `flovira-plugin`：可插拔扩展（`modes` 表达式、`json` 序列化、`ui` 设计器后端）。
 - `flovira-designer`：Vue / React 前端设计器 npm 包及示例，独立于 Gradle 工程，由 Bun workspace 管理。
-- `sql/`：mysql / oracle / postgresql / sqlserver 四套脚本 + MySQL `v1-upgrade/`。
+- `sql/`：mysql / oracle / postgresql 三套脚本；MySQL、PostgreSQL 使用完整的 `flovira-v1.sql` 初始化脚本，无旧版本升级链。
 
 ## 核心红线（详见 AGENTS.md）
 
@@ -35,7 +35,7 @@ alwaysApply: true
 3. **门面**：统一通过 `FlowEngine.xxxService()` / `FlowEngine.newXxx()` 取服务和建实体，不绕过门面直接 new 实现类。
 4. **向后兼容**：公共方法签名、`FloviraDao` 接口、实体字段、枚举常量（code / 顺序）、`Flovira` 配置项是已发布契约，不随意删 / 改签名 / 重排；废弃用 `@Deprecated` 留过渡期。
 5. **多生态对齐**：改某 starter 能力时，确认 `sb`/`sb3`/`sb4` 与对应 ORM 模块是否需同步；自动装配按 SB2 `spring.factories`、SB3/4 `AutoConfiguration.imports` 注册。
-6. **SQL 四套同步**：表结构改动同步四库全量脚本 + 新增 `v1-upgrade/flovira_x.x.x.sql`，写明各库方言兼容与回滚。
+6. **SQL 三套同步**：表结构改动同步 mysql / oracle / postgresql；MySQL、PostgreSQL 的 V1 初始化脚本必须保持完整一致，写明各库方言兼容与回滚。
 7. **扩展机制**：新增 JSON 走 `JsonConvert` + `META-INF/services`；新增 ORM / 框架走五件套矩阵 + 对应自动装配。
 8. **状态机**：通过 / 退回 / 跳转 / 转办 / 加减签 / 终止 / 撤回 / 票签 / 网关有副作用，改动前读对应 `service.impl` / `strategy` / `listener` 与状态枚举。
 9. **品牌与协议**：保留每个 Java 文件 Apache 2.0 license header、`@author warm`、`com.luokuiai` 包名、banner、README 链接与 `LICENSE`，不弱化「永久开源免费」声明。

@@ -26,7 +26,7 @@
   - `flovira-plugin-json`：独立 JSON 序列化实现（`*-json-jackson`、`*-json-jackson3`、`*-json-gson`），使用方只选择一个。
   - `flovira-plugin-ui`：设计器 / 流程图后端 API（`*-ui-core`、`*-ui-sb-web`），不内嵌前端静态资源。
 - `flovira-designer`：流程设计器前端工作区；`vue/` 与 `react/` 分别发布独立 npm 包，`react-adapters/` 提供可选 UI 框架适配，`examples/` 提供各技术栈消费示例。
-- `sql/`：建表脚本按数据库分目录：`mysql/`、`oracle/`、`postgresql/`、`sqlserver/`；本 fork 从 1.0.0 重新起版，MySQL 与 PostgreSQL 使用完整的 `flovira-v1.sql` 初始化脚本，不继承 Warm-Flow 或旧 Flovira 升级链。
+- `sql/`：建表脚本按数据库分目录：`mysql/`、`oracle/`、`postgresql/`；本 fork 从 1.0.0 重新起版，MySQL 与 PostgreSQL 使用完整的 `flovira-v1.sql` 初始化脚本，不继承 Warm-Flow 或旧 Flovira 升级链。
 - 测试不在本仓库：官方测试在独立仓库 `flovira-test`（gitee），本仓库无 `src/test`。
 
 ## 技术基线
@@ -35,7 +35,7 @@
 - **Spring Boot 生态**：并行支持 Spring Boot 2.7.18 / 3.5.16 / 4.0.2，对应 `sb` / `sb3` / `sb4` 后缀的 starter。
 - **多 ORM**：MyBatis 3.5.15（mybatis-spring-boot 2.3.2）、MyBatis-Plus 3.5.12；README 另提到 JPA / BeetlSql 等生态由社区扩展。
 - **多 JSON**：jackson 2.13.5、jackson3 3.0.4、gson 2.9.0，各实现独立发布。
-- **多数据库**：MySQL、Oracle、PostgreSQL、SQL Server（其它库转换表结构即可）。
+- **多数据库**：MySQL、Oracle、PostgreSQL（其它库转换表结构即可）。
 - **基础依赖**：Lombok、`slf4j-api`（仅 API，不绑定日志实现）、JUnit 4（测试在独立仓库）。
 - **依赖版本统一在 `gradle/libs.versions.toml` 与 `buildSrc` convention plugins 中管理**，子模块不私自写死或改版本号；项目版本由共享 Java convention 统一设置。
 
@@ -150,7 +150,7 @@
 
 ## SQL 与数据库
 
-- 表结构改动必须**同步四套脚本**：`sql/mysql`、`sql/oracle`、`sql/postgresql`、`sql/sqlserver`；其中 MySQL 与 PostgreSQL 在 1.0.0 阶段直接维护各自完整的 `flovira-v1.sql` 初始化脚本，不创建历史兼容升级脚本。
+- 表结构改动必须**同步三套脚本**：`sql/mysql`、`sql/oracle`、`sql/postgresql`；其中 MySQL 与 PostgreSQL 在 1.0.0 阶段直接维护各自完整的 `flovira-v1.sql` 初始化脚本，不创建历史兼容升级脚本。
 - 注意各库方言差异（类型、自增 / 序列、分页、大小写、关键字）；破坏性或迁移脚本必须写明用途、影响范围、回滚方式与各库兼容性，执行需用户明确批准。
 - 引擎自身维护**多租户与逻辑删除**（见 `Flovira.logicDelete` 等）；改动相关字段 / 行为要兼顾「引擎自带实现」与「复用 ORM 框架实现」两条路径。
 
@@ -159,7 +159,7 @@
 - **新增 JSON 实现**：实现 core 的 `JsonConvert`，放到 `flovira-plugin-json`，并加 `META-INF/services/com.luokuiai.flovira.core.json.JsonConvert`。
 - **新增 ORM 支持**：在 `flovira-orm` 下按现有四件套（`core` + `sb`/`sb3`/`sb4` starter）建模块，实现 `FloviraDao`、实体与 ID 生成适配。
 - **新增框架适配**：提供注入 `FrameInvoker` 的启动逻辑与对应自动装配文件（`spring.factories` / `AutoConfiguration.imports`）。
-- **新增数据库**：补四套之外的脚本目录与全量脚本，并验证 `dataSourceType` / 分页 / 方言。
+- **新增数据库**：补三套之外的脚本目录与全量脚本，并验证 `dataSourceType` / 分页 / 方言。
 - 以上均为 L2，先评估必要性与对现有矩阵的影响，再实施。
 
 ## 验证规则
@@ -184,7 +184,7 @@ bun run build
 - core 改动：编译 core，并至少编译一个依赖它的 orm / plugin 模块。
 - 某 starter / 适配改动：编译该模块，必要时编译同一 ORM 的其它 starter 确认生态一致。
 - SPI / 自动装配改动：确认注册文件与实现类一致，编译相关模块。
-- SQL / 表结构改动：核对四套脚本一致性，并确认 MySQL、PostgreSQL 的 V1 初始化脚本包含完整结构，说明各库兼容性。
+- SQL / 表结构改动：核对三套脚本一致性，并确认 MySQL、PostgreSQL 的 V1 初始化脚本包含完整结构，说明各库兼容性。
 
 无法完成验证时必须报告：尝试的命令、失败现象、可能原因、对当前改动的风险、建议下一步。**不要为了让构建“通过”而删插件、降基线或改 JDK 版本。**
 

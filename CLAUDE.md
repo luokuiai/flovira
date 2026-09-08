@@ -17,7 +17,7 @@
 
 ## 技术基线
 
-- JDK 1.8 源码级（兼容 Java 8/17/21）；支持 Spring Boot 2.7/3.0/4.0；多 ORM MyBatis / MyBatis-Plus；独立 JSON 适配 jackson/jackson3/gson；多数据库 MySQL/Oracle/PostgreSQL/SQL Server。
+- JDK 1.8 源码级（兼容 Java 8/17/21）；支持 Spring Boot 2.7/3.0/4.0；多 ORM MyBatis / MyBatis-Plus；独立 JSON 适配 jackson/jackson3/gson；多数据库 MySQL/Oracle/PostgreSQL。
 - Lombok + `slf4j-api`；依赖版本统一在 Gradle version catalog 与共享 convention plugin 中管理，子模块不私改。
 
 ## 模块速览
@@ -26,7 +26,7 @@
 - `flovira-orm`：ORM 适配，按「ORM × (sb/sb3/sb4)」矩阵实现 `FloviraDao`。
 - `flovira-plugin`：可插拔扩展（`modes` 表达式、`json` 序列化、`ui` 设计器后端）。
 - `flovira-designer`：Vue / React 流程设计器 npm 包及其消费示例，由根 Bun workspace 管理。
-- `sql/`：mysql/oracle/postgresql/sqlserver 四套脚本；1.0.0 起 MySQL、PostgreSQL 使用完整 `flovira-v1.sql` 初始化脚本，无旧版本升级链。
+- `sql/`：mysql/oracle/postgresql 三套脚本；1.0.0 起 MySQL、PostgreSQL 使用完整 `flovira-v1.sql` 初始化脚本，无旧版本升级链。
 
 ## 核心红线（详见 AGENTS.md）
 
@@ -35,7 +35,7 @@
 3. **门面**：统一通过 `FlowEngine.xxxService()` / `FlowEngine.newXxx()` 取服务和建实体，不绕过门面直接 new 实现类。
 4. **向后兼容**：公共方法签名、`FloviraDao` 接口、实体字段、枚举常量（code/顺序）、`Flovira` 配置项是已发布契约，不随意删 / 改签名 / 重排；废弃用 `@Deprecated` 留过渡期。
 5. **多生态对齐**：改某 starter 能力时，确认 `sb`/`sb3`/`sb4` 与对应 ORM 模块是否需同步。
-6. **SQL 四套同步**：表结构改动同步 mysql/oracle/postgresql/sqlserver；MySQL、PostgreSQL 的 V1 初始化脚本必须保持完整一致。
+6. **SQL 三套同步**：表结构改动同步 mysql/oracle/postgresql；MySQL、PostgreSQL 的 V1 初始化脚本必须保持完整一致。
 7. **多租户 / 逻辑删除**：引擎自带实现，相关字段 / 行为改动兼顾「引擎自带」与「ORM 框架」两条路径。
 8. **扩展机制**：新增 JSON 走 `JsonConvert` + `META-INF/services`；新增 ORM / 框架走四件套矩阵 + 对应自动装配（`spring.factories` / `AutoConfiguration.imports`）。
 9. **状态机**：通过 / 退回 / 跳转 / 转办 / 加减签 / 终止 / 撤回 / 票签 / 网关有副作用，改动前读对应 `service.impl` / `strategy` / `listener` 与状态枚举。

@@ -63,16 +63,14 @@
     </select>
     <select id="lockById" resultMap="RunResult">
         select <include refid="columns"/> from flow_subprocess_run
-        <if test="dataSourceType == 'sqlserver'.toString()">with (updlock,rowlock)</if>
         where <include refid="tenant"/> and id=#{runId} and del_flag='0'
-        <if test="dataSourceType != 'sqlserver'.toString()">for update</if>
+        for update
     </select>
     <select id="lockActiveByParent" resultMap="RunResult">
         select <include refid="columns"/> from flow_subprocess_run
-        <if test="dataSourceType == 'sqlserver'.toString()">with (updlock,rowlock)</if>
         where <include refid="tenant"/> and parent_instance_id=#{parentInstanceId} and del_flag='0'
         and run_status in ('INITIALIZING','RUNNING','READY_TO_RESUME','RESUMING','FAILED','CANCELLING') order by id
-        <if test="dataSourceType != 'sqlserver'.toString()">for update</if>
+        for update
     </select>
     <select id="findReconcileCandidates" resultMap="RunResult">
         select <include refid="columns"/> from flow_subprocess_run where del_flag='0'

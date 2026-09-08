@@ -17,7 +17,6 @@ package com.luokuiai.flovira.orm.dao;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessRunDao;
 import com.luokuiai.flovira.orm.entity.FlowSubprocessRun;
@@ -43,8 +42,7 @@ public class FlowSubprocessRunDaoImpl implements FlowSubprocessRunDao<FlowSubpro
         return mapper().selectOne(query);
     }
     public FlowSubprocessRun lockById(String tenantId, Long runId) {
-        return "sqlserver".equals(FlowEngine.dataSourceType())
-            ? mapper().lockByIdSqlServer(tenantId, runId) : mapper().lockById(tenantId, runId);
+        return mapper().lockById(tenantId, runId);
     }
     public int claimReadyToResume(String tenantId, Long runId) {
         UpdateWrapper<FlowSubprocessRun> update = new UpdateWrapper<>();
@@ -54,8 +52,7 @@ public class FlowSubprocessRunDaoImpl implements FlowSubprocessRunDao<FlowSubpro
         return mapper().update(null, update);
     }
     public List<FlowSubprocessRun> lockActiveByParent(String tenantId, Long parentInstanceId) {
-        return "sqlserver".equals(FlowEngine.dataSourceType())
-            ? mapper().lockActiveSqlServer(tenantId, parentInstanceId) : mapper().lockActive(tenantId, parentInstanceId);
+        return mapper().lockActive(tenantId, parentInstanceId);
     }
     public List<FlowSubprocessRun> findReconcileCandidates(int limit) {
         QueryWrapper<FlowSubprocessRun> query = new QueryWrapper<>();

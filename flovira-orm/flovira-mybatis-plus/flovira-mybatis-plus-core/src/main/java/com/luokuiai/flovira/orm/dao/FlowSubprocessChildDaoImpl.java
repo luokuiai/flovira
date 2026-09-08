@@ -16,7 +16,6 @@
 package com.luokuiai.flovira.orm.dao;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessChildDao;
 import com.luokuiai.flovira.orm.entity.FlowSubprocessChild;
@@ -46,8 +45,7 @@ public class FlowSubprocessChildDaoImpl implements FlowSubprocessChildDao<FlowSu
         return mapper().selectOne(query);
     }
     public List<FlowSubprocessChild> lockByRunId(String tenantId, Long runId) {
-        return "sqlserver".equals(FlowEngine.dataSourceType())
-            ? mapper().lockByRunSqlServer(tenantId, runId) : mapper().lockByRun(tenantId, runId);
+        return mapper().lockByRun(tenantId, runId);
     }
     public com.luokuiai.flovira.core.utils.page.Page<FlowSubprocessChild> pageByRunId(String tenantId, Long runId,
         com.luokuiai.flovira.core.utils.page.Page<FlowSubprocessChild> page) {

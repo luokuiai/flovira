@@ -25,6 +25,4 @@ import java.util.List;
 public interface FlowSubprocessChildMapper extends FloviraMapper<FlowSubprocessChild> {
     @Select("select * from flow_subprocess_child where run_id=#{runId} and tenant_id=#{tenantId} and del_flag='0' order by id for update")
     List<FlowSubprocessChild> lockByRun(@Param("tenantId") String tenantId, @Param("runId") Long runId);
-    @Select("select * from flow_subprocess_child with (updlock,rowlock) where run_id=#{runId} and tenant_id=#{tenantId} and del_flag='0' order by id")
-    List<FlowSubprocessChild> lockByRunSqlServer(@Param("tenantId") String tenantId, @Param("runId") Long runId);
 }

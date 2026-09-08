@@ -34,7 +34,7 @@
 - **JDK 1.8 语法**：禁止 Java 9+ 语法 / API（`var`、`record`、switch 表达式、文本块、`List.of`、`Optional.isEmpty`、`Stream.toList`、`String.isBlank` 等）；用 `utils.*` 替代。
 - **门面与契约**：`FlowEngine` 方法、`FloviraDao` 抽象、实体接口、`Flovira` 配置项、枚举常量（code / 顺序 / 名称）都是对外契约，改动评估下游破坏，优先「加法」，废弃用 `@Deprecated` 留过渡期。
 - **状态机语义**：通过 / 退回 / 跳转 / 转办 / 加减签 / 终止 / 撤回 / 票签 / 网关有副作用，先确认现有流转再改，不要凭文件名猜。
-- **实体字段**：新增 / 改字段要同步各 ORM 实体实现、JSON 序列化与 `sql/` 四套表结构。
+- **实体字段**：新增 / 改字段要同步各 ORM 实体实现、JSON 序列化与 `sql/` 三套表结构。
 
 ## 聚焦验证
 

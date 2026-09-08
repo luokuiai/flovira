@@ -31,9 +31,8 @@
     <select id="findByRunAndItem" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
         where <include refid="tenant"/> and run_id=#{runId} and item_key=#{itemKey} and del_flag='0'</select>
     <select id="lockByRunId" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
-        <if test="dataSourceType == 'sqlserver'.toString()">with (updlock,rowlock)</if>
         where <include refid="tenant"/> and run_id=#{runId} and del_flag='0' order by id
-        <if test="dataSourceType != 'sqlserver'.toString()">for update</if></select>
+        for update</select>
     <select id="listByRunId" resultMap="ChildResult">select <include refid="columns"/> from flow_subprocess_child
         where <include refid="tenant"/> and run_id=#{runId} and del_flag='0' order by id</select>
 </mapper>

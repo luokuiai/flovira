@@ -26,7 +26,7 @@ ORM 适配层，实现 `flovira-core` 的 `FloviraDao` 抽象与各实体。按�
 
 ## SQL 同步
 
-表结构相关改动按根 `AGENTS.md`「SQL 与数据库」同步 `sql/` 下 mysql / oracle / postgresql / sqlserver 四套脚本与升级脚本。
+表结构相关改动按根 `AGENTS.md`「SQL 与数据库」同步 `sql/` 下 mysql / oracle / postgresql 三套脚本与升级脚本。
 
 ## 聚焦验证
 
