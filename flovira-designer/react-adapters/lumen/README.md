@@ -1,12 +1,14 @@
 # @luokuiai/flovira-react-adapter-lumen
 
-Lumen UI adapter for `@luokuiai/flovira-react-designer`.
+`@luokuiai/flovira-react-designer` 的 Lumen UI 适配器。
+
+Lumen UI 通过宿主依赖接入，版本范围为 `^1.0.0-beta.1`，包含 `1.0.0-beta.1`；本地开发与示例使用 `1.0.0-beta.1`。
 
 ```bash
 bun add @luokuiai/flovira-react-designer \
   @luokuiai/flovira-react-adapter-lumen \
-  @luokuiai/lumen-ui@1.0.0-alpha.7 \
-  @luokuiai/lumen-theme-clarity@1.0.0-alpha.7
+  @luokuiai/lumen-ui@1.0.0-beta.1 \
+  @luokuiai/lumen-theme-clarity@1.0.0-beta.1
 ```
 
 ```tsx

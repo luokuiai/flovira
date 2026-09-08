@@ -11,35 +11,6 @@
           <wf-input v-model="form.flowName" :placeholder="t('baseInfo.flowNamePlaceholder')" maxlength="100" @input="nameChange" />
         </wf-form-item>
 
-        <wf-form-item :label="t('baseInfo.model')" prop="modelValue">
-          <wf-radio-group v-model="form.modelValue" :disabled="!!definitionId || isMobile" @change="modelValueChange" class="radio-card-group">
-            <wf-radio label="CLASSICS" class="radio-card">
-              <div class="radio-card-content">
-                <div class="radio-card-icon">
-                  <svg-icon icon-class="classic" class="model-icon"/>
-                </div>
-                <div class="radio-card-info">
-                  <div class="radio-card-title">{{ t('baseInfo.modelClassic') }}</div>
-                  <div class="radio-card-desc">{{ t('baseInfo.modelClassicDesc') }}</div>
-                </div>
-              </div>
-            </wf-radio>
-            <wf-radio label="MIMIC" class="radio-card">
-              <div class="radio-card-content">
-                <div class="radio-card-icon">
-                  <svg-icon icon-class="mimic" class="model-icon"/>
-                </div>
-                <div class="radio-card-info">
-                  <div class="radio-card-title">{{ t('baseInfo.modelMimic') }}</div>
-                  <div class="radio-card-desc">{{ t('baseInfo.modelMimicDesc') }}</div>
-                </div>
-              </div>
-            </wf-radio>
-          </wf-radio-group>
-          <div class="radio-card-warning">{{ t('baseInfo.modelSwitchWarning') }}</div>
-          <div class="radio-card-warning radio-card-warning--mobile" v-if="isMobile">{{ t('baseInfo.modelMobileWarning') }}</div>
-        </wf-form-item>
-
         <wf-form-item :label="t('baseInfo.category')" prop="category">
           <wf-tree-select
               v-model="form.category"
@@ -138,7 +109,6 @@ const proxy = getCurrentInstance()!.proxy as any;
 const { t } = useI18n();
 const emit = defineEmits<{
   (e: 'update:flow-name', flowName: string): void;
-  (e: 'update:model-value'): void;
   (e: 'validate-error', fields?: Record<string, any>): void;
 }>();
 
@@ -152,10 +122,6 @@ function checkMobile() {
 onMounted(() => {
   checkMobile();
   window.addEventListener('resize', checkMobile);
-  // 移动端新增（无definitionId）时强制默认仿钉钉
-  if (isMobile.value && !props.definitionId) {
-    form.value.modelValue = 'MIMIC';
-  }
 });
 
 onUnmounted(() => {
@@ -185,7 +151,6 @@ const form = ref({
   id: null,
   flowCode: "",
   flowName: "",
-  modelValue: "",
   category: "",
   formCustom: "N",
   formPath: "",
@@ -203,10 +168,6 @@ watch(() => props.logicJson, newValue => {
       form.value.formCustom = "N";
     }
     setListenerData();
-    // 移动端新增时强制默认仿钉钉（覆盖logicJson中可能为空的值）
-    if (isMobile.value && !props.definitionId) {
-      form.value.modelValue = 'MIMIC';
-    }
   }
 });
 
@@ -215,9 +176,6 @@ const ListenerVo = ref([]); // 监听器列表
 
 
 const rules = computed(() => ({
-  modelValue: [
-    { required: true, message: t('baseInfo.ruleModelRequired'), trigger: "blur" }
-  ],
   flowCode: [
     { required: true, message: t('baseInfo.ruleFlowCodeRequired'), trigger: "blur" }
   ],
@@ -284,10 +242,6 @@ function validate() {
 function nameChange(flowName: string) {
   // 可以在这里添加额外的逻辑，比如验证或格式化
   emit('update:flow-name', flowName); // 如果需要通知父组件
-}
-
-function modelValueChange() {
-  emit('update:model-value'); // 如果需要通知父组件
 }
 
 function getFormData() {

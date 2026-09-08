@@ -24,16 +24,16 @@ const PORT = Number(process.env.MOCK_PORT) || 8080
 // 办理人示例数据（按 角色 / 部门 / 用户 三类 tab；对齐 HandlerAuth 结构）
 const HANDLER_ROWS = {
   角色: [
-    { storageId: 'role:1', handlerCode: 'admin', handlerName: '系统管理员', groupName: '角色', createTime: '2024-01-01 10:00:00' },
-    { storageId: 'role:2', handlerCode: 'leader', handlerName: '部门主管', groupName: '角色', createTime: '2024-01-02 10:00:00' }
+    { storageId: 'role:1', handlerCode: 'admin', handlerName: '系统管理员', groupName: '角色', createdAt: '2024-01-01 10:00:00' },
+    { storageId: 'role:2', handlerCode: 'leader', handlerName: '部门主管', groupName: '角色', createdAt: '2024-01-02 10:00:00' }
   ],
   部门: [
-    { storageId: 'dept:1', handlerCode: 'tech', handlerName: '研发部', groupName: '部门', createTime: '2024-01-01 10:00:00' },
-    { storageId: 'dept:2', handlerCode: 'hr', handlerName: '人事部', groupName: '部门', createTime: '2024-01-02 10:00:00' }
+    { storageId: 'dept:1', handlerCode: 'tech', handlerName: '研发部', groupName: '部门', createdAt: '2024-01-01 10:00:00' },
+    { storageId: 'dept:2', handlerCode: 'hr', handlerName: '人事部', groupName: '部门', createdAt: '2024-01-02 10:00:00' }
   ],
   用户: [
-    { storageId: 'user:1', handlerCode: 'zhangsan', handlerName: '张三', groupName: '用户', createTime: '2024-01-01 10:00:00' },
-    { storageId: 'user:2', handlerCode: 'lisi', handlerName: '李四', groupName: '用户', createTime: '2024-01-02 10:00:00' }
+    { storageId: 'user:1', handlerCode: 'zhangsan', handlerName: '张三', groupName: '用户', createdAt: '2024-01-01 10:00:00' },
+    { storageId: 'user:2', handlerCode: 'lisi', handlerName: '李四', groupName: '用户', createdAt: '2024-01-02 10:00:00' }
   ]
 }
 

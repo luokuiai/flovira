@@ -14,7 +14,6 @@ describe('wait and timeout definition conversion', () => {
     const logic = json2LogicFlowJson({
       flowCode: 'wait-flow',
       flowName: 'Wait flow',
-      modelValue: 'CLASSICS',
       version: '1',
       nodeList: [{
         nodeType: 7,
@@ -55,7 +54,6 @@ describe('approver rule definition conversion', () => {
     const logic = json2LogicFlowJson({
       flowCode: 'approval-flow',
       flowName: 'Approval flow',
-      modelValue: 'CLASSICS',
       version: '1',
       nodeList: [{
         nodeType: 1,
@@ -83,7 +81,6 @@ describe('approver rule definition conversion', () => {
     const logic = json2LogicFlowJson({
       flowCode: 'carbon-copy-flow',
       flowName: 'Carbon copy flow',
-      modelValue: 'CLASSICS',
       version: '1',
       nodeList: [{
         nodeType: 8,
@@ -102,4 +99,12 @@ describe('approver rule definition conversion', () => {
     expect(exported.nodeList[0].nodeType).toBe('8')
     expect(ext.find((item) => item.code === 'carbonCopyRule').value).toBe(carbonCopyRule)
   })
+})
+
+
+test('converts legacy definitions without a designer mode field', () => {
+  const graph = json2LogicFlowJson({ flowCode: 'single', flowName: '统一流程', modelValue: 'CLASSICS', nodeList: [] })
+  expect(graph).not.toHaveProperty('modelValue')
+  const saved = JSON.parse(logicFlowJsonToFlovira(graph))
+  expect(saved).not.toHaveProperty('modelValue')
 })

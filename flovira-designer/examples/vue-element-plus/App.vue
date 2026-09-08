@@ -44,15 +44,8 @@
 
           <el-table v-if="flows.length" :data="flows" class="demo-table" stripe>
             <el-table-column prop="flowName" label="流程名称" min-width="180" show-overflow-tooltip />
-            <el-table-column label="设计器模型" width="140">
-              <template #default="{ row }">
-                <el-tag :type="isClassics(row.modelValue) ? 'success' : ''" effect="light" round>
-                  {{ isClassics(row.modelValue) ? '经典模式' : '仿钉钉模式' }}
-                </el-tag>
-              </template>
-            </el-table-column>
             <el-table-column prop="id" label="流程ID" min-width="170" show-overflow-tooltip />
-            <el-table-column prop="updateTime" label="更新时间" width="190" />
+            <el-table-column prop="updatedAt" label="更新时间" width="190" />
             <el-table-column label="操作" width="300" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="primary" link @click="onEdit(row)">修改</el-button>
@@ -156,21 +149,20 @@ setDataProvider(myProvider)        // ② 注入数据源（自定义后端 / mo
 app.use(ElementPlus).use(FloviraDesigner)   // ③ 注册后模板里直接用 <FlowDesigner />`
 
 // ===== 组件库扩展能力验证夹具：端到端验证本轮新增的 ①②③ props / slot =====
-// ② initialJson：脱后端直接喂 flovira 定义对象（经典模式 开始→部门审批→结束），组件不再调用 queryDef
+// ② initialJson：脱后端直接喂 flovira 定义对象（开始→部门审批→结束），组件不再调用 queryDef
 const validateInitialJson = {
   flowName: '扩展能力验证流程（initialJson 脱后端驱动）',
-  modelValue: 'CLASSICS',
   flowCode: 'validate_ext_flow',
   version: '1',
-  isPublish: 0,
+  publishStatus: 0,
   nodeList: [
     {
       nodeType: 0, nodeCode: 'node_start', nodeName: '开始', nodeRatio: '0', coordinate: '180,260|180,260',
-      skipList: [{ id: 'skip_1', nowNodeCode: 'node_start', nextNodeCode: 'node_approve', skipName: '', skipType: 'PASS' }]
+      skipList: [{ id: 'skip_1', sourceNodeCode: 'node_start', targetNodeCode: 'node_approve', skipName: '', skipType: 'PASS' }]
     },
     {
       nodeType: 1, nodeCode: 'node_approve', nodeName: '部门审批', nodeRatio: '0', coordinate: '430,260|430,260',
-      skipList: [{ id: 'skip_2', nowNodeCode: 'node_approve', nextNodeCode: 'node_end', skipName: '', skipType: 'PASS' }]
+      skipList: [{ id: 'skip_2', sourceNodeCode: 'node_approve', targetNodeCode: 'node_end', skipName: '', skipType: 'PASS' }]
     },
     { nodeType: 2, nodeCode: 'node_end', nodeName: '结束', nodeRatio: '0', coordinate: '680,260|680,260' }
   ]
@@ -201,15 +193,6 @@ const validateOnRegister = (lf) => {
   }
   window.__WF_VALIDATE_ON_REGISTER__ = ok
   console.log('[validate] onRegister 调用，lf.register =', typeof lf?.register, 'registered =', ok)
-}
-// ④ paletteNodes：自定义经典模式左侧拖拽面板节点（重命名基础节点 + 传空数组隐藏网关组），验证覆盖生效
-const validatePaletteNodes = {
-  flowNodes: [
-    { type: 'start', label: '开始(自定义)' },
-    { type: 'between', label: '审批(自定义)', properties: { collaborativeWay: '1' } },
-    { type: 'end', label: '结束(自定义)' }
-  ],
-  gatewayNodes: []
 }
 
 // ⑨ useFlowDesigner（命令式 API，空安全）+ useFlowJson（流程 json 响应式只读视图）
@@ -304,13 +287,10 @@ const designModeText = computed(() => {
   if (designMode.value === 'create') return '新建流程'
   if (designMode.value === 'edit') return '修改流程'
   if (designMode.value === 'showcase') return '集成案例 · 右侧实时面板（useFlowJson 实时 JSON + 事件日志 + useFlowDesigner 命令式工具条）'
-  if (designMode.value === 'validate') return '扩展能力验证 · initialJson + node-form-extra 插槽 + customNodes/extraExtensions/lfOptions + onBeforeUse/onRegister 钩子 + paletteNodes + before-save/change/dirty/validate-error/node-click 事件 + useFlowJson + v-model:json'
+  if (designMode.value === 'validate') return '扩展能力验证 · initialJson + node-form-extra 插槽 + customNodes/extraExtensions/lfOptions + onBeforeUse/onRegister 钩子 + before-save/change/dirty/validate-error/node-click 事件 + useFlowJson + v-model:json'
   return '预览流程（只读）'
 })
 
-function isClassics(modelValue) {
-  return modelValue === 'CLASSICS'
-}
 
 function refresh() {
   flows.value = listFlows()
@@ -355,7 +335,6 @@ function onShowcase() {
     lfOptions: validateLfOptions,
     onBeforeUse: validateOnBeforeUse,
     onRegister: validateOnRegister,
-    paletteNodes: validatePaletteNodes,
     structureValidator: showcaseStructureValidator
   })
 }
@@ -380,7 +359,6 @@ function onValidateExt() {
     lfOptions: validateLfOptions,
     onBeforeUse: validateOnBeforeUse,
     onRegister: validateOnRegister,
-    paletteNodes: validatePaletteNodes
   })
 }
 

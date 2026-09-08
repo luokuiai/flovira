@@ -21,24 +21,24 @@ function ok(data?: any, msg?: string): Promise<any> {
 // 办理人示例数据（按 角色 / 部门 / 用户 三类 tab；对齐 HandlerAuth 结构）
 const HANDLER_ROWS: Record<string, any[]> = {
   角色: [
-    { storageId: 'role:1', handlerCode: 'admin', handlerName: '系统管理员', groupName: '角色', createTime: '2024-01-01 10:00:00' },
-    { storageId: 'role:2', handlerCode: 'leader', handlerName: '部门主管', groupName: '角色', createTime: '2024-01-02 10:00:00' },
-    { storageId: 'role:3', handlerCode: 'finance', handlerName: '财务专员', groupName: '角色', createTime: '2024-01-03 10:00:00' },
-    { storageId: 'role:4', handlerCode: 'hr', handlerName: '人事专员', groupName: '角色', createTime: '2024-01-04 10:00:00' }
+    { storageId: 'role:1', handlerCode: 'admin', handlerName: '系统管理员', groupName: '角色', createdAt: '2024-01-01 10:00:00' },
+    { storageId: 'role:2', handlerCode: 'leader', handlerName: '部门主管', groupName: '角色', createdAt: '2024-01-02 10:00:00' },
+    { storageId: 'role:3', handlerCode: 'finance', handlerName: '财务专员', groupName: '角色', createdAt: '2024-01-03 10:00:00' },
+    { storageId: 'role:4', handlerCode: 'hr', handlerName: '人事专员', groupName: '角色', createdAt: '2024-01-04 10:00:00' }
   ],
   部门: [
-    { storageId: 'dept:1', handlerCode: 'tech', handlerName: '研发部', groupName: '部门', createTime: '2024-01-01 10:00:00' },
-    { storageId: 'dept:2', handlerCode: 'hr', handlerName: '人事部', groupName: '部门', createTime: '2024-01-02 10:00:00' },
-    { storageId: 'dept:3', handlerCode: 'finance', handlerName: '财务部', groupName: '部门', createTime: '2024-01-03 10:00:00' },
-    { storageId: 'dept:4', handlerCode: 'market', handlerName: '市场部', groupName: '部门', createTime: '2024-01-04 10:00:00' }
+    { storageId: 'dept:1', handlerCode: 'tech', handlerName: '研发部', groupName: '部门', createdAt: '2024-01-01 10:00:00' },
+    { storageId: 'dept:2', handlerCode: 'hr', handlerName: '人事部', groupName: '部门', createdAt: '2024-01-02 10:00:00' },
+    { storageId: 'dept:3', handlerCode: 'finance', handlerName: '财务部', groupName: '部门', createdAt: '2024-01-03 10:00:00' },
+    { storageId: 'dept:4', handlerCode: 'market', handlerName: '市场部', groupName: '部门', createdAt: '2024-01-04 10:00:00' }
   ],
   用户: [
-    { storageId: 'user:1', handlerCode: 'zhangsan', handlerName: '张三', groupName: '用户', createTime: '2024-01-01 10:00:00' },
-    { storageId: 'user:2', handlerCode: 'lisi', handlerName: '李四', groupName: '用户', createTime: '2024-01-02 10:00:00' },
-    { storageId: 'user:3', handlerCode: 'wangwu', handlerName: '王五', groupName: '用户', createTime: '2024-01-03 10:00:00' },
-    { storageId: 'user:4', handlerCode: 'zhaoliu', handlerName: '赵六', groupName: '用户', createTime: '2024-01-04 10:00:00' },
-    { storageId: 'user:5', handlerCode: 'qianqi', handlerName: '钱七', groupName: '用户', createTime: '2024-01-05 10:00:00' },
-    { storageId: 'user:6', handlerCode: 'sunba', handlerName: '孙八', groupName: '用户', createTime: '2024-01-06 10:00:00' }
+    { storageId: 'user:1', handlerCode: 'zhangsan', handlerName: '张三', groupName: '用户', createdAt: '2024-01-01 10:00:00' },
+    { storageId: 'user:2', handlerCode: 'lisi', handlerName: '李四', groupName: '用户', createdAt: '2024-01-02 10:00:00' },
+    { storageId: 'user:3', handlerCode: 'wangwu', handlerName: '王五', groupName: '用户', createdAt: '2024-01-03 10:00:00' },
+    { storageId: 'user:4', handlerCode: 'zhaoliu', handlerName: '赵六', groupName: '用户', createdAt: '2024-01-04 10:00:00' },
+    { storageId: 'user:5', handlerCode: 'qianqi', handlerName: '钱七', groupName: '用户', createdAt: '2024-01-05 10:00:00' },
+    { storageId: 'user:6', handlerCode: 'sunba', handlerName: '孙八', groupName: '用户', createdAt: '2024-01-06 10:00:00' }
   ]
 }
 
@@ -164,7 +164,7 @@ export function createMockProvider(): DataProvider {
           code: item.handlerCode,
           name: item.handlerName,
           resourceType: query.resourceType,
-          metadata: { groupName: item.groupName, createTime: item.createTime }
+          metadata: { groupName: item.groupName, createdAt: item.createdAt }
         }))
       } else if (query.resourceType === 'ORGANIZATION') {
         rows = flattenTreeResources(HANDLER_TREE, 'ORGANIZATION')

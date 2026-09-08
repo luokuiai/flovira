@@ -151,18 +151,17 @@ app.use(naive).use(FloviraDesigner)   // ③ 注册后模板里直接用 <FlowDe
 // ===== 组件库扩展能力验证夹具 =====
 const validateInitialJson = {
   flowName: '扩展能力验证流程（initialJson 脱后端驱动）',
-  modelValue: 'CLASSICS',
   flowCode: 'validate_ext_flow',
   version: '1',
-  isPublish: 0,
+  publishStatus: 0,
   nodeList: [
     {
       nodeType: 0, nodeCode: 'node_start', nodeName: '开始', nodeRatio: '0', coordinate: '180,260|180,260',
-      skipList: [{ id: 'skip_1', nowNodeCode: 'node_start', nextNodeCode: 'node_approve', skipName: '', skipType: 'PASS' }]
+      skipList: [{ id: 'skip_1', sourceNodeCode: 'node_start', targetNodeCode: 'node_approve', skipName: '', skipType: 'PASS' }]
     },
     {
       nodeType: 1, nodeCode: 'node_approve', nodeName: '部门审批', nodeRatio: '0', coordinate: '430,260|430,260',
-      skipList: [{ id: 'skip_2', nowNodeCode: 'node_approve', nextNodeCode: 'node_end', skipName: '', skipType: 'PASS' }]
+      skipList: [{ id: 'skip_2', sourceNodeCode: 'node_approve', targetNodeCode: 'node_end', skipName: '', skipType: 'PASS' }]
     },
     { nodeType: 2, nodeCode: 'node_end', nodeName: '结束', nodeRatio: '0', coordinate: '680,260|680,260' }
   ]
@@ -187,14 +186,6 @@ const validateOnRegister = (lf) => {
   }
   window.__WF_VALIDATE_ON_REGISTER__ = ok
   console.log('[validate] onRegister 调用，lf.register =', typeof lf?.register, 'registered =', ok)
-}
-const validatePaletteNodes = {
-  flowNodes: [
-    { type: 'start', label: '开始(自定义)' },
-    { type: 'between', label: '审批(自定义)', properties: { collaborativeWay: '1' } },
-    { type: 'end', label: '结束(自定义)' }
-  ],
-  gatewayNodes: []
 }
 
 // useFlowDesigner（命令式 API，空安全）+ useFlowJson（流程 json 响应式只读视图），共享同一模板 ref
@@ -278,25 +269,16 @@ const designModeText = computed(() => {
   if (designMode.value === 'create') return '新建流程'
   if (designMode.value === 'edit') return '修改流程'
   if (designMode.value === 'showcase') return '集成案例 · 右侧实时面板（useFlowJson 实时 JSON + 事件日志 + useFlowDesigner 命令式工具条）'
-  if (designMode.value === 'validate') return '扩展能力验证 · initialJson + node-form-extra 插槽 + customNodes/extraExtensions/lfOptions + onBeforeUse/onRegister 钩子 + paletteNodes + before-save/change/dirty/validate-error/node-click 事件 + useFlowJson + v-model:json'
+  if (designMode.value === 'validate') return '扩展能力验证 · initialJson + node-form-extra 插槽 + customNodes/extraExtensions/lfOptions + onBeforeUse/onRegister 钩子 + before-save/change/dirty/validate-error/node-click 事件 + useFlowJson + v-model:json'
   return '预览流程（只读）'
 })
 
-function isClassics(modelValue) {
-  return modelValue === 'CLASSICS'
-}
 
 // n-data-table 列定义（render 函数式单元格）
 const columns = [
   { title: '流程名称', key: 'flowName', ellipsis: { tooltip: true } },
-  {
-    title: '设计器模型',
-    key: 'model',
-    width: 120,
-    render: (row) => h(NTag, { type: isClassics(row.modelValue) ? 'success' : 'info', size: 'small', round: true }, () => isClassics(row.modelValue) ? '经典模式' : '仿钉钉模式')
-  },
   { title: '流程ID', key: 'id', ellipsis: { tooltip: true } },
-  { title: '更新时间', key: 'updateTime', width: 180 },
+  { title: '更新时间', key: 'updatedAt', width: 180 },
   {
     title: '操作',
     key: 'action',
@@ -347,7 +329,6 @@ function onShowcase() {
     lfOptions: validateLfOptions,
     onBeforeUse: validateOnBeforeUse,
     onRegister: validateOnRegister,
-    paletteNodes: validatePaletteNodes,
     structureValidator: showcaseStructureValidator
   })
 }
@@ -371,7 +352,6 @@ function onValidateExt() {
     lfOptions: validateLfOptions,
     onBeforeUse: validateOnBeforeUse,
     onRegister: validateOnRegister,
-    paletteNodes: validatePaletteNodes
   })
 }
 

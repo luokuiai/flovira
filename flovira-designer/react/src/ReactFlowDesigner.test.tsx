@@ -4,12 +4,50 @@ import { createRef, useState } from 'react'
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 import { ReactFlowDesigner } from './ReactFlowDesigner'
-import { createInitialDefinition, getApproverRule, insertNodeAfter } from './model'
+import { createInitialDefinition, getApproverRule, insertNodeAfter, setApproverRule } from './model'
 import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } from './types'
 
 afterEach(cleanup)
 
 describe('ReactFlowDesigner', () => {
+  test('shows multi approval only for multiple distinct specified people', () => {
+    for (const ids of [[], ['a'], ['a', 'b']]) {
+      const definition = createInitialDefinition()
+      definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1'
+        ? setApproverRule(node, 'USER', ids.map((id) => ({ id, type: 'USER' }))) : node)
+      const view = render(<ReactFlowDesigner defaultValue={definition} />)
+      fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
+      expect(Boolean(view.queryByRole('radiogroup', { name: '多人审批策略' }))).toBe(new Set(ids).size > 1)
+      view.unmount()
+    }
+  })
+
+  test('configures vote ratios and synchronizes runtime approval modes', () => {
+    const ref = createRef<ReactFlowDesignerRef>()
+    const definition = createInitialDefinition()
+    definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} onSave={async () => {}} />)
+    fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
+    fireEvent.click(view.getByRole('radio', { name: '票签' }))
+    const ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
+    const currentNode = () => ref.current!.getDefinition().nodeList.find((node) => node.nodeType === '1')!
+    expect(ratio.value).toBe('60')
+    fireEvent.change(ratio, { target: { value: '75' } })
+    expect(JSON.parse(ref.current!.getFlowJson()).nodeList.find((node: { nodeType: string }) => node.nodeType === '1').nodeRatio).toBe('75')
+    fireEvent.change(ratio, { target: { value: '' } })
+    expect(ref.current!.validate().issues.some((issue) => issue.code === 'VOTE_RATIO_INVALID')).toBe(true)
+    expect((view.getByRole('button', { name: '保存' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(ratio, { target: { value: '100' } })
+    expect(view.getByRole('alert').textContent).toContain('小于 100')
+    fireEvent.change(ratio, { target: { value: '60' } })
+    expect(ref.current!.validate().issues.some((issue) => issue.code === 'VOTE_RATIO_INVALID')).toBe(false)
+    fireEvent.click(view.getByRole('radio', { name: '会签' }))
+    expect(currentNode().nodeRatio).toBe('100')
+    expect(view.queryByLabelText('通过比例（%）')).toBeNull()
+    fireEvent.click(view.getByRole('radio', { name: '或签' }))
+    expect(currentNode().nodeRatio).toBe('0')
+  })
+
   test('keeps subprocess providers isolated per designer instance', async () => {
     const initial = createInitialDefinition()
     const approval = initial.nodeList.find((node) => node.nodeType === '1')!
@@ -122,6 +160,7 @@ describe('ReactFlowDesigner', () => {
 
   test('opens node settings in a closable drawer', () => {
     const definition = createInitialDefinition()
+    definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
     const approval = definition.nodeList.find((node) => node.nodeType === '1')!
     const view = render(<ReactFlowDesigner defaultValue={definition} />)
 
@@ -133,7 +172,7 @@ describe('ReactFlowDesigner', () => {
     fireEvent.click(countersign)
     expect(countersign.checked).toBe(true)
     expect(view.getByRole('radio', { name: '退回上一节点' })).toBeTruthy()
-    expect(view.getByRole('radio', { name: '退回任意节点' })).toBeTruthy()
+    expect(view.getByRole('radio', { name: '退回时指定节点' })).toBeTruthy()
 
     const closeButtons = view.getAllByRole('button', { name: '关闭节点设置' })
     fireEvent.click(closeButtons[closeButtons.length - 1])
@@ -252,6 +291,7 @@ describe('ReactFlowDesigner', () => {
 
   test('shows strategy options only on their configured node types', () => {
     const initial = createInitialDefinition()
+    initial.nodeList = initial.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
     const approval = initial.nodeList.find((node) => node.nodeType === '1')!
     const definition = insertNodeAfter(initial, approval.nodeCode, '8')
     const carbonCopy = definition.nodeList.find((node) => node.nodeType === '8')!
@@ -260,7 +300,8 @@ describe('ReactFlowDesigner', () => {
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
     expect(view.getByRole('radiogroup', { name: '多人审批策略' })).toBeTruthy()
     expect(view.getByRole('radiogroup', { name: '审批人与提交人为同一人时' })).toBeTruthy()
-    fireEvent.click(view.getAllByRole('button', { name: '关闭节点设置' }).at(-1)!)
+    const closeButtons = view.getAllByRole('button', { name: '关闭节点设置' })
+    fireEvent.click(closeButtons[closeButtons.length - 1])
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${carbonCopy.nodeName}` }))
     expect(view.queryByRole('radiogroup', { name: '多人审批策略' })).toBeNull()
     expect(view.queryByRole('radiogroup', { name: '审批人与提交人为同一人时' })).toBeNull()
@@ -358,6 +399,34 @@ describe('ReactFlowDesigner', () => {
     expect(view.getAllByRole('button', { name: '编辑节点：审批节点' })).toHaveLength(1)
   })
 
+  test.each(['1', '3', '4', '5'] as const)('inserts type %s inside a branch without duplicating its continuation', (type) => {
+    const initial = createInitialDefinition()
+    const start = initial.nodeList.find((node) => node.nodeType === '0')!
+    const definition = insertNodeAfter(initial, start.nodeCode, '3')
+    const branch = definition.nodeList.find((node) => node.nodeName === '分支一')!
+    const sibling = definition.nodeList.find((node) => node.nodeName === '分支二')!
+    const continuation = initial.nodeList.find((node) => node.nodeType === '1')!
+    continuation.nodeName = '共同审批'
+    definition.nodeList.find((node) => node.nodeCode === continuation.nodeCode)!.nodeName = continuation.nodeName
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
+    expect(view.container.querySelector('.frd-node__type')).toBeNull()
+    fireEvent.click(view.getByRole('button', { name: '在 分支一 后添加节点' }))
+    const labels = { '1': '审批节点', '3': '条件分支', '4': '并行分支', '5': '多选分支' }
+    fireEvent.click(view.getByRole('menuitem', { name: `添加${labels[type]}` }))
+    const updated = ref.current!.getDefinition()
+    const insertedCode = updated.nodeList.find((node) => node.nodeCode === branch.nodeCode)!.skipList[0].targetNodeCode
+    expect(updated.nodeList.find((node) => node.nodeCode === insertedCode)!.nodeType).toBe(type)
+    expect(updated.nodeList.find((node) => node.nodeCode === sibling.nodeCode)!.skipList).toEqual(sibling.skipList)
+    expect(view.getAllByRole('button', { name: '编辑节点：共同审批' })).toHaveLength(1)
+    expect(view.getAllByRole('button', { name: '编辑节点：结束' })).toHaveLength(1)
+    expect(view.container.querySelectorAll('.frd-branch .frd-insert-point').length).toBeGreaterThanOrEqual(2)
+    act(() => ref.current!.undo())
+    expect(ref.current!.getDefinition().nodeList).toHaveLength(definition.nodeList.length)
+    act(() => ref.current!.redo())
+    expect(ref.current!.getDefinition().nodeList).toHaveLength(updated.nodeList.length)
+  })
+
   test('shows named and colored node options in the insert dropdown', () => {
     const view = render(<ReactFlowDesigner defaultValue={createInitialDefinition()} />)
 
@@ -365,7 +434,7 @@ describe('ReactFlowDesigner', () => {
     const approvalItem = view.getByRole('menuitem', { name: '添加审批节点' })
     expect(approvalItem.querySelector('.frd-dropdown-menu__icon')?.getAttribute('style'))
       .toContain('color')
-    expect(view.getByRole('menuitem', { name: '添加互斥网关' })).toBeTruthy()
+    expect(view.getByRole('menuitem', { name: '添加条件分支' })).toBeTruthy()
     expect(view.getByRole('menuitem', { name: '添加等待节点' })).toBeTruthy()
 
     fireEvent.click(approvalItem)

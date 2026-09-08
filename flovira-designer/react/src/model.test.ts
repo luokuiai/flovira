@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import {
   approverStrategyOptions,
+  addGatewayBranch,
   createInitialDefinition,
   createId,
   createNode,
@@ -25,6 +26,29 @@ import {
 } from './model'
 
 describe('Flovira definition model', () => {
+  test('restores legacy vote rules without replacing their runtime values', () => {
+    for (const nodeRatio of ['75', 'passCount=3', 'spel@@#{#passNum > 2}']) {
+      const node = { ...createNode('1'), nodeRatio }
+      const rule = getApproverRule(node)
+      expect(rule.config?.approvalMode).toBe('VOTE')
+      const saved = setApproverRule(node, 'USER', [], '', undefined, 'RESOURCE', rule.config)
+      expect(saved.nodeRatio).toBe(nodeRatio)
+    }
+    expect(getApproverRule({ ...createNode('1'), nodeRatio: '100' }).config?.approvalMode).toBe('COUNTERSIGN')
+  })
+
+  test('adds a sibling branch at the common continuation of nested branches', () => {
+    const initial = createInitialDefinition()
+    const start = initial.nodeList.find((node) => node.nodeType === '0')!
+    const outer = insertNodeAfter(initial, start.nodeCode, '3')
+    const split = outer.nodeList.find((node) => node.nodeType === '3')!
+    const branch = outer.nodeList.find((node) => node.nodeName === '分支一')!
+    const nested = insertNodeAfter(outer, branch.nodeCode, '4')
+    const updated = addGatewayBranch(nested, split.nodeCode)
+    const added = updated.nodeList.find((node) => !nested.nodeList.some((old) => old.nodeCode === node.nodeCode))!
+    expect(added.skipList[0].targetNodeCode).toBe(initial.nodeList.find((node) => node.nodeType === '1')!.nodeCode)
+  })
+
   test('creates UUID identifiers for persisted workflow elements', () => {
     const first = createId('node')
     const second = createId('skip')
@@ -73,7 +97,7 @@ describe('Flovira definition model', () => {
     const subprocess = inserted.nodeList.find((node) => node.nodeType === '6')!
 
     expect(start.nodeCode).not.toBe(subprocess.nodeCode)
-    expect(inserted.nodeList.find((node) => node.nodeCode === start.nodeCode)?.skipList[0].nextNodeCode)
+    expect(inserted.nodeList.find((node) => node.nodeCode === start.nodeCode)?.skipList[0].targetNodeCode)
       .toBe(subprocess.nodeCode)
 
     const removed = deleteNode(inserted, subprocess.nodeCode)
@@ -215,4 +239,15 @@ describe('Flovira definition model', () => {
     expect(source.nodeList.find((node) => node.nodeCode === approval.nodeCode)?.nodeName)
       .toBe('审批节点')
   })
+})
+
+
+test('drops the legacy designer mode without changing business extension keys', () => {
+  const legacy = { ...createInitialDefinition(), modelValue: 'CLASSICS', ext: '{"modelValue":"business"}' }
+  const normalized = normalizeDefinition(legacy)
+  expect(normalized).not.toHaveProperty('modelValue')
+  const saved = JSON.parse(serializeDefinition(legacy))
+  expect(saved).not.toHaveProperty('modelValue')
+  expect(saved.ext).toBe(legacy.ext)
+  expect(legacy.modelValue).toBe('CLASSICS')
 })

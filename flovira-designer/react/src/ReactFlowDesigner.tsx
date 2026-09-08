@@ -1,3 +1,4 @@
+import { NodeControlEditor } from './NodeControlEditor'
 import {
   forwardRef,
   useCallback,
@@ -7,18 +8,12 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type PointerEvent,
   type ReactNode,
 } from 'react'
 import {
-  Box,
-  Check,
-  CircleDot,
   Download,
-  GitBranch,
-  GitFork,
-  Hourglass,
   LocateFixed,
-  Mail,
   Network,
   Plus,
   Redo2,
@@ -27,13 +22,11 @@ import {
   Timer,
   Undo2,
   Upload,
-  UserRoundCheck,
   X,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
 import {
-  addGatewayBranch,
   approverStrategyOptions,
   createInitialDefinition,
   DEFAULT_DESIGNER_CAPABILITIES,
@@ -45,7 +38,7 @@ import {
   getSubprocessConfig,
   getTimeoutConfig,
   getWaitConfig,
-  insertNodeAfter,
+  findBranchMerge,
   nodeName,
   normalizeDefinition,
   serializeDefinition,
@@ -58,11 +51,16 @@ import {
   validateDefinition,
 } from './model'
 import { defaultDesignerUi } from './ui'
+import { NODE_META } from './nodeMeta'
+import { NodeHeader } from './NodeHeader'
+import { BranchConditionEditor } from './BranchConditionEditor'
+import { addCanvasBranch, branchSummary, insertCanvasNode, removeCanvasBranch, removeCanvasSplit, getBranchRule, setBranchRule } from './branchConditions'
 import type {
   ApproverEditorType,
   ApproverRule,
   ApproverSubject,
   DesignerCapabilities,
+  DesignerConditionField,
   DesignerUiAdapter,
   FloviraDefinition,
   FloviraNode,
@@ -74,22 +72,6 @@ import type {
   SubprocessDefinition,
 } from './types'
 
-const NODE_META: Record<FloviraNodeType, {
-  label: string
-  icon: typeof CircleDot
-  tone: string
-  color: string
-}> = {
-  '0': { label: '开始', icon: CircleDot, tone: 'start', color: '#60a5fa' },
-  '1': { label: '审批', icon: UserRoundCheck, tone: 'approval', color: '#ff943e' },
-  '2': { label: '结束', icon: Check, tone: 'end', color: '#60a5fa' },
-  '3': { label: '互斥网关', icon: GitBranch, tone: 'exclusive', color: '#6366f1' },
-  '4': { label: '并行网关', icon: GitFork, tone: 'parallel', color: '#2563eb' },
-  '5': { label: '包含网关', icon: Network, tone: 'inclusive', color: '#6366f1' },
-  '6': { label: '子流程', icon: Box, tone: 'subprocess', color: '#2563eb' },
-  '7': { label: '等待', icon: Hourglass, tone: 'wait', color: '#34d399' },
-  '8': { label: '抄送', icon: Mail, tone: 'copy', color: '#34d399' },
-}
 
 const approverEditorType = (strategy?: DesignerCapabilities['approverStrategies'][number]): ApproverEditorType => {
   if (strategy?.editorType) return strategy.editorType
@@ -102,9 +84,14 @@ const approverOptionVisible = (
   option: NonNullable<DesignerCapabilities['approverStrategies'][number]['options']>[number],
   strategy: DesignerCapabilities['approverStrategies'][number],
   nodeType: FloviraNodeType,
+  subjects: ApproverSubject[] = [],
 ): boolean => {
   if (option.nodeTypes?.length && !option.nodeTypes.includes(nodeType)) return false
   const condition = option.condition || 'ALWAYS'
+  if ((condition === 'MULTIPLE' || option.code === 'approvalMode')
+    && strategy.selectionType === 'RESOURCE' && strategy.resourceType === 'USER' && !strategy.relationType) {
+    return strategy.multiple && new Set(subjects.map((subject) => subject.id)).size > 1
+  }
   if (condition === 'ALWAYS') return true
   const cardinality = strategy.resultCardinality
     || (strategy.selectionType === 'RESOURCE' && strategy.resourceType === 'USER' && !strategy.relationType
@@ -116,11 +103,7 @@ const approverOptionVisible = (
 
 const INSERT_TYPES: FloviraNodeType[] = ['1', '8', '7', '6', '3', '4', '5']
 
-const RETURN_POLICY_LABELS: Record<string, string> = {
-  PREVIOUS: '退回上一节点',
-  ANY: '退回任意节点',
-  REJECT: '直接驳回',
-}
+
 
 const extractSubprocesses = (
   value: DesignerResourcePage | { data?: DesignerResourcePage },
@@ -192,6 +175,9 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     className = '',
     capabilities: configuredCapabilities,
     queryResources,
+    conditionFields = [],
+    queryConditionFields,
+    compileBranchConditions,
     maxHistory = 50,
     onChange,
     onSave,
@@ -220,7 +206,39 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const [past, setPast] = useState<FloviraDefinition[]>([])
     const [future, setFuture] = useState<FloviraDefinition[]>([])
     const [selectedCode, setSelectedCode] = useState('')
+    const [loadedConditionFields, setLoadedConditionFields] = useState<readonly DesignerConditionField[]>([])
+    const [conditionFieldState, setConditionFieldState] = useState<'loading' | 'ready' | 'error'>('loading')
+    const [conditionFieldRetry, setConditionFieldRetry] = useState(0)
+    const [selectedBranch, setSelectedBranch] = useState<{ nodeCode: string; index: number } | null>(null)
     const [zoom, setZoom] = useState(1)
+    const [canvasDragging, setCanvasDragging] = useState(false)
+    const canvasDragRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null)
+
+    const handleCanvasPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0 || canvasDragRef.current
+        || (event.target as Element).closest('button, a, input, select, textarea, [role="button"], [role="menu"], [contenteditable]')) return
+      canvasDragRef.current = {
+        pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+        left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop,
+      }
+      event.currentTarget.setPointerCapture(event.pointerId)
+      setCanvasDragging(true)
+      event.preventDefault()
+    }
+
+    const handleCanvasPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+      const drag = canvasDragRef.current
+      if (!drag || drag.pointerId !== event.pointerId) return
+      event.currentTarget.scrollLeft = drag.left - (event.clientX - drag.x)
+      event.currentTarget.scrollTop = drag.top - (event.clientY - drag.y)
+    }
+
+    const endCanvasDrag = (event: PointerEvent<HTMLDivElement>) => {
+      if (canvasDragRef.current?.pointerId !== event.pointerId) return
+      canvasDragRef.current = null
+      setCanvasDragging(false)
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    }
     const [dirty, setDirty] = useState(false)
     const [subprocesses, setSubprocesses] = useState<SubprocessDefinition[]>([])
     const [subprocessState, setSubprocessState] = useState<'idle' | 'loading' | 'error'>('idle')
@@ -302,7 +320,25 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const locateStart = useCallback(() => {
       const canvas = canvasRef.current
       if (!canvas) return
-      canvas.scrollTo({ top: 0, left: Math.max(0, (canvas.scrollWidth - canvas.clientWidth) / 2), behavior: 'smooth' })
+      canvas.scrollTo({ top: 200, left: Math.max(0, (canvas.scrollWidth - canvas.clientWidth) / 2), behavior: 'smooth' })
+    }, [])
+
+    useEffect(() => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      let positioned = false
+      const positionCanvas = () => {
+        if (positioned || !canvas.clientWidth) return
+        canvas.scrollLeft = Math.max(0, (canvas.scrollWidth - canvas.clientWidth) / 2)
+        canvas.scrollTop = 200
+        positioned = true
+      }
+      positionCanvas()
+      // 设计器可能先挂载在隐藏的 tab 内，等容器可见后再定位。
+      if (typeof ResizeObserver === 'undefined') return
+      const observer = new ResizeObserver(positionCanvas)
+      observer.observe(canvas)
+      return () => observer.disconnect()
     }, [])
 
     useImperativeHandle(ref, () => ({
@@ -319,11 +355,32 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       undo,
       redo,
       zoomIn: () => setZoom((current) => Math.min(1.5, current + 0.1)),
-      zoomOut: () => setZoom((current) => Math.max(0.6, current - 0.1)),
+      zoomOut: () => setZoom((current) => Math.max(0.5, Number((current - 0.1).toFixed(1)))),
       resetZoom: () => setZoom(1),
       locateStart,
     }), [commit, definition, dirty, locateStart, redo, undo])
 
+    const branchNode = selectedBranch ? definition.nodeList.find((node) => node.nodeCode === selectedBranch.nodeCode) : undefined
+    const activeBranch = branchNode && selectedBranch && branchNode.skipList[selectedBranch.index] ? selectedBranch : null
+    useEffect(() => {
+      if (!activeBranch || !branchNode || !queryConditionFields || branchNode.nodeType === '4') return
+      let active = true
+      setConditionFieldState('loading')
+      setLoadedConditionFields([])
+      Promise.resolve().then(() => queryConditionFields({ definition, node: branchNode, branch: branchNode.skipList[activeBranch.index] }))
+        .then((fields) => {
+          if (!active) return
+          if (!Array.isArray(fields)) throw new Error('表单字段返回格式无效')
+          setLoadedConditionFields(fields)
+          setConditionFieldState('ready')
+        }).catch(() => { if (active) setConditionFieldState('error') })
+      return () => { active = false }
+    }, [selectedBranch, definition, queryConditionFields, conditionFieldRetry])
+    const openBranch = (node: FloviraNode, index: number) => {
+      if (queryConditionFields) setConditionFieldState('loading')
+      setSelectedCode('')
+      setSelectedBranch({ nodeCode: node.nodeCode, index })
+    }
     const selectedNode = definition.nodeList.find((node) => node.nodeCode === selectedCode)
     const selectedApproverRule = selectedNode?.nodeType === '8'
       ? getCarbonCopyRule(selectedNode)
@@ -370,7 +427,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const incomingCount = useMemo(() => {
       const counts = new Map<string, number>()
       definition.nodeList.forEach((node) => node.skipList.forEach((skip) =>
-        counts.set(skip.nextNodeCode, (counts.get(skip.nextNodeCode) || 0) + 1)))
+        counts.set(skip.targetNodeCode, (counts.get(skip.targetNodeCode) || 0) + 1)))
       return counts
     }, [definition])
 
@@ -427,11 +484,9 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
 
     const NodeCard = ({ node }: { node: FloviraNode }) => {
       const meta = NODE_META[node.nodeType] || NODE_META['1']
-      const Icon = meta.icon
       const summary = summaryFor(node, subprocesses)
       const selected = selectedCode === node.nodeCode
       const deletable = !disabled && !['0', '2'].includes(node.nodeType)
-      const showType = ['3', '4', '5'].includes(node.nodeType)
       if (renderNode) {
         return <>{renderNode({ node, selected, summary })}</>
       }
@@ -440,21 +495,19 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           role="button"
           tabIndex={0}
           className={`frd-node frd-node--${meta.tone}`}
-          onClick={() => setSelectedCode(node.nodeCode)}
+          onClick={() => { setSelectedBranch(null); setSelectedCode(node.nodeCode) }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
+              setSelectedBranch(null)
               setSelectedCode(node.nodeCode)
             }
           }}
           aria-label={`编辑节点：${node.nodeName}`}
         >
-          <span className="frd-node__header">
-            <span className="frd-node__icon"><Icon size={13} aria-hidden="true" /></span>
-            <span className="frd-node__name">{node.nodeName}</span>
-            {(showType || deletable) && (
+          <NodeHeader node={node}>
+            {deletable && (
               <span className="frd-node__actions">
-                {showType && <span className="frd-node__type">{meta.label}</span>}
                 {deletable && (
                   <button
                     type="button"
@@ -462,7 +515,8 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     aria-label={`删除节点：${node.nodeName}`}
                     onClick={(event) => {
                       event.stopPropagation()
-                      commit(deleteNode(definition, node.nodeCode))
+                      commit(['3', '4', '5'].includes(node.nodeType) && findBranchMerge(definition, node.skipList.map((skip) => skip.targetNodeCode))
+                        ? removeCanvasSplit(definition, node.nodeCode) : deleteNode(definition, node.nodeCode))
                       if (selected) setSelectedCode('')
                     }}
                   >
@@ -471,7 +525,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 )}
               </span>
             )}
-          </span>
+          </NodeHeader>
           <span className="frd-node__summary">
             {summary}
           </span>
@@ -479,7 +533,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       )
     }
 
-    const InsertPoint = ({ after }: { after: FloviraNode }) => {
+    const InsertPoint = ({ after, branchIndex }: { after: FloviraNode; branchIndex?: number }) => {
       if (disabled || after.nodeType === '2') return <div className="frd-connector frd-connector--short" />
       const items = filterNodeTypes(INSERT_TYPES, capabilities).map((type) => {
         const meta = NODE_META[type]
@@ -501,16 +555,19 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               <button
                 type="button"
                 className="frd-insert-point__trigger"
-                aria-label={`在 ${after.nodeName} 后添加节点`}
+                aria-label={branchIndex === undefined ? `在 ${after.nodeName} 后添加节点` : `在分支 ${after.skipList[branchIndex].skipName || branchIndex + 1} 下添加节点`}
               >
                 <Plus size={12} />
               </button>
             )}
             onSelect={(value) => {
-              const next = insertNodeAfter(definition, after.nodeCode, value as FloviraNodeType)
+              const next = insertCanvasNode(definition, after.nodeCode, value as FloviraNodeType, branchIndex)
               const added = next.nodeList.find((item) => !definition.nodeList.some((old) => old.nodeCode === item.nodeCode))
               commit(next)
-              if (added) setSelectedCode(added.nodeCode)
+              if (added) {
+                if (['3', '4', '5'].includes(added.nodeType)) openBranch(added, 0)
+                else { setSelectedBranch(null); setSelectedCode(added.nodeCode) }
+              }
             }}
           />
         </div>
@@ -533,45 +590,71 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       }
       const nextVisited = new Set(visited)
       nextVisited.add(code)
-      const outgoing = node.skipList.filter((skip) => nodeMap.has(skip.nextNodeCode))
-      const branchChildren = outgoing.map((skip) => nodeMap.get(skip.nextNodeCode))
+      const outgoing = node.skipList.filter((skip) => skip.skipType !== 'REJECT' && nodeMap.has(skip.targetNodeCode))
       const branchMergeCode = outgoing.length > 1
-        && branchChildren.every((child) => child?.skipList.length === 1)
-        && branchChildren.every((child) => child?.skipList[0].nextNodeCode === branchChildren[0]?.skipList[0].nextNodeCode)
-        ? branchChildren[0]?.skipList[0].nextNodeCode
+        ? findBranchMerge(definition, outgoing.map((skip) => skip.targetNodeCode))
         : undefined
       return (
         <div className="frd-path" key={`${code}-${visited.size}`}>
-          <NodeCard node={node} />
+          {!(outgoing.length > 1 && ['3', '4', '5'].includes(node.nodeType)) && <NodeCard node={node} />}
           {outgoing.length === 0 ? null : outgoing.length === 1 ? (
-            outgoing[0].nextNodeCode === stopBeforeCode ? null : (
-              <>
-                <InsertPoint after={node} />
-                {renderPath(outgoing[0].nextNodeCode, nextVisited, stopBeforeCode)}
-              </>
-            )
+            <>
+              <InsertPoint after={node} />
+              {renderPath(outgoing[0].targetNodeCode, nextVisited, stopBeforeCode)}
+            </>
           ) : (
             <>
               <div className="frd-connector frd-connector--fork" />
               <div className={`frd-branches${branchMergeCode ? ' frd-branches--merge' : ''}`}>
+              <div className="frd-branch-add">
+                {!disabled && <UiButton variant="text" size="compact" disabled={!branchMergeCode} onPress={() => {
+                  const next = addCanvasBranch(definition, node.nodeCode)
+                  commit(next)
+                  const updated = next.nodeList.find((item) => item.nodeCode === node.nodeCode)!
+                  openBranch(updated, updated.skipList.findIndex((skip) => !node.skipList.some((old) => old.id === skip.id)))
+                }}><Plus size={13} />添加{node.nodeType === '4' ? '并行' : '条件'}分支</UiButton>}
+              </div>
                 <div className="flovira-react-branch-grid">
                   {outgoing.map((skip) => (
-                    <div className="frd-branch" key={String(skip.id || skip.nextNodeCode)}>
+                    <div className="frd-branch" key={String(skip.id || node.skipList.indexOf(skip))}>
                       <span className="frd-branch__connector" aria-hidden="true" />
+                      <div className="frd-condition-card-wrapper">
+                      <button type="button" className={`frd-condition-card frd-node--${NODE_META[node.nodeType]?.tone || 'exclusive'}`} data-default={getBranchRule(node, node.skipList.indexOf(skip)).mode === 'default'}
+                        aria-label={`配置分支：${skip.skipName || `分支 ${node.skipList.indexOf(skip) + 1}`}`}
+                        onClick={() => openBranch(node, node.skipList.indexOf(skip))}>
+                        <span className="frd-condition-card__header">
+                          <span className="frd-condition-card__name-wrapper">
+                            <UiTooltip content={skip.skipName || `分支 ${node.skipList.indexOf(skip) + 1}`}>
+                              <span className="frd-condition-card__name">{skip.skipName || `分支 ${node.skipList.indexOf(skip) + 1}`}</span>
+                            </UiTooltip>
+                          </span>
+                          {node.nodeType !== '4' && <span className="frd-condition-card__priority">{getBranchRule(node, node.skipList.indexOf(skip)).mode === 'default' ? '默认' : `优先级 ${node.skipList.indexOf(skip) + 1}`}</span>}
+                        </span>
+                        <span className="frd-condition-card__body">
+                          <UiTooltip content={branchSummary(node, node.skipList.indexOf(skip))}>
+                            <span className="frd-condition-card__summary">{branchSummary(node, node.skipList.indexOf(skip))}</span>
+                          </UiTooltip>
+                        </span>
+                      </button>
+                      {!disabled && <button type="button" className="frd-condition-delete"
+                        aria-label={`删除分支：${skip.skipName || node.skipList.indexOf(skip) + 1}`}
+                        onClick={() => { commit(removeCanvasBranch(definition, node.nodeCode, node.skipList.indexOf(skip))); setSelectedBranch(null) }}><X size={13} /></button>}
+                      </div>
+                      <InsertPoint after={node} branchIndex={node.skipList.indexOf(skip)} />
                       {renderPath(
-                        skip.nextNodeCode,
+                        skip.targetNodeCode,
                         nextVisited,
-                        branchMergeCode,
+                        branchMergeCode ?? stopBeforeCode,
                       )}
                       {branchMergeCode && <span className="frd-branch__merge-tail" aria-hidden="true" />}
                     </div>
                   ))}
                 </div>
               </div>
-              {branchMergeCode && (
+              {branchMergeCode && branchMergeCode !== stopBeforeCode && (
                 <>
                   <div className="frd-merge-flow" aria-hidden="true" />
-                  {renderPath(branchMergeCode, nextVisited)}
+                  {renderPath(branchMergeCode, nextVisited, stopBeforeCode)}
                 </>
               )}
             </>
@@ -658,7 +741,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
             {onSave && (
               <UiButton
                 variant="primary"
-                disabled={disabled}
+                disabled={disabled || validation.issues.some((issue) => ['BRANCH_CONDITION_REQUIRED', 'VOTE_RATIO_INVALID', 'REJECT_TARGET_INVALID'].includes(issue.code))}
                 className="frd-save-button"
                 onPress={async () => {
                   await onSave(definition, serializeDefinition(definition))
@@ -673,7 +756,10 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
 
         <div className="frd-workspace">
           <div className="frd-canvas-shell">
-            <div ref={canvasRef} className="flovira-react-canvas">
+            <div ref={canvasRef} className="flovira-react-canvas" data-dragging={canvasDragging}
+              onPointerDown={handleCanvasPointerDown} onPointerMove={handleCanvasPointerMove}
+              onPointerUp={endCanvasDrag} onPointerCancel={endCanvasDrag} onLostPointerCapture={endCanvasDrag}>
+              <div className="frd-canvas-workspace">
               <div
                 className="frd-canvas-content"
                 style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
@@ -682,9 +768,10 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                   <div className="frd-error-text">流程缺少开始节点</div>
                 )}
               </div>
+              </div>
             </div>
             <div className="frd-zoom-controls">
-              <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="缩小" onPress={() => setZoom((current) => Math.max(0.6, current - 0.1))}><ZoomOut size={16} /></ToolbarButton>
+              <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="缩小" onPress={() => setZoom((current) => Math.max(0.5, Number((current - 0.1).toFixed(1))))}><ZoomOut size={16} /></ToolbarButton>
               <UiButton variant="text" size="compact" ariaLabel="重置缩放" onPress={() => setZoom(1)}>{Math.round(zoom * 100)}%</UiButton>
               <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="放大" onPress={() => setZoom((current) => Math.min(1.5, current + 0.1))}><ZoomIn size={16} /></ToolbarButton>
               <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="定位开始节点" onPress={locateStart}><LocateFixed size={16} /></ToolbarButton>
@@ -696,6 +783,20 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
             )}
           </div>
 
+          <UiDrawer open={Boolean(activeBranch)} title={branchNode && activeBranch ? branchNode.skipList[activeBranch.index].skipName || '分支条件' : '分支条件'}
+            width={560} ariaLabel="分支条件" onClose={() => setSelectedBranch(null)}>
+            {branchNode && activeBranch && queryConditionFields && branchNode.nodeType !== '4' && conditionFieldState === 'loading'
+              ? <p role="status">正在加载表单字段…</p>
+              : branchNode && activeBranch && queryConditionFields && branchNode.nodeType !== '4' && conditionFieldState === 'error'
+                ? <div><p role="alert">表单字段加载失败</p><UiButton onPress={() => setConditionFieldRetry((value) => value + 1)}>重新加载</UiButton></div>
+                : branchNode && activeBranch && <BranchConditionEditor
+              key={`${branchNode.nodeCode}-${activeBranch.index}-${JSON.stringify(branchNode)}`}
+              node={branchNode} index={activeBranch.index} fields={queryConditionFields ? loadedConditionFields : conditionFields} ui={components} disabled={disabled}
+              compile={compileBranchConditions} onSave={(name, rule) => {
+                commit(updateNode(definition, branchNode.nodeCode, setBranchRule(branchNode, activeBranch.index, name, rule)))
+                setSelectedBranch(null)
+              }} />}
+          </UiDrawer>
           <UiDrawer
             open={Boolean(selectedNode)}
             title={(
@@ -807,7 +908,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     </div>
                   ) : null}
                   {selectedApproverStrategy?.options
-                    ?.filter((option) => approverOptionVisible(option, selectedApproverStrategy, selectedNode.nodeType))
+                    ?.filter((option) => approverOptionVisible(option, selectedApproverStrategy, selectedNode.nodeType, selectedApproverRule?.subjects))
                     .map((option) => (
                     <UiField label={option.name} key={option.code}>
                       <UiRadioGroup
@@ -817,7 +918,16 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                           ?? '')}
                         disabled={disabled}
                         ariaLabel={option.name}
-                        options={option.choices}
+                        options={option.code === 'approvalMode'
+                          ? option.choices.map((choice) => ({
+                            ...choice,
+                            label: ({ COUNTERSIGN: '会签', OR: '或签', VOTE: '票签' } as Record<string, string>)[choice.value] || choice.label,
+                          })).sort((a, b) => {
+                            const order = ['COUNTERSIGN', 'OR', 'VOTE']
+                            const rank = (value: string) => order.includes(value) ? order.indexOf(value) : order.length
+                            return rank(a.value) - rank(b.value)
+                          })
+                          : option.choices}
                         onValueChange={(value) => selectedApproverRule && updateInlineApproverRule({
                           ...selectedApproverRule,
                           config: { ...selectedApproverRule.config, [option.code]: value },
@@ -826,19 +936,24 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     </UiField>
                     ))}
                   {selectedNode.nodeType === '1' && (
-                    <UiField label="退回策略">
-                      <UiRadioGroup
-                        value={String(selectedNode.returnPolicy || capabilities.returnPolicies[0] || 'PREVIOUS')}
-                        disabled={disabled}
-                        ariaLabel="退回策略"
-                        options={capabilities.returnPolicies.map((policy) => ({
-                          value: policy,
-                          label: RETURN_POLICY_LABELS[policy] || policy,
-                        }))}
-                        onValueChange={(value) => changeSelected({ returnPolicy: value })}
-                      />
-                    </UiField>
+                    selectedApproverRule?.config?.approvalMode === 'VOTE'
+                    && selectedApproverStrategy?.options?.some((option) => option.code === 'approvalMode'
+                      && approverOptionVisible(option, selectedApproverStrategy, selectedNode.nodeType, selectedApproverRule.subjects)) && (
+                      <UiField label="通过比例（%）" hint="同意人数占比达到此比例即通过；必须大于 0、小于 100，全部同意请选会签。">
+                        <UiInput ariaLabel="通过比例（%）" type="number"
+                          value={Number.isFinite(Number(selectedNode.nodeRatio)) ? String(selectedNode.nodeRatio ?? '') : ''}
+                          disabled={disabled} placeholder="例如 60"
+                          onValueChange={(value) => changeSelected({ nodeRatio: value })} />
+                        {validation.issues.some((issue) => issue.nodeCode === selectedNode.nodeCode && issue.code === 'VOTE_RATIO_INVALID')
+                          && <p role="alert" className="frd-condition-error">请输入大于 0、小于 100 的通过比例</p>}
+                        {!Number.isFinite(Number(selectedNode.nodeRatio)) && <p className="frd-condition-hint">当前票签规则：{selectedNode.nodeRatio}。填写比例后将替换此规则。</p>}
+                      </UiField>
+                    )
                   )}
+                  {selectedNode.nodeType === '1' && <NodeControlEditor definition={definition} node={selectedNode}
+                    disabled={disabled} ui={components}
+                    onChange={(node) => commit(updateNode(definition, selectedNode.nodeCode, node))} />}
+
                 </div>
               )}
               {selectedNode.nodeType === '6' && (
@@ -936,26 +1051,12 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <div className="frd-settings-section">
                   <div className="frd-settings-section__header">
                     <span>分支</span>
-                    <UiButton size="compact" variant="text" disabled={disabled} className="frd-add-branch" onPress={() => commit(addGatewayBranch(definition, selectedNode.nodeCode))}><Plus size={13} />增加分支</UiButton>
+                    <UiButton size="compact" variant="text" disabled={disabled || !findBranchMerge(definition, selectedNode.skipList.map((skip) => skip.targetNodeCode))} className="frd-add-branch" onPress={() => commit(addCanvasBranch(definition, selectedNode.nodeCode))}><Plus size={13} />增加分支</UiButton>
                   </div>
                   {selectedNode.skipList.map((skip, index) => (
-                    <div className="frd-branch-editor" key={String(skip.id || index)}>
-                      <UiInput
-                        value={skip.skipName || ''}
-                        disabled={disabled}
-                        placeholder={`分支 ${index + 1}`}
-                        onValueChange={(value) => changeSelected({ skipList: selectedNode.skipList.map((item, itemIndex) => itemIndex === index ? { ...item, skipName: value } : item) })}
-                      />
-                      {selectedNode.nodeType !== '4' && (
-                        <UiInput
-                          className="frd-branch-editor__condition"
-                          value={skip.skipCondition || ''}
-                          disabled={disabled}
-                          placeholder="条件表达式"
-                          onValueChange={(value) => changeSelected({ skipList: selectedNode.skipList.map((item, itemIndex) => itemIndex === index ? { ...item, skipCondition: value } : item) })}
-                        />
-                      )}
-                    </div>
+                    <UiButton key={String(skip.id || index)} variant="text" onPress={() => openBranch(selectedNode, index)}>
+                      {skip.skipName || `分支 ${index + 1}`}：{branchSummary(selectedNode, index)}
+                    </UiButton>
                   ))}
                 </div>
               )}

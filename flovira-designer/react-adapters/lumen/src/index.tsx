@@ -37,20 +37,27 @@ const LumenButton = ({
   className,
   onPress,
 }: DesignerButtonProps) => {
-  const iconOnly = size === 'icon'
+  const buttonProps = {
+    variant: buttonVariants[variant],
+    disabled,
+    title,
+    className,
+    onClick: onPress,
+  }
+  if (size === 'icon') {
+    return (
+      <Button
+        {...buttonProps}
+        size="sm"
+        iconOnly
+        icon={children}
+        aria-label={ariaLabel ?? title ?? ''}
+      />
+    )
+  }
   return (
-    <Button
-      variant={buttonVariants[variant]}
-      size={size === 'default' ? 'md' : 'sm'}
-      iconOnly={iconOnly}
-      icon={iconOnly ? children : undefined}
-      disabled={disabled}
-      title={title}
-      aria-label={ariaLabel}
-      className={className}
-      onClick={onPress}
-    >
-      {iconOnly ? null : children}
+    <Button {...buttonProps} size={size === 'default' ? 'md' : 'sm'} aria-label={ariaLabel}>
+      {children}
     </Button>
   )
 }

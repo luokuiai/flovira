@@ -18,8 +18,7 @@ const STORAGE_KEY = 'wf-designer-demo:flows'
 export interface DemoFlowRecord {
   id: string
   flowName: string
-  modelValue: string
-  updateTime: string
+  updatedAt: string
   def: any
 }
 
@@ -58,7 +57,7 @@ export function listFlows(): DemoFlowRecord[] {
   const store = readStore()
   return Object.keys(store)
     .map((k) => store[k])
-    .sort((a, b) => (a.updateTime < b.updateTime ? 1 : -1))
+    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
 }
 
 /** 取某个流程的 flovira 定义 JSON 字符串（格式化，供导出 / 查看）。 */
@@ -110,8 +109,7 @@ export function createDemoProvider(): any {
       store[id] = {
         id: id,
         flowName: def.flowName || '未命名流程',
-        modelValue: def.modelValue || '',
-        updateTime: nowText(),
+        updatedAt: nowText(),
         def: def
       }
       writeStore(store)

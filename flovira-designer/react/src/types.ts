@@ -76,10 +76,10 @@ export interface FloviraSkip extends Record<string, unknown> {
   skipType?: string
   skipCondition?: string | null
   skipName?: string | null
-  nowNodeCode: string
-  nowNodeType?: FloviraNodeType
-  nextNodeCode: string
-  nextNodeType?: FloviraNodeType
+  sourceNodeCode: string
+  sourceNodeType?: FloviraNodeType
+  targetNodeCode: string
+  targetNodeType?: FloviraNodeType
   coordinate?: string
 }
 
@@ -94,11 +94,22 @@ export interface FloviraNode extends Record<string, unknown> {
   skipList: FloviraSkip[]
 }
 
+/** 审批节点控制配置，保存在 ext.nodeControlConfig，由业务运行接口执行。 */
+export interface NodeControlConfig {
+  schemaVersion: 1
+  allowRollback: boolean
+  allowTransfer: boolean
+  allowAddSign: boolean
+  allowMinusSign: boolean
+  rejectStrategy: 'TO_DRAFT' | 'TO_PREVIOUS' | 'TO_SPECIFIED_NODE' | 'TO_REJECTOR_SPECIFIED_NODE' | 'REJECT'
+  rejectTargetNodeCode: string
+  resubmitStrategy: 'RESTART_FROM_BEGINNING' | 'CONTINUE_FROM_REJECTED_NODE'
+}
+
 export interface FloviraDefinition extends Record<string, unknown> {
   id?: string | number
   flowCode?: string
   flowName?: string
-  modelValue?: string
   version?: string | number
   nodeList: FloviraNode[]
 }
@@ -320,6 +331,34 @@ export interface DesignerUiAdapter {
   Dialog?: ComponentType<DesignerDialogProps>
 }
 
+export interface DesignerConditionField {
+  code: string
+  label: string
+  type: 'STRING' | 'NUMBER' | 'BOOLEAN'
+}
+
+export interface DesignerBranchCondition {
+  fieldCode: string
+  fieldLabel: string
+  fieldType: DesignerConditionField['type']
+  operator: 'EQ' | 'NE' | 'GT' | 'GE' | 'LT' | 'LE'
+  value: string
+}
+
+export interface DesignerConditionGroup {
+  conditions: DesignerBranchCondition[]
+}
+
+export interface DesignerConditionFieldContext {
+  definition: FloviraDefinition
+  node: FloviraNode
+  branch: FloviraSkip
+}
+
+export type DesignerConditionFieldLoader = (
+  context: DesignerConditionFieldContext,
+) => Promise<readonly DesignerConditionField[]>
+
 export interface ReactFlowDesignerProps {
   value?: FloviraDefinition | string
   defaultValue?: FloviraDefinition | string
@@ -327,6 +366,12 @@ export interface ReactFlowDesignerProps {
   className?: string
   capabilities?: DesignerCapabilities
   queryResources?: DesignerResourceLoader
+  /** Business fields available to the visual branch condition editor. */
+  conditionFields?: readonly DesignerConditionField[]
+  /** Load fields from the host form when opening a branch editor. Takes precedence over conditionFields. */
+  queryConditionFields?: DesignerConditionFieldLoader
+  /** Defaults to SpEL; override when using another backend condition strategy. */
+  compileBranchConditions?: (groups: DesignerConditionGroup[]) => string
   maxHistory?: number
   onChange?: (change: ReactFlowDesignerChange) => void
   onSave?: (definition: FloviraDefinition, json: string) => void | Promise<void>

@@ -12,6 +12,10 @@
   margin-bottom: 16px;
 }
 
+.frd-lumen-field > label + div {
+  margin-top: 12px;
+}
+
 .frd-lumen-checkbox-label {
   display: flex;
   min-width: 0;
