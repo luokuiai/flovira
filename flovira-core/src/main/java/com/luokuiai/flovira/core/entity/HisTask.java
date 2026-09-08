@@ -36,16 +36,16 @@ public interface HisTask extends RootEntity {
     HisTask setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    HisTask setCreateTime(Date createTime);
+    HisTask setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    HisTask setUpdateTime(Date updateTime);
+    HisTask setUpdatedAt(Date updatedAt);
 
     @Override
     String getTenantId();
@@ -54,10 +54,10 @@ public interface HisTask extends RootEntity {
     HisTask setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    HisTask setDelFlag(String delFlag);
+    HisTask setDeleted(String deleted);
 
     /**
      * 获取流程定义ID
@@ -79,9 +79,9 @@ public interface HisTask extends RootEntity {
 
     HisTask setInstanceId(Long instanceId);
 
-    Integer getCooperateType();
+    Integer getCooperationType();
 
-    HisTask setCooperateType(Integer cooperateType);
+    HisTask setCooperationType(Integer cooperationType);
 
     Long getTaskId();
 
@@ -140,12 +140,12 @@ public interface HisTask extends RootEntity {
 
     HisTask setMessage(String message);
 
-    String getVariable();
+    String getVariables();
 
-    HisTask setVariable(String variable);
+    HisTask setVariables(String variables);
 
     default Map<String, Object> getVariableMap() {
-        return FlowEngine.jsonConvert.strToMap(this.getVariable());
+        return FlowEngine.jsonConvert.strToMap(this.getVariables());
     }
 
     String getExt();

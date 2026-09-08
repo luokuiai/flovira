@@ -64,8 +64,8 @@ public interface DataFillHandler {
             logger.warn("Insert operation failed - Reason: Entity is null after casting");
             return;
         }
-        entity.setCreateTime(ObjectUtil.isNotNull(entity.getCreateTime()) ? entity.getCreateTime() : new Date());
-        entity.setUpdateTime(ObjectUtil.isNotNull(entity.getUpdateTime()) ? entity.getUpdateTime() : new Date());
+        entity.setCreatedAt(ObjectUtil.isNotNull(entity.getCreatedAt()) ? entity.getCreatedAt() : new Date());
+        entity.setUpdatedAt(ObjectUtil.isNotNull(entity.getUpdatedAt()) ? entity.getUpdatedAt() : new Date());
 
         PermissionHandler permissionHandler = FlowEngine.permissionHandler();
         String handler = null;
@@ -75,8 +75,8 @@ public interface DataFillHandler {
             } catch (Exception ignored) {
             }
         }
-        entity.setCreateBy(StringUtils.isNotEmpty(handler) ? handler : entity.getCreateBy());
-        entity.setUpdateBy(StringUtils.isNotEmpty(handler) ? handler : entity.getUpdateBy());
+        entity.setCreatedBy(StringUtils.isNotEmpty(handler) ? handler : entity.getCreatedBy());
+        entity.setUpdatedBy(StringUtils.isNotEmpty(handler) ? handler : entity.getUpdatedBy());
     }
 
     /**
@@ -90,7 +90,7 @@ public interface DataFillHandler {
             logger.warn("Insert operation failed - Reason: Entity is null after casting");
             return;
         }
-        entity.setUpdateTime(ObjectUtil.isNotNull(entity.getUpdateTime()) ? entity.getUpdateTime() : new Date());
+        entity.setUpdatedAt(ObjectUtil.isNotNull(entity.getUpdatedAt()) ? entity.getUpdatedAt() : new Date());
         PermissionHandler permissionHandler = FlowEngine.permissionHandler();
         String handler = null;
         if (permissionHandler != null) {
@@ -99,6 +99,6 @@ public interface DataFillHandler {
             } catch (Exception ignored) {
             }
         }
-        entity.setUpdateBy(StringUtils.isNotEmpty(handler) ? handler : entity.getUpdateBy());
+        entity.setUpdatedBy(StringUtils.isNotEmpty(handler) ? handler : entity.getUpdatedBy());
     }
 }

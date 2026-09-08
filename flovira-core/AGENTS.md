@@ -25,7 +25,7 @@
 ## 改动前必读
 
 - 根 [`../AGENTS.md`](../AGENTS.md)「架构与扩展机制」「兼容性红线」。
-- 改服务 / 状态机前，先读对应 `service.impl` + 相关 `strategy` / `handler` / `listener` + 状态枚举（`FlowStatus`/`NodeType`/`SkipType`/`CooperateType` 等）。
+- 改服务 / 状态机前，先读对应 `service.impl` + 相关 `strategy` / `handler` / `listener` + 状态枚举（`FlowStatus`/`NodeType`/`SkipType`/`CooperationType` 等）。
 - `../.qoder/repowiki/zh/content/核心引擎架构/` 有服务层、实体模型、数据流的详细文档（本地参考）。
 
 ## 高风险点（一律 L2）

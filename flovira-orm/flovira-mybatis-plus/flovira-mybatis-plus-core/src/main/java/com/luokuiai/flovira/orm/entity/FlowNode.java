@@ -52,23 +52,23 @@ public class FlowNode implements Node {
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -79,7 +79,7 @@ public class FlowNode implements Node {
      * 删除标记
      */
     @TableLogic(value = "0", delval = "1")
-    private String delFlag;
+    private String deleted;
 
     /**
      * 节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）

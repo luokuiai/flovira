@@ -40,19 +40,19 @@ public interface FlowUserDao<T extends User> extends FloviraDao<T> {
     /**
      * 根据(待办任务，实例，历史表，节点等)id查询权限人或者处理人
      *
-     * @param associatedList (待办任务，实例，历史表，节点等)id集合
+     * @param associatedIds (待办任务，实例，历史表，节点等)id集合
      * @param types       用户表类型
      * @return 查询结果
      */
-    List<T> listByAssociatedAndTypes(List<Long> associatedList, String[] types);
+    List<T> listByAssociatedIdsAndTypes(List<Long> associatedIds, String[] types);
 
     /**
      * 根据办理人查询
      *
-     * @param associated   待办任务id
+     * @param associatedId   待办任务id
      * @param processedBys 办理人id集合
      * @param types        用户表类型
      * @return 查询结果
      */
-    List<T> listByProcessedBys(Long associated, List<String> processedBys, String[] types);
+    List<T> listByProcessedBys(Long associatedId, List<String> processedBys, String[] types);
 }

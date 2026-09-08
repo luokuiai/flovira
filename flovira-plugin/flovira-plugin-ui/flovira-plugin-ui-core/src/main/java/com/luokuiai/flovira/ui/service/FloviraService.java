@@ -25,7 +25,6 @@ import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.enums.FormCustomEnum;
-import com.luokuiai.flovira.core.enums.ModelEnum;
 import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
@@ -137,7 +136,6 @@ public class FloviraService {
             DefJson defJson;
             if (id == null) {
                 defJson = new DefJson()
-                    .setModelValue(ModelEnum.CLASSICS.name())
                     .setFormCustom(FormCustomEnum.N.name());
             } else {
                 defJson = FlowEngine.defService().queryDesign(id);
@@ -163,7 +161,7 @@ public class FloviraService {
             defJson.setInstance(instance);
 
             // 获取流程图三原色
-            defJson.setChartStatusColor(FlowEngine.chartService().getChartRgb(defJson.getModelValue()));
+            defJson.setChartStatusColor(FlowEngine.chartService().getChartRgb());
             // 是否显示流程图顶部文字
             defJson.setTopTextShow(FlowEngine.getFlowConfig().isTopTextShow());
             List<Task> tasks = FlowEngine.taskService().getByInsId(instance.getId());

@@ -38,7 +38,7 @@ public class FlowSubprocessRunDaoImpl implements FlowSubprocessRunDao<FlowSubpro
     }
     public FlowSubprocessRun findById(String tenantId, Long runId) {
         QueryWrapper<FlowSubprocessRun> query = tenant(tenantId);
-        query.eq("id", runId).eq("del_flag", "0");
+        query.eq("id", runId).eq("deleted", "0");
         return mapper().selectOne(query);
     }
     public FlowSubprocessRun lockById(String tenantId, Long runId) {
@@ -46,7 +46,7 @@ public class FlowSubprocessRunDaoImpl implements FlowSubprocessRunDao<FlowSubpro
     }
     public int claimReadyToResume(String tenantId, Long runId) {
         UpdateWrapper<FlowSubprocessRun> update = new UpdateWrapper<>();
-        update.eq("tenant_id", tenantId).eq("id", runId).eq("del_flag", "0")
+        update.eq("tenant_id", tenantId).eq("id", runId).eq("deleted", "0")
             .eq("run_status", "READY_TO_RESUME").set("run_status", "RESUMING")
             .setSql("lock_version=lock_version+1");
         return mapper().update(null, update);

@@ -117,7 +117,7 @@ public class ListenerUtil {
                         if (ObjectUtil.isNotNull(clazz) && Listener.class.isAssignableFrom(clazz)) {
                             Listener listener = (Listener) FrameInvoker.getBean(clazz);
                             if (ObjectUtil.isNotNull(listener)) {
-                                Map<String, Object> variable = listenerVariable.getVariable();
+                                Map<String, Object> variable = listenerVariable.getVariables();
                                 if (MapUtil.isEmpty(variable)) {
                                     variable = new HashMap<>();
                                 } else {
@@ -126,7 +126,7 @@ public class ListenerUtil {
                                 if (StringUtils.isNotEmpty(valueHolder.getParams())) {
                                     variable.put(FlowCons.WARM_LISTENER_PARAM, valueHolder.getParams());
                                 }
-                                listener.notify(listenerVariable.setVariable(variable));
+                                listener.notify(listenerVariable.setVariables(variable));
                             }
 
                         }

@@ -105,8 +105,8 @@ public abstract class FloviraDaoImpl<T extends RootEntity> implements FloviraDao
     @Override
     public int delete(T entity) {
         TenantDeleteUtil.getEntity(entity);
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateLogic(entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateLogic(entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().delete(entity);
     }
@@ -114,8 +114,8 @@ public abstract class FloviraDaoImpl<T extends RootEntity> implements FloviraDao
     @Override
     public int deleteById(Serializable id) {
         T entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateByIdLogic(id, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateByIdLogic(id, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().deleteById(id, entity);
     }
@@ -123,8 +123,8 @@ public abstract class FloviraDaoImpl<T extends RootEntity> implements FloviraDao
     @Override
     public int deleteByIds(Collection<? extends Serializable> ids) {
         T entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateByIdsLogic(ids, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateByIdsLogic(ids, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().deleteByIds(ids, entity);
     }

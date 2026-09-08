@@ -33,28 +33,28 @@ public interface Task extends RootEntity {
     Task setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Task setCreateTime(Date createTime);
+    Task setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Task setUpdateTime(Date updateTime);
+    Task setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Task setCreateBy(String createBy);
+    Task setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Task setUpdateBy(String updateBy);
+    Task setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -63,10 +63,10 @@ public interface Task extends RootEntity {
     Task setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Task setDelFlag(String delFlag);
+    Task setDeleted(String deleted);
 
     /**
      * 获取流程定义ID

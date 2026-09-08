@@ -116,7 +116,7 @@ public class SubprocessServiceImplTest {
         childHistory.setInstanceId(201L);
         childHistory.setNodeCode("APPROVE");
         childHistory.setNodeName("Approve");
-        childHistory.setCreateTime(new Date(2L));
+        childHistory.setCreatedAt(new Date(2L));
         final HisTaskService historyService = proxy(HisTaskService.class,
             (method, args) -> "getByInsId".equals(method.getName()) && Long.valueOf(201L).equals(args[0])
                 ? Collections.singletonList(childHistory) : Collections.emptyList());

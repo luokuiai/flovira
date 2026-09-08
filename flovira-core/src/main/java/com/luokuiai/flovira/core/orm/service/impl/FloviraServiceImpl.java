@@ -153,13 +153,13 @@ public abstract class FloviraServiceImpl<M extends FloviraDao<T>, T> implements 
     }
 
     @Override
-    public FloviraQuery<T> orderByCreateTime() {
-        return new FloviraQuery<>(this).orderByCreateTime();
+    public FloviraQuery<T> orderByCreatedAt() {
+        return new FloviraQuery<>(this).orderByCreatedAt();
     }
 
     @Override
-    public FloviraQuery<T> orderByUpdateTime() {
-        return new FloviraQuery<>(this).orderByUpdateTime();
+    public FloviraQuery<T> orderByUpdatedAt() {
+        return new FloviraQuery<>(this).orderByUpdatedAt();
     }
 
     @Override

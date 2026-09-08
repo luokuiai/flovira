@@ -83,7 +83,7 @@ public class ExpressionUtil {
         if (CollUtil.isEmpty(addTasks)) {
             return;
         }
-        Map<String, Object> variable = flowParams.getVariable();
+        Map<String, Object> variable = flowParams.getVariables();
         addTasks.forEach(addTask -> {
             boolean resolvedApproverRule = ApproverRuleUtil.isResolved(addTask.getPermissionList());
             List<String> permissions = addTask.getPermissionList().stream()

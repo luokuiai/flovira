@@ -168,16 +168,16 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // TODO min 后续考虑并发问题，待办任务和实例表不同步，可给待办任务id加锁，抽取所接口，方便后续兼容分布式锁
         // 流程开启前正确性校验
         R r = getAndCheck(task);
-        flowParams.variable(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariable()));
+        flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
         // 非第一个记得跳转类型必传
         if (!NodeType.isStart(task.getNodeType())) {
             AssertUtil.isFalse(StringUtils.isNotEmpty(flowParams.getSkipType()), ExceptionCons.NULL_CONDITION_VALUE);
         }
-        task.setUserList(FlowEngine.userService().listByAssociatedAndTypes(task.getId()));
+        task.setUserList(FlowEngine.userService().listByAssociatedIdAndTypes(task.getId()));
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(r.definition.getId());
 
         // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariable()
+        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
             , task).setFlowParams(flowParams));
 
         // 如果是受托人在处理任务，需要处理一条委派记录，并且更新委托人，回到计划审批人,然后直接返回流程实例
@@ -201,7 +201,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         PathWayData pathWayData = new PathWayData().setInsId(task.getInstanceId()).setSkipType(flowParams.getSkipType());
         Node nextNode = FlowEngine.nodeService().getNextNode(r.nowNode, flowParams.getNodeCode()
             , flowParams.getSkipType(), pathWayData, flowCombine);
-        List<Node> nextNodes = FlowEngine.nodeService().getNextByCheckGateway(flowParams.getVariable()
+        List<Node> nextNodes = FlowEngine.nodeService().getNextByCheckGateway(flowParams.getVariables()
             , nextNode, pathWayData, flowCombine);
 
         // 判断并行网关和包容网关节点只剩一个前置代办任务，才能生成新的代办任务
@@ -215,10 +215,10 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         List<Task> addTasks = StreamUtils.toList(nextNodes, node -> addTask(node, r.instance, r.definition, flowParams));
 
         // 办理人变量替换
-        ExpressionUtil.evalVariable(addTasks, flowParams.variable(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariable())));
+        ExpressionUtil.evalVariable(addTasks, flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables())));
 
         // 执行分派监听器
-        ListenerUtil.executeAssignment(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariable()
+        ListenerUtil.executeAssignment(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
             , task, nextNodes, addTasks).setFlowParams(flowParams));
 
         // 更新流程信息
@@ -234,12 +234,12 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         // 执行完成和创建监听器
         ListenerUtil.endCreateListener(new ListenerVariable(r.definition, r.instance, r.nowNode
-            , flowParams.getVariable(), task, nextNodes, addTasks).setFlowParams(flowParams));
+            , flowParams.getVariables(), task, nextNodes, addTasks).setFlowParams(flowParams));
 
         if (containsSubprocessTask(addTasks)) {
             FlowEngine.subprocessService().onTasksCreated(addTasks);
         }
-        CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariable());
+        CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariables());
         if (NodeType.isEnd(r.instance.getNodeType()) && isSubprocessChild(r.instance)) {
             FlowEngine.subprocessService().onInstanceTerminal(r.instance, SubprocessOutcome.SUCCEEDED);
         }
@@ -262,23 +262,23 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         }
 
         Instance instance = FlowEngine.insService().getById(instanceId);
-        flowParams.variable(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariable()));
+        flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
         AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
         Definition definition = FlowEngine.defService().getById(instance.getDefinitionId());
         AssertUtil.isFalse(judgeActivityStatus(definition, instance), ExceptionCons.NOT_ACTIVITY);
         AssertUtil.isTrue(NodeType.isEnd(instance.getNodeType()), ExceptionCons.FLOW_FINISH);
-        flowParams.variable(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariable()));
+        flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
 
         List<Task> taskList = getByInsId(instanceId);
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombine(definition);
         Map<String, Node> nodeMap = StreamUtils.toMap(flowCombine.getAllNodes(), Node::getNodeCode, node -> node);
         // 执行开始监听器
         taskList.forEach(task -> ListenerUtil.executeStart(new ListenerVariable(definition, instance
-                , nodeMap.get(task.getNodeCode()), flowParams.getVariable(), task).setFlowParams(flowParams)));
+                , nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task).setFlowParams(flowParams)));
 
         // 验证权限是不是当前任务的发起人
         if (!flowParams.isIgnore()) {
-            AssertUtil.isFalse(instance.getCreateBy().equals(flowParams.getHandler())
+            AssertUtil.isFalse(instance.getCreatedBy().equals(flowParams.getHandler())
                 , ExceptionCons.NOT_DEF_PROMOTER_NOT_CANCEL);
         }
 
@@ -292,7 +292,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         PathWayData pathWayData = new PathWayData().setInsId(instanceId).setSkipType(flowParams.getSkipType());
         Node nextNode = FlowEngine.nodeService().getNextNode(startNode, null, SkipType.PASS.getKey()
             , null, flowCombine);
-        List<Node> nextNodes = FlowEngine.nodeService().getNextByCheckGateway(flowParams.getVariable(), nextNode
+        List<Node> nextNodes = FlowEngine.nodeService().getNextByCheckGateway(flowParams.getVariables(), nextNode
             , pathWayData, flowCombine);
         pathWayData.getTargetNodes().addAll(nextNodes);
         // 设置流程图元数据
@@ -306,11 +306,11 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         List<Task> addTasks = StreamUtils.toList(nextNodes, node -> addTask(node, instance, definition, flowParams));
 
         // 办理人变量替换
-        ExpressionUtil.evalVariable(addTasks, flowParams.variable(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariable())));
+        ExpressionUtil.evalVariable(addTasks, flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables())));
 
         // 执行分派监听器
         taskList.forEach(task -> ListenerUtil.executeAssignment(new ListenerVariable(definition, instance,
-            nodeMap.get(task.getNodeCode()), flowParams.getVariable(), task, nextNodes, addTasks)
+            nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task, nextNodes, addTasks)
             .setFlowParams(flowParams)));
 
         // 设置流程历史任务信息
@@ -331,7 +331,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         // 执行完成和创建监听器
         taskList.forEach(task -> ListenerUtil.endCreateListener(new ListenerVariable(definition, instance,
-            nodeMap.get(task.getNodeCode()), flowParams.getVariable(), task, nextNodes, addTasks).setFlowParams(flowParams)));
+            nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task, nextNodes, addTasks).setFlowParams(flowParams)));
         return instance;
     }
 
@@ -354,12 +354,12 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
     public Instance termination(Task task, FlowParams flowParams) {
         R r = getAndCheck(task);
         flowParams.skipType(SkipType.PASS.getKey());
-        flowParams.variable(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariable()));
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariable()
+        flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
+        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
             , task).setFlowParams(flowParams));
 
         // 判断当前处理人是否有权限处理
-        task.setUserList(FlowEngine.userService().listByAssociatedAndTypes(task.getId()));
+        task.setUserList(FlowEngine.userService().listByAssociatedIdAndTypes(task.getId()));
         checkAuth(task, flowParams);
 
         if (definitionHasSubprocess(r.definition.getId())) {
@@ -396,7 +396,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 处理未完成的任务，当流程完成，还存在待办任务未完成，转历史任务，状态完成。
         handUndoneTask(r.instance);
         // 最后判断是否存在节点监听器，存在执行节点监听器
-        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariable()
+        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
             , task).setFlowParams(flowParams));
         if (isSubprocessChild(r.instance)) {
             FlowEngine.subprocessService().onInstanceTerminal(r.instance, SubprocessOutcome.CANCELLED);
@@ -422,7 +422,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         AssertUtil.isNull(flowParams.getAddHandlers(), ExceptionCons.NULL_TRANSFER_HANDLER);
         List<User> users = FlowEngine.userService().getByProcessedBys(taskId, flowParams.getAddHandlers(), UserType.TRANSFER.getKey());
         AssertUtil.isNotEmpty(users, ExceptionCons.IS_ALREADY_TRANSFER);
-        flowParams.cooperateType(CooperateType.TRANSFER.getKey())
+        flowParams.cooperationType(CooperationType.TRANSFER.getKey())
             .reductionHandlers(Collections.singletonList(flowParams.getHandler()));
 
         return updateHandler(taskId, flowParams);
@@ -435,7 +435,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         AssertUtil.isNull(flowParams.getAddHandlers(), ExceptionCons.NULL_DEPUTE_HANDLER);
         List<User> users = FlowEngine.userService().getByProcessedBys(taskId, flowParams.getAddHandlers(), UserType.DEPUTE.getKey());
         AssertUtil.isNotEmpty(users, ExceptionCons.IS_ALREADY_DEPUTE);
-        flowParams.cooperateType(CooperateType.DEPUTE.getKey())
+        flowParams.cooperationType(CooperationType.DEPUTE.getKey())
             .reductionHandlers(Collections.singletonList(flowParams.getHandler()));
 
         return updateHandler(taskId, flowParams);
@@ -448,7 +448,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         AssertUtil.isNull(flowParams.getAddHandlers(), ExceptionCons.NULL_ADD_SIGNATURE_HANDLER);
         List<User> users = FlowEngine.userService().getByProcessedBys(taskId, flowParams.getAddHandlers(), UserType.APPROVAL.getKey());
         AssertUtil.isNotEmpty(users, ExceptionCons.IS_ALREADY_SIGN);
-        flowParams.cooperateType(CooperateType.ADD_SIGNATURE.getKey());
+        flowParams.cooperationType(CooperationType.ADD_SIGNATURE.getKey());
 
         return updateHandler(taskId, flowParams);
     }
@@ -458,10 +458,10 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         AssertUtil.isNull(taskId, ExceptionCons.NULL_TASK_ID);
         AssertUtil.isNull(flowParams.getHandler(), ExceptionCons.HANDLER_NOT_EMPTY);
         AssertUtil.isNull(flowParams.getReductionHandlers(), ExceptionCons.NULL_REDUCTION_SIGNATURE_HANDLER);
-        List<User> users = FlowEngine.userService().listByAssociatedAndTypes(taskId
+        List<User> users = FlowEngine.userService().listByAssociatedIdAndTypes(taskId
             , UserType.APPROVAL.getKey(), UserType.TRANSFER.getKey());
         AssertUtil.isTrue(CollUtil.isEmpty(users) || users.size() == 1, ExceptionCons.REDUCTION_SIGN_ONE_ERROR);
-        flowParams.cooperateType(CooperateType.REDUCTION_SIGNATURE.getKey());
+        flowParams.cooperationType(CooperationType.REDUCTION_SIGNATURE.getKey());
 
         return updateHandler(taskId, flowParams);
     }
@@ -470,7 +470,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
     public boolean updateHandler(Long taskId, FlowParams flowParams) {
         // 获取待办任务
         R r = getAndCheck(taskId);
-        flowParams.variable(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariable()));
+        flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
         // 执行开始监听器
         ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, null, r.task));
 
@@ -490,7 +490,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 删除对应的操作人
         if (CollUtil.isNotEmpty(flowParams.getReductionHandlers())) {
             for (String reductionHandler : flowParams.getReductionHandlers()) {
-                FlowEngine.userService().remove(FlowEngine.newUser().setAssociated(taskId)
+                FlowEngine.userService().remove(FlowEngine.newUser().setAssociatedId(taskId)
                     .setProcessedBy(reductionHandler));
             }
             hisTask = FlowEngine.hisTaskService().setCooperateHis(r.task, flowParams, flowParams.getReductionHandlers());
@@ -499,9 +499,9 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 新增权限人
         if (CollUtil.isNotEmpty(flowParams.getAddHandlers())) {
             String type;
-            if (CooperateType.TRANSFER.getKey().equals(flowParams.getCooperateType())) {
+            if (CooperationType.TRANSFER.getKey().equals(flowParams.getCooperationType())) {
                 type = UserType.TRANSFER.getKey();
-            } else if (CooperateType.DEPUTE.getKey().equals(flowParams.getCooperateType())) {
+            } else if (CooperationType.DEPUTE.getKey().equals(flowParams.getCooperationType())) {
                 type = UserType.DEPUTE.getKey();
             } else {
                 type = UserType.APPROVAL.getKey();
@@ -515,7 +515,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             FlowEngine.hisTaskService().save(hisTask);
         }
         // 最后判断是否存在节点监听器，存在执行节点监听器
-        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariable()
+        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
             , r.task));
         return true;
     }
@@ -539,7 +539,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         R r = getAndCheck(task);
         flowParams.flowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(), FlowStatus.PENDING.getKey()));
         // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariable()
+        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
             , r.task).setFlowParams(flowParams));
 
         // 判断当前处理人是否有权限处理
@@ -553,7 +553,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         // 执行任务完成监听器
         ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode
-            , flowParams.getVariable(), r.task));
+            , flowParams.getVariables(), r.task));
 
         return r.instance;
     }
@@ -570,7 +570,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             .setNodeType(node.getNodeType())
             .setFlowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(),
                 setFlowStatus(node.getNodeType(), flowParams.getSkipType())))
-            .setCreateTime(now)
+            .setCreatedAt(now)
             .setPermissionList(NodeType.isWait(node.getNodeType())
                 ? Collections.<String>emptyList()
                 : NodeType.isCarbonCopy(node.getNodeType())
@@ -636,9 +636,9 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public void setInsFinishInfo(Instance instance, List<Task> addTasks, FlowParams flowParams) {
-        instance.setUpdateTime(new Date());
+        instance.setUpdatedAt(new Date());
         // 合并流程变量到实例对象
-        mergeVariable(instance, flowParams.getVariable());
+        mergeVariable(instance, flowParams.getVariables());
         if (CollUtil.isNotEmpty(addTasks)) {
             AtomicReference<Task> finallyTask = new AtomicReference<>();
             addTasks.removeIf(addTask -> {
@@ -661,10 +661,10 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
     @Override
     public void mergeVariable(Instance instance, Map<String, Object> variable) {
         if (MapUtil.isNotEmpty(variable)) {
-            String variableStr = instance.getVariable();
+            String variableStr = instance.getVariables();
             Map<String, Object> deserialize = FlowEngine.jsonConvert.strToMap(variableStr);
             deserialize.putAll(variable);
-            instance.setVariable(FlowEngine.jsonConvert.objToStr(deserialize));
+            instance.setVariables(FlowEngine.jsonConvert.objToStr(deserialize));
         }
     }
 
@@ -785,11 +785,11 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         FlowEngine.userService().removeById(entrustedUser.getId());
 
         // 查询委托人，如果在flow_user不存在，则给委托人新增待办记录
-        User deputeUser = FlowEngine.userService().getOne(FlowEngine.newUser().setAssociated(task.getId())
-            .setProcessedBy(entrustedUser.getCreateBy()).setType(UserType.APPROVAL.getKey()));
+        User deputeUser = FlowEngine.userService().getOne(FlowEngine.newUser().setAssociatedId(task.getId())
+            .setProcessedBy(entrustedUser.getCreatedBy()).setType(UserType.APPROVAL.getKey()));
         if (ObjectUtil.isNull(deputeUser)) {
-            User newUser = FlowEngine.userService().structureUser(entrustedUser.getAssociated()
-                , entrustedUser.getCreateBy()
+            User newUser = FlowEngine.userService().structureUser(entrustedUser.getAssociatedId()
+                , entrustedUser.getCreatedBy()
                 , UserType.APPROVAL.getKey(), entrustedUser.getProcessedBy());
             FlowEngine.userService().save(newUser);
         }
@@ -811,12 +811,12 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         }
         String nodeRatio = nowNode.getNodeRatio();
         // 或签，直接返回
-        if (CooperateType.isOrSign(nodeRatio)) {
+        if (CooperationType.isOrSign(nodeRatio)) {
             return false;
         }
 
         // 办理人和转办人列表
-        List<User> todoList = FlowEngine.userService().listByAssociatedAndTypes(task.getId()
+        List<User> todoList = FlowEngine.userService().listByAssociatedIdAndTypes(task.getId()
             , UserType.APPROVAL.getKey(), UserType.TRANSFER.getKey(), UserType.DEPUTE.getKey());
 
         // 判断办理人是否有办理权限
@@ -828,7 +828,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         List<User> restList = StreamUtils.filter(todoList, u -> !Objects.equals(u.getProcessedBy(), flowParams.getHandler()));
 
         // 会签并且当前人退回直接返回
-        if (CooperateType.isCountersign(nodeRatio) && SkipType.isReject(flowParams.getSkipType())) {
+        if (CooperationType.isCountersign(nodeRatio) && SkipType.isReject(flowParams.getSkipType())) {
             return removeRestList(restList);
         }
 
@@ -849,8 +849,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         boolean isPass = SkipType.isPass(flowParams.getSkipType());
         // 如果是票签默认或者spel表达式策略，则执行表达式
-        if (CooperateType.isVoteSignDefault(nodeRatio) || CooperateType.isVoteSignRejectSpel(nodeRatio)) {
-            Map<String, Object> variable = MapUtil.clone(flowParams.getVariable());
+        if (CooperationType.isVoteSignDefault(nodeRatio) || CooperationType.isVoteSignRejectSpel(nodeRatio)) {
+            Map<String, Object> variable = MapUtil.clone(flowParams.getVariables());
             variable.put("skipType", flowParams.getSkipType());
             variable.put("passNum", donePassList.size());
             variable.put("rejectNum", doneRejectList.size());
@@ -873,13 +873,13 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
                 .divide(BigDecimal.valueOf(allNum), 4, RoundingMode.HALF_UP).multiply(MathUtil.ONE_HUNDRED);
 
             // 判断是否是票签中的固定通过人数，如果是则判断是否达到该人数
-            if (CooperateType.isVoteSignPassCount(nodeRatio)) {
+            if (CooperationType.isVoteSignPassCount(nodeRatio)) {
                 String passCount = StringUtils.substring(nodeRatio, nodeRatio.indexOf("=") + 1);
                 if ((isPass && donePassList.size() + 1 >= Integer.parseInt(passCount))
                     || (!isPass && doneRejectList.size() + 1 > allNum - Integer.parseInt(passCount))) {
                     return removeRestList(restList);
                 }
-            } else if (CooperateType.isVoteSignRejectCount(nodeRatio)) {
+            } else if (CooperationType.isVoteSignRejectCount(nodeRatio)) {
                 // 判断是否是票签中的固定驳回人数，如果是则判断是否达到该人数
                 String rejectCount = StringUtils.substring(nodeRatio, nodeRatio.indexOf("=") + 1);
                 if ((!isPass && doneRejectList.size() + 1 >= Integer.parseInt(rejectCount))
@@ -962,7 +962,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
                 });
                 flag.set(false);
                 pathWayData.getPathWaySkips().removeIf(nodeJson -> {
-                    if (nodeJson.getNowNodeCode().equals(parallelOrInclusiveList.get(0).getNodeCode())) {
+                    if (nodeJson.getSourceNodeCode().equals(parallelOrInclusiveList.get(0).getNodeCode())) {
                         flag.set(true);
                     }
                     return flag.get();
@@ -993,15 +993,15 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
      * 一票否决（谨慎使用），如果退回，退回指向节点后还存在其他正在执行的待办任务，转历史任务，状态都为退回,重走流程。
      *
      * @param task         当前任务
-     * @param nextNodeCode 下一个节点编码
+     * @param targetNodeCode 下一个节点编码
      * @param flowCombine  流程数据集合
      */
-    private void oneVoteVeto(Task task, String nextNodeCode, FlowCombine flowCombine) {
+    private void oneVoteVeto(Task task, String targetNodeCode, FlowCombine flowCombine) {
         // 一票否决（谨慎使用），如果退回，退回指向节点后还存在其他正在执行的待办任务，转历史任务，状态失效,重走流程。
         List<Task> tasks = list(FlowEngine.newTask().setInstanceId(task.getInstanceId()));
         // 属于退回指向节点的后置未完成的任务
         List<Task> noDoneTasks = new ArrayList<>();
-        List<Node> suffixNodeList = FlowEngine.nodeService().suffixNodeList(nextNodeCode, flowCombine);
+        List<Node> suffixNodeList = FlowEngine.nodeService().suffixNodeList(targetNodeCode, flowCombine);
         List<String> suffixCodes = StreamUtils.toList(suffixNodeList, Node::getNodeCode);
         for (Task flowTask : tasks) {
             if (suffixCodes.contains(flowTask.getNodeCode())) {
@@ -1094,7 +1094,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         R r = getAndCheck(taskId);
 
         ListenerVariable listenerVariable = new ListenerVariable(r.definition, r.instance, r.nowNode
-            , flowParams.getVariable(), r.task);
+            , flowParams.getVariables(), r.task);
 
         FlowDto flowDto = new FlowDto();
         if (FlowCons.FORM_CUSTOM_Y.equals(r.nowNode.getFormCustom())) {

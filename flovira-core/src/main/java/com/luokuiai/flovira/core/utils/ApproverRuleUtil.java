@@ -191,8 +191,8 @@ public final class ApproverRuleUtil {
 
     private static Map<String, Object> copyContext(FlowParams flowParams) {
         Map<String, Object> context = new LinkedHashMap<String, Object>();
-        if (flowParams != null && MapUtil.isNotEmpty(flowParams.getVariable())) {
-            context.putAll(flowParams.getVariable());
+        if (flowParams != null && MapUtil.isNotEmpty(flowParams.getVariables())) {
+            context.putAll(flowParams.getVariables());
         }
         return context;
     }

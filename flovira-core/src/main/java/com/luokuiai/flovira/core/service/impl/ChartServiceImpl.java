@@ -102,7 +102,7 @@ public class ChartServiceImpl implements ChartService {
 
         if (SkipType.isReject(pathWayData.getSkipType())) {
             Map<String, List<SkipJson>> skipNextMap = StreamUtils.groupByKeyFilter(skip ->
-                !SkipType.isReject(skip.getSkipType()), skipList, SkipJson::getNowNodeCode);
+                !SkipType.isReject(skip.getSkipType()), skipList, SkipJson::getSourceNodeCode);
             pathWayData.getTargetNodes().forEach(node -> rejectReset(node.getNodeCode(), skipNextMap, nodeMap));
         }
 
@@ -121,31 +121,31 @@ public class ChartServiceImpl implements ChartService {
     }
 
     @Override
-    public List<String> getChartRgb(String modelValue) {
+    public List<String> getChartRgb() {
         List<String> chartStatusColor = new ArrayList<>();
-        Color done = ChartStatus.getDone(modelValue);
+        Color done = ChartStatus.getDone();
         chartStatusColor.add(done.getRed() + "," + done.getGreen() + "," + done.getBlue());
-        Color toDo = ChartStatus.getToDo(modelValue);
+        Color toDo = ChartStatus.getToDo();
         chartStatusColor.add(toDo.getRed() + "," + toDo.getGreen() + "," + toDo.getBlue());
-        Color notDone = ChartStatus.getNotDone(modelValue);
+        Color notDone = ChartStatus.getNotDone();
         chartStatusColor.add(notDone.getRed() + "," + notDone.getGreen() + "," + notDone.getBlue());
         return chartStatusColor;
     }
 
     private String getSkipKey(SkipJson skip) {
         return StringUtils.join(new String[]{
-            skip.getNowNodeCode(),
+            skip.getSourceNodeCode(),
             skip.getSkipType(),
             skip.getSkipCondition(),
-            skip.getNextNodeCode()}, ":");
+            skip.getTargetNodeCode()}, ":");
     }
 
     private String getSkipKey(Skip skip) {
         return StringUtils.join(new String[]{
-            skip.getNowNodeCode(),
+            skip.getSourceNodeCode(),
             skip.getSkipType(),
             skip.getSkipCondition(),
-            skip.getNextNodeCode()}, ":");
+            skip.getTargetNodeCode()}, ":");
     }
 
     private void rejectReset(String nodeCode, Map<String, List<SkipJson>> skipNextMap, Map<String, NodeJson> nodeMap) {
@@ -154,7 +154,7 @@ public class ChartServiceImpl implements ChartService {
             oneNextSkips.forEach(oneNextSkip -> {
                 if (ObjectUtil.isNotNull(oneNextSkip) && !ChartStatus.isNotDone(oneNextSkip.getStatus())) {
                     oneNextSkip.setStatus(ChartStatus.NOT_DONE.getKey());
-                    NodeJson nodeJson = nodeMap.get(oneNextSkip.getNextNodeCode());
+                    NodeJson nodeJson = nodeMap.get(oneNextSkip.getTargetNodeCode());
                     if (ObjectUtil.isNotNull(nodeJson) && !ChartStatus.isNotDone(nodeJson.getStatus())) {
                         nodeJson.setStatus(ChartStatus.NOT_DONE.getKey());
                         rejectReset(nodeJson.getNodeCode(), skipNextMap, nodeMap);

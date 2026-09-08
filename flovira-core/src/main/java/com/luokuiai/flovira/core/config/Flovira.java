@@ -112,19 +112,9 @@ public class Flovira implements Serializable {
     private String tokenName = "Authorization";
 
     /**
-     * 公共模型流程状态对应的三原色
+     * 流程状态对应的三原色
      */
     private List<String> chartStatusColor;
-
-    /**
-     * 经典模式流程状态对应的三原色
-     */
-    private List<String> chartStatusColorClassics;
-
-    /**
-     * 仿钉钉模式流程状态对应的三原色
-     */
-    private List<String> chartStatusColorMimic;
 
     /**
      * 是否显示流程图顶部文字
@@ -175,7 +165,7 @@ public class Flovira implements Serializable {
         printBanner();
 
         // 初始化流程状态对应的自定义三原色
-        ChartStatus.initCustomColor(this.getChartStatusColor(), this.getChartStatusColorClassics(), this.getChartStatusColorMimic());
+        ChartStatus.initCustomColor(this.getChartStatusColor());
 
         // 通过SPI机制
         spiLoad();

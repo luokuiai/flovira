@@ -59,11 +59,6 @@ public class DefJson {
     private String flowName;
 
     /**
-     * 设计器模型（CLASSICS经典模型 MIMIC仿钉钉模型）
-     */
-    private String modelValue;
-
-    /**
      * 流程类别
      */
     private String category;
@@ -76,7 +71,7 @@ public class DefJson {
     /**
      * 是否发布（0未开启 1开启）
      */
-    private Integer isPublish;
+    private Integer publishStatus;
 
     /**
      * 审批表单是否自定义（Y=是 N=否）
@@ -133,9 +128,9 @@ public class DefJson {
      */
     private boolean topTextShow;
 
-    private String createBy;
+    private String createdBy;
 
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 流程类别
@@ -148,28 +143,20 @@ public class DefJson {
     private List<Tree> formPathList;
 
 
-    public String getModelValue() {
-        if (StringUtils.isEmpty(modelValue)) {
-            modelValue = "CLASSICS";
-        }
-        return modelValue;
-    }
-
     public static DefJson copyDef(Definition definition) {
         DefJson defJson = new DefJson()
                 .setFlowCode(definition.getFlowCode())
                 .setFlowName(definition.getFlowName())
-                .setModelValue(definition.getModelValue())
                 .setVersion(definition.getVersion())
-                .setIsPublish(definition.getIsPublish())
+                .setPublishStatus(definition.getPublishStatus())
                 .setCategory(definition.getCategory())
                 .setFormCustom(definition.getFormCustom())
                 .setFormPath(definition.getFormPath())
                 .setListenerType(definition.getListenerType())
                 .setListenerPath(definition.getListenerPath())
                 .setExt(definition.getExt())
-                .setCreateBy(definition.getCreateBy())
-                .setUpdateBy(definition.getUpdateBy());
+                .setCreatedBy(definition.getCreatedBy())
+                .setUpdatedBy(definition.getUpdatedBy());
 
         List<NodeJson> nodeList = new ArrayList<>();
         defJson.setNodeList(nodeList);
@@ -188,8 +175,8 @@ public class DefJson {
                     .setFormCustom(node.getFormCustom())
                     .setFormPath(node.getFormPath())
                     .setExt(node.getExt())
-                    .setCreateBy(node.getCreateBy())
-                    .setUpdateBy(node.getUpdateBy());
+                    .setCreatedBy(node.getCreatedBy())
+                    .setUpdatedBy(node.getUpdatedBy());
             nodeList.add(nodeJson);
 
             List<SkipJson> skipList = new ArrayList<>();
@@ -201,10 +188,10 @@ public class DefJson {
                             .setSkipType(skip.getSkipType())
                             .setSkipName(skip.getSkipName())
                             .setSkipCondition(skip.getSkipCondition())
-                            .setNowNodeCode(skip.getNowNodeCode())
-                            .setNextNodeCode(skip.getNextNodeCode())
-                            .setCreateBy(skip.getCreateBy())
-                            .setUpdateBy(skip.getUpdateBy()));
+                            .setSourceNodeCode(skip.getSourceNodeCode())
+                            .setTargetNodeCode(skip.getTargetNodeCode())
+                            .setCreatedBy(skip.getCreatedBy())
+                            .setUpdatedBy(skip.getUpdatedBy()));
                 }
             }
 
@@ -217,7 +204,6 @@ public class DefJson {
                 .setId(defJson.getId())
                 .setFlowCode(defJson.getFlowCode())
                 .setFlowName(defJson.getFlowName())
-                .setModelValue(defJson.getModelValue())
                 .setVersion(defJson.getVersion())
                 .setCategory(defJson.getCategory())
                 .setFormCustom(defJson.getFormCustom())
@@ -225,8 +211,8 @@ public class DefJson {
                 .setListenerType(defJson.getListenerType())
                 .setListenerPath(defJson.getListenerPath())
                 .setExt(defJson.getExt())
-                .setCreateBy(defJson.getCreateBy())
-                .setUpdateBy(defJson.getUpdateBy());
+                .setCreatedBy(defJson.getCreatedBy())
+                .setUpdatedBy(defJson.getUpdatedBy());
 
         List<Node> nodeList = new ArrayList<>();
         definition.setNodeList(nodeList);
@@ -245,8 +231,8 @@ public class DefJson {
                     .setFormCustom(nodeJson.getFormCustom())
                     .setFormPath(nodeJson.getFormPath())
                     .setExt(nodeJson.getExt())
-                    .setCreateBy(nodeJson.getCreateBy())
-                    .setUpdateBy(nodeJson.getUpdateBy());
+                    .setCreatedBy(nodeJson.getCreatedBy())
+                    .setUpdatedBy(nodeJson.getUpdatedBy());
             nodeList.add(node);
 
             List<Skip> skipList = new ArrayList<>();
@@ -259,10 +245,10 @@ public class DefJson {
                             .setSkipType(skipJson.getSkipType())
                             .setSkipName(skipJson.getSkipName())
                             .setSkipCondition(skipJson.getSkipCondition())
-                            .setNowNodeCode(skipJson.getNowNodeCode())
-                            .setNextNodeCode(skipJson.getNextNodeCode())
-                            .setCreateBy(skipJson.getCreateBy())
-                            .setUpdateBy(skipJson.getUpdateBy()));
+                            .setSourceNodeCode(skipJson.getSourceNodeCode())
+                            .setTargetNodeCode(skipJson.getTargetNodeCode())
+                            .setCreatedBy(skipJson.getCreatedBy())
+                            .setUpdatedBy(skipJson.getUpdatedBy()));
                 }
             }
 

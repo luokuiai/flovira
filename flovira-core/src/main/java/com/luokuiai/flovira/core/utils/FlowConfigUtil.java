@@ -53,8 +53,8 @@ public class FlowConfigUtil {
         String flowName = definition.getFlowName();
         AssertUtil.isEmpty(definition.getFlowCode(), "【" + flowName + "】流程flowCode为空!");
         // 发布
-        definition.setIsPublish(0);
-        definition.setUpdateTime(new Date());
+        definition.setPublishStatus(0);
+        definition.setUpdatedAt(new Date());
         FlowEngine.dataFillHandler().idFill(definition);
 
         List<Node> nodeList = definition.getNodeList();
@@ -69,7 +69,7 @@ public class FlowConfigUtil {
             allSkips.addAll(node.getSkipList());
         }
         Map<String, Integer> skipMap = StreamUtils.toMap(allNodes, Node::getNodeCode, Node::getNodeType);
-        allSkips.forEach(allSkip -> allSkip.setNextNodeType(skipMap.get(allSkip.getNextNodeCode())));
+        allSkips.forEach(allSkip -> allSkip.setTargetNodeType(skipMap.get(allSkip.getTargetNodeCode())));
         AssertUtil.isTrue(startNum == 0, "[" + flowName + "]" + ExceptionCons.LOST_START_NODE);
         // 校验跳转节点的合法性
         checkSkipNode(allSkips);
@@ -96,13 +96,13 @@ public class FlowConfigUtil {
      * @param allSkips
      */
     public static void checkSkipNode(List<Skip> allSkips) {
-        Map<String, List<Skip>> allSkipMap = StreamUtils.groupByKey(allSkips, Skip::getNowNodeCode);
+        Map<String, List<Skip>> allSkipMap = StreamUtils.groupByKey(allSkips, Skip::getSourceNodeCode);
         // 不可同时通过或者退回到多个中间节点，必须先流转到网关节点
         allSkipMap.forEach((key, values) -> {
             AtomicInteger passNum = new AtomicInteger();
             AtomicInteger rejectNum = new AtomicInteger();
             for (Skip value : values) {
-                if (NodeType.isWorkNode(value.getNowNodeType()) && NodeType.isWorkNode(value.getNextNodeType())) {
+                if (NodeType.isWorkNode(value.getSourceNodeType()) && NodeType.isWorkNode(value.getTargetNodeType())) {
                     if (SkipType.isPass(value.getSkipType())) {
                         passNum.getAndIncrement();
                     } else {
@@ -122,8 +122,8 @@ public class FlowConfigUtil {
      */
     public static void validaIsExistDestNode(List<Skip> allSkips, Set<String> nodeCodeSet) {
         for (Skip allSkip : allSkips) {
-            String nextNodeCode = allSkip.getNextNodeCode();
-            AssertUtil.isTrue(!nodeCodeSet.contains(nextNodeCode), "【" + nextNodeCode + "】" + ExceptionCons.NULL_NODE_CODE);
+            String targetNodeCode = allSkip.getTargetNodeCode();
+            AssertUtil.isTrue(!nodeCodeSet.contains(targetNodeCode), "【" + targetNodeCode + "】" + ExceptionCons.NULL_NODE_CODE);
         }
     }
 
@@ -161,20 +161,20 @@ public class FlowConfigUtil {
                 skipNum++;
                 AssertUtil.isTrue(skipNum > 1, "[" + node.getNodeName() + "]" + ExceptionCons.MUL_START_SKIP);
             }
-            AssertUtil.isEmpty(skip.getNextNodeCode(), "【" + nodeName + "】" + ExceptionCons.LOST_DEST_NODE);
+            AssertUtil.isEmpty(skip.getTargetNodeCode(), "【" + nodeName + "】" + ExceptionCons.LOST_DEST_NODE);
             // 流程id
             skip.setDefinitionId(definitionId);
-            skip.setNowNodeType(node.getNodeType());
+            skip.setSourceNodeType(node.getNodeType());
             if (NodeType.isGateWaySerial(node.getNodeType())) {
-                String target = skip.getSkipCondition() + ":" + skip.getNextNodeCode();
+                String target = skip.getSkipCondition() + ":" + skip.getTargetNodeCode();
                 AssertUtil.contains(gateWaySet, target, "[" + nodeName + "]" + ExceptionCons.SAME_CONDITION_NODE);
                 gateWaySet.add(target);
             } else if (NodeType.isGateWayParallel(node.getNodeType())) {
-                String target = skip.getNextNodeCode();
+                String target = skip.getTargetNodeCode();
                 AssertUtil.contains(gateWaySet, target, "[" + nodeName + "]" + ExceptionCons.SAME_DEST_NODE);
                 gateWaySet.add(target);
             } else {
-                String value = skip.getSkipType() + ":" + skip.getNextNodeCode();
+                String value = skip.getSkipType() + ":" + skip.getTargetNodeCode();
                 AssertUtil.contains(betweenSet, value, "[" + nodeName + "]" + ExceptionCons.SAME_CONDITION_VALUE);
                 betweenSet.add(value);
             }

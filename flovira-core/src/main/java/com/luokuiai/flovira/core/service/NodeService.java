@@ -62,10 +62,10 @@ public interface NodeService extends IFloviraService<Node> {
      * 根据流程定义id和当前节点code获取所有的前置节点集合
      *
      * @param definitionId 程定义id
-     * @param nowNodeCode  当前节点code
+     * @param nodeCode  当前节点code
      * @return 所有的前置节点集合
      */
-    List<Node> previousNodeList(Long definitionId, String nowNodeCode);
+    List<Node> previousNodeList(Long definitionId, String nodeCode);
 
     /**
      * 根据节点id获取所有的后置节点集合
@@ -79,19 +79,19 @@ public interface NodeService extends IFloviraService<Node> {
      * 根据流程定义id和当前节点code获取所有的后置节点集合
      *
      * @param definitionId 程定义id
-     * @param nowNodeCode  当前节点code
+     * @param nodeCode  当前节点code
      * @return 所有的后置点集合
      */
-    List<Node> suffixNodeList(Long definitionId, String nowNodeCode);
+    List<Node> suffixNodeList(Long definitionId, String nodeCode);
 
     /**
      * 流程数据集合和当前节点code获取所有的后置节点集合
      *
-     * @param nowNodeCode 当前节点code
+     * @param nodeCode 当前节点code
      * @param flowCombine 流程数据集合
      * @return 所有的后置点集合
      */
-    List<Node> suffixNodeList(String nowNodeCode, FlowCombine flowCombine);
+    List<Node> suffixNodeList(String nodeCode, FlowCombine flowCombine);
 
     /**
      * 根据流程定义id获取流程节点集合
@@ -147,7 +147,7 @@ public interface NodeService extends IFloviraService<Node> {
      * 不一定是后置节点，如果是通过就是后置，如果是驳回就取前置节点
      *
      * @param definitionId 流程定义id
-     * @param nowNodeCode  当前节点code
+     * @param currentNodeCode  当前节点code
      * @param anyNodeCode  anyNodeCode不为空，则可跳转anyNodeCode节点（优先级最高）
      * @param skipType     跳转类型（PASS审批通过 REJECT退回）
      * @param variable     流程变量,下一个节点是网关需要判断跳转条件,并行网关返回多个节点
@@ -155,7 +155,7 @@ public interface NodeService extends IFloviraService<Node> {
      * @author xiarg
      * @since 2024/8/21 16:48
      */
-    List<Node> getNextNodeList(Long definitionId, String nowNodeCode, String anyNodeCode, String skipType,
+    List<Node> getNextNodeList(Long definitionId, String currentNodeCode, String anyNodeCode, String skipType,
                                Map<String, Object> variable);
 
     /**
@@ -163,12 +163,12 @@ public interface NodeService extends IFloviraService<Node> {
      * 不一定是后置节点，如果是通过就是后置，如果是驳回就取前置节点
      *
      * @param definitionId 流程定义id
-     * @param nowNodeCode  当前节点code
+     * @param currentNodeCode  当前节点code
      * @param anyNodeCode  anyNodeCode不为空，则可跳转anyNodeCode节点（优先级最高）
      * @param skipType     跳转类型（PASS审批通过 REJECT退回）
      * @return Node
      */
-    Node getNextNode(Long definitionId, String nowNodeCode, String anyNodeCode, String skipType);
+    Node getNextNode(Long definitionId, String currentNodeCode, String anyNodeCode, String skipType);
 
 
     /**

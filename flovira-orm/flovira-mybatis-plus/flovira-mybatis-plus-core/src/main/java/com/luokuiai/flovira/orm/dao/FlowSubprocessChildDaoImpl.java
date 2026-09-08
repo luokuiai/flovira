@@ -36,7 +36,7 @@ public class FlowSubprocessChildDaoImpl implements FlowSubprocessChildDao<FlowSu
     }
     public FlowSubprocessChild findById(String tenantId, Long childId) {
         QueryWrapper<FlowSubprocessChild> query = tenant(tenantId);
-        query.eq("id", childId).eq("del_flag", "0");
+        query.eq("id", childId).eq("deleted", "0");
         return mapper().selectOne(query);
     }
     public FlowSubprocessChild findByRunAndItem(String tenantId, Long runId, String itemKey) {

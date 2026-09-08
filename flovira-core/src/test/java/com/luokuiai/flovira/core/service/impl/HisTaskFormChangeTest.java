@@ -146,7 +146,7 @@ public class HisTaskFormChangeTest {
         assertEquals("amount", records.get(0).getChanges().get(0).getFieldLabel());
     }
 
-    private static HisTask history(Long id, long updateTime, String approver, String nodeCode,
+    private static HisTask history(Long id, long updatedAt, String approver, String nodeCode,
         String skipType, Map<String, Object> formData) {
         HisTask hisTask = TestEntityFactory.create(HisTask.class)
             .setId(id)
@@ -158,7 +158,7 @@ public class HisTaskFormChangeTest {
             .setSkipType(skipType)
             .setFormCustom(FlowCons.FORM_CUSTOM_Y)
             .setFormPath("20")
-            .setUpdateTime(new Date(updateTime));
+            .setUpdatedAt(new Date(updatedAt));
         Map<String, Object> variables = new LinkedHashMap<String, Object>();
         variables.put(FlowCons.FORM_DATA, formData);
         TestEntityFactory.put(hisTask, "VariableMap", variables);

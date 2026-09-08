@@ -86,7 +86,7 @@ public class ProgressServiceImplTest {
     public void shouldStartAfterCurrentNodeAndOverlayInstanceVariables() {
         Definition definition = TestEntityFactory.create(Definition.class).setId(1L).setFlowCode("LEAVE");
         Instance instance = TestEntityFactory.create(Instance.class).setId(2L).setDefinitionId(1L)
-            .setNodeCode("first").setVariable("instance");
+            .setNodeCode("first").setVariables("instance");
         Map<String, Object> instanceVariables = new HashMap<>();
         instanceVariables.put("amount", 10);
         instanceVariables.put("retained", "kept");
@@ -215,8 +215,8 @@ public class ProgressServiceImplTest {
     }
 
     private static Skip skip(String source, String target, String skipType, String condition) {
-        return TestEntityFactory.create(Skip.class).setDefinitionId(1L).setNowNodeCode(source)
-            .setNextNodeCode(target).setSkipType(skipType).setSkipCondition(condition);
+        return TestEntityFactory.create(Skip.class).setDefinitionId(1L).setSourceNodeCode(source)
+            .setTargetNodeCode(target).setSkipType(skipType).setSkipCondition(condition);
     }
 
     @SuppressWarnings("unchecked")

@@ -236,9 +236,9 @@ public class SubprocessPersistenceContractTest {
 
     private void root(com.luokuiai.flovira.core.entity.RootEntity entity) {
         entity.setTenantId("tenant-a");
-        entity.setDelFlag("0");
-        entity.setCreateTime(new Date());
-        entity.setUpdateTime(new Date());
+        entity.setDeleted("0");
+        entity.setCreatedAt(new Date());
+        entity.setUpdatedAt(new Date());
     }
 
     private String repeat(char value, int count) {

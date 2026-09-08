@@ -36,7 +36,7 @@ import com.luokuiai.flovira.core.utils.StringUtils;
  */
 @Getter
 @AllArgsConstructor
-public enum CooperateType {
+public enum CooperationType {
 
     /**
      * 协作类型
@@ -74,7 +74,7 @@ public enum CooperateType {
     public final static String SEQUENCE = "sequence";
 
     public static Integer getKeyByValue(String value) {
-        for (CooperateType item : CooperateType.values()) {
+        for (CooperationType item : CooperationType.values()) {
             if (item.getValue().equals(value)) {
                 return item.getKey();
             }
@@ -83,7 +83,7 @@ public enum CooperateType {
     }
 
     public static String getValueByKey(Integer key) {
-        for (CooperateType item : CooperateType.values()) {
+        for (CooperationType item : CooperationType.values()) {
             if (item.getKey().equals(key)) {
                 return item.getValue();
             }
@@ -91,8 +91,8 @@ public enum CooperateType {
         return null;
     }
 
-    public static CooperateType getByKey(Integer key) {
-        for (CooperateType item : CooperateType.values()) {
+    public static CooperationType getByKey(Integer key) {
+        for (CooperationType item : CooperationType.values()) {
             if (item.getKey().equals(key)) {
                 return item;
             }

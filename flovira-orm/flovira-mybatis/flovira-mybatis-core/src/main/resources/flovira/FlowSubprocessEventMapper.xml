@@ -7,17 +7,17 @@
         <result property="parentNodeCode" column="parent_node_code"/><result property="eventType" column="event_type"/>
         <result property="eventResult" column="event_result"/><result property="reason" column="reason"/>
         <result property="occurredAt" column="occurred_at"/><result property="tenantId" column="tenant_id"/>
-        <result property="delFlag" column="del_flag"/><result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/><result property="createBy" column="create_by"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="deleted" column="deleted"/><result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/><result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
     </resultMap>
     <sql id="columns">id,run_id,child_id,parent_instance_id,child_instance_id,parent_node_code,event_type,event_result,
-        reason,occurred_at,tenant_id,del_flag,create_time,update_time,create_by,update_by</sql>
+        reason,occurred_at,tenant_id,deleted,created_at,updated_at,created_by,updated_by</sql>
     <insert id="insert">insert into flow_subprocess_event (<include refid="columns"/>) values
         (#{id},#{runId},#{childId},#{parentInstanceId},#{childInstanceId},#{parentNodeCode},#{eventType},#{eventResult},
-        #{reason},#{occurredAt},#{tenantId},#{delFlag},#{createTime},#{updateTime},#{createBy},#{updateBy})</insert>
+        #{reason},#{occurredAt},#{tenantId},#{deleted},#{createdAt},#{updatedAt},#{createdBy},#{updatedBy})</insert>
     <select id="listByRunId" resultMap="EventResult">select <include refid="columns"/> from flow_subprocess_event
-        where run_id=#{runId} and del_flag='0'
+        where run_id=#{runId} and deleted='0'
         <choose><when test="tenantId != null">and tenant_id=#{tenantId}</when><otherwise>and tenant_id is null</otherwise></choose>
         order by occurred_at,id</select>
 </mapper>

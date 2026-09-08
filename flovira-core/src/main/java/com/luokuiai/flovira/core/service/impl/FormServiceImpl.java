@@ -54,8 +54,8 @@ public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form>
     @Override
     public boolean publish(Long id) {
         Form form = getById(id);
-        AssertUtil.isTrue(form.getIsPublish().equals(PublishStatus.PUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_PUBLISH);
-        form.setIsPublish(PublishStatus.PUBLISHED.getKey());
+        AssertUtil.isTrue(form.getPublishStatus().equals(PublishStatus.PUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_PUBLISH);
+        form.setPublishStatus(PublishStatus.PUBLISHED.getKey());
         return updateById(form);
     }
 
@@ -66,8 +66,8 @@ public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form>
         AssertUtil.isNotEmpty(nodes, ExceptionCons.EXIST_USE_FORM);
         List<Definition> definitions = FlowEngine.defService().list(FlowEngine.newDef().setFormPath("" + form.getId()));
         AssertUtil.isNotEmpty(definitions, ExceptionCons.EXIST_USE_FORM);
-        AssertUtil.isTrue(form.getIsPublish().equals(PublishStatus.UNPUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_UN_PUBLISH);
-        form.setIsPublish(PublishStatus.UNPUBLISHED.getKey());
+        AssertUtil.isTrue(form.getPublishStatus().equals(PublishStatus.UNPUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_UN_PUBLISH);
+        form.setPublishStatus(PublishStatus.UNPUBLISHED.getKey());
         return updateById(form);
     }
 
@@ -83,9 +83,9 @@ public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form>
         AssertUtil.isTrue(ObjectUtil.isNull(form), ExceptionCons.NOT_FOUNT_DEF);
         FlowEngine.dataFillHandler().idFill(form.setId(null));
         form.setVersion(getNewVersion(form))
-            .setIsPublish(PublishStatus.UNPUBLISHED.getKey())
-            .setCreateTime(null)
-            .setUpdateTime(null);
+            .setPublishStatus(PublishStatus.UNPUBLISHED.getKey())
+            .setCreatedAt(null)
+            .setUpdatedAt(null);
         return save(form);
     }
 
@@ -105,14 +105,14 @@ public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form>
 
     @Override
     public Page<Form> publishedPage(String formName, Integer pageNum, Integer pageSize) {
-        return page(FlowEngine.newForm().setFormName(formName).setIsPublish(1),
+        return page(FlowEngine.newForm().setFormName(formName).setPublishStatus(1),
             Page.<Form>pageOf(pageNum, pageSize));
     }
 
     @Override
     public boolean saveContent(Long id, String formContent) {
         Form form = getById(id);
-        AssertUtil.isTrue(form.getIsPublish().equals(PublishStatus.PUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_PUBLISH);
+        AssertUtil.isTrue(form.getPublishStatus().equals(PublishStatus.PUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_PUBLISH);
 
         form.setFormContent(formContent);
         return updateById(form);

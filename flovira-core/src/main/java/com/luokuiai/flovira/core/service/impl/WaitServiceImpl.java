@@ -89,7 +89,7 @@ public class WaitServiceImpl implements WaitService {
             .handler(SYSTEM_HANDLER)
             .message("WAIT_TIMEOUT".equals(action) ? "WAIT timeout resumed: " + waitKey : "WAIT resumed: " + waitKey)
             .hisTaskExt(waitHistory(waitKey, action))
-            .variable(variables == null ? Collections.<String, Object>emptyMap() : variables);
+            .variables(variables == null ? Collections.<String, Object>emptyMap() : variables);
         FlowEngine.taskService().skipSystemTask(flowParams, task);
         return new WaitResumeResult(task.getInstanceId(), task.getId(), waitKey, "RESUMED");
     }

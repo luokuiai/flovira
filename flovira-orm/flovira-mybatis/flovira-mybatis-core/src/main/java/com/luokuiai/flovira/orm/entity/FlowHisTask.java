@@ -40,12 +40,12 @@ public class FlowHisTask implements HisTask {
     /**
      * 任务开始时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 审批完成时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 租户ID
@@ -55,7 +55,7 @@ public class FlowHisTask implements HisTask {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
     /**
      * 对应flow_definition表的id
@@ -80,7 +80,7 @@ public class FlowHisTask implements HisTask {
     /**
      * 协作方式(1审批 2转办 3委派 4会签 5票签 6加签 7减签)
      */
-    private Integer cooperateType;
+    private Integer cooperationType;
 
     /**
      * 业务id
@@ -145,7 +145,7 @@ public class FlowHisTask implements HisTask {
     /**
      * 流程变量
      */
-    private String variable;
+    private String variables;
 
     /**
      * 业务详情 存业务类的json

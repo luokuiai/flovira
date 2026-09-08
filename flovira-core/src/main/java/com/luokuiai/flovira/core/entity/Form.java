@@ -33,28 +33,28 @@ public interface Form extends RootEntity {
     Form setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Form setCreateTime(Date createTime);
+    Form setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Form setUpdateTime(Date updateTime);
+    Form setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Form setCreateBy(String createBy);
+    Form setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Form setUpdateBy(String updateBy);
+    Form setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -63,10 +63,10 @@ public interface Form extends RootEntity {
     Form setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Form setDelFlag(String delFlag);
+    Form setDeleted(String deleted);
 
     /**
      * 获取表单编码
@@ -87,9 +87,9 @@ public interface Form extends RootEntity {
     /**
      * 是否发布（0未发布 1已发布 9失效）
      */
-    Integer getIsPublish();
+    Integer getPublishStatus();
 
-    Form setIsPublish(Integer isPublish);
+    Form setPublishStatus(Integer publishStatus);
 
     /**
      * 表单类型（0内置表单，1外挂表单）。外挂表单可同时保存字段定义和业务页面路径。

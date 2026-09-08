@@ -8,17 +8,17 @@
         <result property="formCode" column="form_code"/>
         <result property="formName" column="form_name"/>
         <result property="version" column="version"/>
-        <result property="isPublish" column="is_publish"/>
+        <result property="publishStatus" column="publish_status"/>
         <result property="formType" column="form_type"/>
         <result property="formPath" column="form_path"/>
         <result property="formContent" column="form_content"/>
         <result property="ext" column="ext"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-        <result property="delFlag" column="del_flag"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
         <result property="tenantId" column="tenant_id"/>
-        <result property="createBy" column="create_by"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
     </resultMap>
 
     <sql id="selectVo">
@@ -26,17 +26,17 @@
         t.form_code,
         t.form_name,
         t.version,
-        t.is_publish,
+        t.publish_status,
         t.form_type,
         t.form_path,
         t.form_content,
         t.ext,
-        t.create_time,
-        t.update_time,
-        t.del_flag,
+        t.created_at,
+        t.updated_at,
+        t.deleted,
         t.tenant_id,
-        t.create_by,
-        t.update_by
+        t.created_by,
+        t.updated_by
         from flow_form t
     </sql>
 
@@ -56,17 +56,17 @@
             <if test="entity.formCode != null  and entity.formCode != ''">and t.form_code = #{entity.formCode}</if>
             <if test="entity.formName != null  and entity.formName != ''">and t.form_name = #{entity.formName}</if>
             <if test="entity.version != null  and entity.version != ''">and t.version = #{entity.version}</if>
-            <if test="entity.isPublish != null ">and t.is_publish = #{entity.isPublish}</if>
+            <if test="entity.publishStatus != null ">and t.publish_status = #{entity.publishStatus}</if>
             <if test="entity.formType != null">and t.form_type = #{entity.formType}</if>
             <if test="entity.formPath != null">and t.form_path = #{entity.formPath}</if>
             <if test="entity.formContent != null">and t.form_content = #{entity.formContent}</if>
             <if test="entity.ext != null  and entity.ext != ''">and t.ext = #{entity.ext}</if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-            <if test="entity.updateBy != null and entity.updateBy != ''">and t.update_by = #{entity.updateBy}</if>
-            <if test="entity.createBy != null and entity.createBy != ''"> and t.create_by = #{entity.createBy}</if>
+            <if test="entity.updatedBy != null and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
+            <if test="entity.createdBy != null and entity.createdBy != ''"> and t.created_by = #{entity.createdBy}</if>
         </where>
     </sql>
 
@@ -76,17 +76,17 @@
         form_code,
         form_name,
         version,
-        is_publish,
+        publish_status,
         form_type,
         form_path,
         form_content,
         ext,
-        create_time,
-        update_time,
-        del_flag,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         )
         values
         <foreach collection="list" item="item" separator=",">
@@ -95,17 +95,17 @@
             #{item.formCode},
             #{item.formName},
             #{item.version},
-            #{item.isPublish},
+            #{item.publishStatus},
             #{item.formType},
             #{item.formPath},
             #{item.formContent},
             #{item.ext},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             )
         </foreach>
     </sql>
@@ -116,17 +116,17 @@
         form_code,
         form_name,
         version,
-        is_publish,
+        publish_status,
         form_type,
         form_path,
         form_content,
         ext,
-        create_time,
-        update_time,
-        del_flag,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         )
         <foreach collection="list" item="item" separator=" union all">
             select
@@ -134,17 +134,17 @@
             #{item.formCode},
             #{item.formName},
             #{item.version},
-            #{item.isPublish},
+            #{item.publishStatus},
             #{item.formType},
             #{item.formPath},
             #{item.formContent},
             #{item.ext},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             from dual
         </foreach>
     </sql>
@@ -183,7 +183,7 @@
     <select id="selectById" resultMap="FlowFormResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -193,7 +193,7 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -203,7 +203,7 @@
         <foreach item="item" collection="formCodeList" open="(" separator="," close=")">
             #{item}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -214,34 +214,34 @@
             <if test="formCode != null and formCode != ''">form_code,</if>
             <if test="formName != null and formName != ''">form_name,</if>
             <if test="version != null and version != ''">version,</if>
-            <if test="isPublish != null">is_publish,</if>
+            <if test="publishStatus != null">publish_status,</if>
             <if test="formType != null">form_type,</if>
             <if test="formPath != null">form_path,</if>
             <if test="formContent != null and formContent != ''">form_content,</if>
             <if test="ext != null and ext != ''">ext,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
-            <if test="createBy != null and createBy != ''">create_by,</if>
-            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="createdBy != null and createdBy != ''">created_by,</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="formCode != null and formCode != ''">#{formCode},</if>
             <if test="formName != null and formName != ''">#{formName},</if>
             <if test="version != null and version != ''">#{version},</if>
-            <if test="isPublish != null">#{isPublish},</if>
+            <if test="publishStatus != null">#{publishStatus},</if>
             <if test="formType != null">#{formType},</if>
             <if test="formPath != null">#{formPath},</if>
             <if test="formContent != null">#{formContent},</if>
             <if test="ext != null and ext != ''">#{ext},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
-            <if test="createBy != null and createBy != ''">#{createBy},</if>
-            <if test="updateBy != null and updateBy != ''">#{updateBy}</if>
+            <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">#{updatedBy}</if>
         </trim>
     </insert>
 
@@ -251,28 +251,28 @@
             <if test="formCode != null and formCode != ''">form_code = #{formCode},</if>
             <if test="formName != null and formName != ''">form_name = #{formName},</if>
             <if test="version != null and version != ''">version = #{version},</if>
-            <if test="isPublish != null">is_publish = #{isPublish},</if>
+            <if test="publishStatus != null">publish_status = #{publishStatus},</if>
             <if test="formType != null">form_type = #{formType},</if>
             <if test="formPath != null">form_path = #{formPath},</if>
             <if test="formContent != null">form_content = #{formContent},</if>
             <if test="ext != null and ext != ''">ext = #{ext},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="createBy != null">create_by = #{createBy},</if>
-            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="createdBy != null">created_by = #{createdBy},</if>
+            <if test="updatedBy != null">updated_by = #{updatedBy},</if>
         </trim>
-        , update_time=now()
+        , updated_at=now()
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
     <update id="closeFlowByCodeList" parameterType="java.util.List">
-        update flow_form set is_publish = 9
+        update flow_form set publish_status = 9
         where form_code in
         <foreach item="item" collection="flowCodeList" open="(" separator="," close=")">
             #{item}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
@@ -285,10 +285,10 @@
 
     <update id="updateByIdLogic">
         update flow_form
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -302,13 +302,13 @@
 
     <update id="updateByIdsLogic">
         update flow_form
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -319,34 +319,34 @@
             <if test="formCode != null and formCode != ''">and form_code = #{formCode}</if>
             <if test="formName != null and formName != ''">and form_name = #{formName}</if>
             <if test="version != null and version != ''">and version = #{version}</if>
-            <if test="isPublish != null">and is_publish = #{isPublish}</if>
+            <if test="publishStatus != null">and publish_status = #{publishStatus}</if>
             <if test="formType != null">and form_custom = #{formType}</if>
             <if test="formPath != null">and form_path = #{formPath}</if>
             <if test="formContent != null">and form_content = #{formContent}</if>
             <if test="ext != null and ext != ''">and ext = #{ext}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
         </where>
     </delete>
 
     <update id="updateLogic">
         update flow_form
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.formCode != null and entity.formCode != ''">and form_code = #{entity.formCode}</if>
             <if test="entity.formName != null and entity.formName != ''">and form_name = #{entity.formName}</if>
             <if test="entity.version != null and entity.version != ''">and version = #{entity.version}</if>
-            <if test="entity.isPublish != null">and is_publish = #{entity.isPublish}</if>
+            <if test="entity.publishStatus != null">and publish_status = #{entity.publishStatus}</if>
             <if test="entity.formType != null">and form_custom = #{entity.formType}</if>
             <if test="entity.formPath != null">and form_path = #{entity.formPath}</if>
             <if test="entity.formContent != null">and form_content = #{entity.formContent}</if>
             <if test="entity.ext != null and entity.ext != ''">and ext = #{entity.ext}</if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag =
+            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}
             </if>
         </where>

@@ -117,9 +117,9 @@ public class NodeJson {
      */
     private List<SkipJson> skipList = new ArrayList<>();
 
-    private String createBy;
+    private String createdBy;
 
-    private String updateBy;
+    private String updatedBy;
 
     public Map<String, Object> getExtMap() {
         if (MapUtil.isEmpty(extMap)) {

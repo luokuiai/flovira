@@ -73,92 +73,92 @@ public class UserServiceImpl extends FloviraServiceImpl<FlowUserDao<User>, User>
     }
 
     @Override
-    public List<String> getPermission(Long associated, String... types) {
+    public List<String> getPermission(Long associatedId, String... types) {
         if (ArrayUtil.isEmpty(types)) {
-            return StreamUtils.toList(list(FlowEngine.newUser().setAssociated(associated)), User::getProcessedBy);
+            return StreamUtils.toList(list(FlowEngine.newUser().setAssociatedId(associatedId)), User::getProcessedBy);
         }
         if (types.length == 1) {
-            return StreamUtils.toList(list(FlowEngine.newUser().setAssociated(associated).setType(types[0]))
+            return StreamUtils.toList(list(FlowEngine.newUser().setAssociatedId(associatedId).setType(types[0]))
                 , User::getProcessedBy);
         }
-        return StreamUtils.toList(getDao().listByAssociatedAndTypes(Collections.singletonList(associated), types)
+        return StreamUtils.toList(getDao().listByAssociatedIdsAndTypes(Collections.singletonList(associatedId), types)
             , User::getProcessedBy);
     }
 
     @Override
-    public List<User> listByAssociatedAndTypes(Long associated, String... types) {
+    public List<User> listByAssociatedIdAndTypes(Long associatedId, String... types) {
         if (ArrayUtil.isEmpty(types)) {
-            return list(FlowEngine.newUser().setAssociated(associated));
+            return list(FlowEngine.newUser().setAssociatedId(associatedId));
         }
         if (types.length == 1) {
-            return list(FlowEngine.newUser().setAssociated(associated).setType(types[0]));
+            return list(FlowEngine.newUser().setAssociatedId(associatedId).setType(types[0]));
         }
-        return getDao().listByAssociatedAndTypes(Collections.singletonList(associated), types);
+        return getDao().listByAssociatedIdsAndTypes(Collections.singletonList(associatedId), types);
     }
 
     @Override
-    public List<User> getByAssociateds(List<Long> associateds, String... types) {
-        if (CollUtil.isNotEmpty(associateds) && associateds.size() == 1) {
-            return listByAssociatedAndTypes(associateds.get(0), types);
+    public List<User> getByAssociatedIds(List<Long> associatedIds, String... types) {
+        if (CollUtil.isNotEmpty(associatedIds) && associatedIds.size() == 1) {
+            return listByAssociatedIdAndTypes(associatedIds.get(0), types);
         }
-        return getDao().listByAssociatedAndTypes(associateds, types);
+        return getDao().listByAssociatedIdsAndTypes(associatedIds, types);
     }
 
     @Override
-    public List<User> listByProcessedBys(Long associated, String processedBy, String... types) {
+    public List<User> listByProcessedBys(Long associatedId, String processedBy, String... types) {
         if (ArrayUtil.isEmpty(types)) {
-            return list(FlowEngine.newUser().setAssociated(associated).setProcessedBy(processedBy));
+            return list(FlowEngine.newUser().setAssociatedId(associatedId).setProcessedBy(processedBy));
         }
         if (types.length == 1) {
-            return list(FlowEngine.newUser().setAssociated(associated).setProcessedBy(processedBy).setType(types[0]));
+            return list(FlowEngine.newUser().setAssociatedId(associatedId).setProcessedBy(processedBy).setType(types[0]));
         }
-        return getDao().listByProcessedBys(associated, Collections.singletonList(processedBy), types);
+        return getDao().listByProcessedBys(associatedId, Collections.singletonList(processedBy), types);
     }
 
     @Override
-    public List<User> getByProcessedBys(Long associated, List<String> processedBys, String... types) {
+    public List<User> getByProcessedBys(Long associatedId, List<String> processedBys, String... types) {
         if (CollUtil.isNotEmpty(processedBys) && processedBys.size() == 1) {
-            return listByProcessedBys(associated, processedBys.get(0), types);
+            return listByProcessedBys(associatedId, processedBys.get(0), types);
         }
-        return getDao().listByProcessedBys(associated, processedBys, types);
+        return getDao().listByProcessedBys(associatedId, processedBys, types);
     }
 
 
     @Override
-    public boolean updatePermission(Long associated, List<String> permissions, String type, boolean clear,
+    public boolean updatePermission(Long associatedId, List<String> permissions, String type, boolean clear,
                                     String handler) {
         // 判断是否clear，如果是true，则先删除当前关联id用户数据
         if (clear) {
-            getDao().delete(FlowEngine.newUser().setAssociated(associated).setCreateBy(handler));
+            getDao().delete(FlowEngine.newUser().setAssociatedId(associatedId).setCreatedBy(handler));
         }
         // 再新增权限人
-        saveBatch(StreamUtils.toList(permissions, permission -> structureUser(associated, permission, type, handler)));
+        saveBatch(StreamUtils.toList(permissions, permission -> structureUser(associatedId, permission, type, handler)));
         return true;
     }
 
     @Override
-    public List<User> structureUser(Long associated, List<String> permissionList, String type) {
-        return StreamUtils.toList(permissionList, permission -> structureUser(associated, permission, type, null));
+    public List<User> structureUser(Long associatedId, List<String> permissionList, String type) {
+        return StreamUtils.toList(permissionList, permission -> structureUser(associatedId, permission, type, null));
     }
 
     @Override
-    public User structureUser(Long associated, String permission, String type) {
-        return structureUser(associated, permission, type, null);
+    public User structureUser(Long associatedId, String permission, String type) {
+        return structureUser(associatedId, permission, type, null);
     }
 
     @Override
-    public List<User> structureUser(Long associated, List<String> permissionList, String type, String handler) {
-        return StreamUtils.toList(permissionList, permission -> structureUser(associated, permission, type, handler));
+    public List<User> structureUser(Long associatedId, List<String> permissionList, String type, String handler) {
+        return StreamUtils.toList(permissionList, permission -> structureUser(associatedId, permission, type, handler));
     }
 
     @Override
-    public User structureUser(Long associated, String permission, String type, String handler) {
+    public User structureUser(Long associatedId, String permission, String type, String handler) {
         Date now = new Date();
         User user = FlowEngine.newUser()
             .setType(type)
             .setProcessedBy(permission)
-            .setAssociated(associated)
-            .setCreateBy(handler);
+            .setAssociatedId(associatedId)
+            .setCreatedBy(handler);
         FlowEngine.dataFillHandler().idFill(user);
         return user;
     }

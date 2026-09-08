@@ -52,7 +52,7 @@ public class FlowDefinitionDaoImpl extends FloviraDaoImpl<FlowDefinition> implem
     public void updatePublishStatus(List<Long> ids, Integer publishStatus) {
         LambdaQueryWrapper<FlowDefinition> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(FlowDefinition::getId, ids);
-        getMapper().update(new FlowDefinition().setIsPublish(publishStatus), queryWrapper);
+        getMapper().update(new FlowDefinition().setPublishStatus(publishStatus), queryWrapper);
     }
 
 }

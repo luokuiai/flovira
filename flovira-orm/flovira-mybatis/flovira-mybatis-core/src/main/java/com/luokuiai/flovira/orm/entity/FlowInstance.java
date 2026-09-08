@@ -40,22 +40,22 @@ public class FlowInstance implements Instance {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -65,7 +65,7 @@ public class FlowInstance implements Instance {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
     /**
      * 对应flow_definition表的id
@@ -106,7 +106,7 @@ public class FlowInstance implements Instance {
     /**
      * 流程变量
      */
-    private String variable;
+    private String variables;
 
     /**
      * @see com.luokuiai.flovira.core.enums.FlowStatus

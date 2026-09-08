@@ -29,7 +29,7 @@ import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.entity.User;
-import com.luokuiai.flovira.core.enums.CooperateType;
+import com.luokuiai.flovira.core.enums.CooperationType;
 import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
@@ -65,14 +65,14 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
     }
 
     @Override
-    public List<HisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer... cooperateTypes) {
-        if (ArrayUtil.isEmpty(cooperateTypes)) {
+    public List<HisTask> listByTaskIdAndCooperationTypes(Long taskId, Integer... cooperationTypes) {
+        if (ArrayUtil.isEmpty(cooperationTypes)) {
             return listByTaskId(taskId);
         }
-        if (cooperateTypes.length == 1) {
-            return list(FlowEngine.newHisTask().setTaskId(taskId).setCooperateType(cooperateTypes[0]));
+        if (cooperationTypes.length == 1) {
+            return list(FlowEngine.newHisTask().setTaskId(taskId).setCooperationType(cooperationTypes[0]));
         }
-        return getDao().listByTaskIdAndCooperateTypes(taskId, cooperateTypes);
+        return getDao().listByTaskIdAndCooperationTypes(taskId, cooperationTypes);
     }
 
     @Override
@@ -116,7 +116,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(ObjectUtil.defaultNull(flowParams.getCooperateType(), CooperateType.APPROVAL.getKey()))
+            .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setCollaborator(StreamUtils.join(collaborators, c -> c))
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
@@ -130,10 +130,10 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFormCustom(task.getFormCustom())
             .setFormPath(task.getFormPath())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -144,7 +144,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(ObjectUtil.defaultNull(flowParams.getCooperateType(), CooperateType.APPROVAL.getKey()))
+            .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -157,10 +157,10 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFormCustom(task.getFormCustom())
             .setFormPath(task.getFormPath())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -171,7 +171,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(CooperateType.DEPUTE.getKey())
+            .setCooperationType(CooperationType.DEPUTE.getKey())
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -179,7 +179,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setTargetNodeCode(task.getNodeCode())
             .setTargetNodeName(task.getNodeName())
             .setApprover(flowParams.getHandler())
-            .setCollaborator(entrustedUser.getCreateBy())
+            .setCollaborator(entrustedUser.getCreatedBy())
             .setSkipType(flowParams.getSkipType())
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : SkipType.isReject(flowParams.getSkipType())
@@ -187,10 +187,10 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFormCustom(task.getFormCustom())
             .setFormPath(task.getFormPath())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -201,8 +201,8 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(CooperateType.isCountersign(nodeRatio)
-                ? CooperateType.COUNTERSIGN.getKey() : CooperateType.VOTE.getKey())
+            .setCooperationType(CooperationType.isCountersign(nodeRatio)
+                ? CooperationType.COUNTERSIGN.getKey() : CooperationType.VOTE.getKey())
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -216,10 +216,10 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFormCustom(task.getFormCustom())
             .setFormPath(task.getFormPath())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -288,7 +288,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(ObjectUtil.defaultNull(flowParams.getCooperateType(), CooperateType.APPROVAL.getKey()))
+            .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -303,10 +303,10 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFormCustom(task.getFormCustom())
             .setFormPath(task.getFormPath())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -448,7 +448,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
     }
 
     private Date eventTime(HisTask hisTask) {
-        return hisTask.getUpdateTime() != null ? hisTask.getUpdateTime() : hisTask.getCreateTime();
+        return hisTask.getUpdatedAt() != null ? hisTask.getUpdatedAt() : hisTask.getCreatedAt();
     }
 
     private <T extends Comparable<T>> int compareNullable(T left, T right) {

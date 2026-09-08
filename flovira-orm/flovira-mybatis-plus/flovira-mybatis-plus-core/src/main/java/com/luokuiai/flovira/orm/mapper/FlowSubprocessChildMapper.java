@@ -23,6 +23,6 @@ import java.util.List;
 
 /** 子流程实例关系 Mapper。 @author warm */
 public interface FlowSubprocessChildMapper extends FloviraMapper<FlowSubprocessChild> {
-    @Select("select * from flow_subprocess_child where run_id=#{runId} and tenant_id=#{tenantId} and del_flag='0' order by id for update")
+    @Select("select * from flow_subprocess_child where run_id=#{runId} and tenant_id=#{tenantId} and deleted='0' order by id for update")
     List<FlowSubprocessChild> lockByRun(@Param("tenantId") String tenantId, @Param("runId") Long runId);
 }

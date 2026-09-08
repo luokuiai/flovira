@@ -42,29 +42,29 @@ public class FlowForm implements Form {
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 删除标记
      */
     @TableLogic(value = "0", delval = "1")
-    private String delFlag;
+    private String deleted;
 
     /**
      * 表单编码
@@ -84,7 +84,7 @@ public class FlowForm implements Form {
     /**
      * 是否发布（0未发布 1已发布 9失效）
      */
-    private Integer isPublish;
+    private Integer publishStatus;
 
     /**
      * 表单类型（0内置表单 存 form_content        1外挂表单 存form_path）

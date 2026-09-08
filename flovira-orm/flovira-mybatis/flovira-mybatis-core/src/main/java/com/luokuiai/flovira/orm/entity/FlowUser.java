@@ -40,22 +40,22 @@ public class FlowUser implements User {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人：比如作为委托的人保存
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -65,7 +65,7 @@ public class FlowUser implements User {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
     /**
      * 人员类型（1待办任务的审批人权限 2待办任务的转办人权限 3待办任务的委托人权限）
@@ -80,6 +80,6 @@ public class FlowUser implements User {
     /**
      * 任务表ID
      */
-    private Long associated;
+    private Long associatedId;
 
 }

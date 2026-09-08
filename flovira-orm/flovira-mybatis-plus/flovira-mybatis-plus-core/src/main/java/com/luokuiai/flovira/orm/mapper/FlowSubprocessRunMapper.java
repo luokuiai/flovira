@@ -23,8 +23,8 @@ import java.util.List;
 
 /** 子流程运行 Mapper。 @author warm */
 public interface FlowSubprocessRunMapper extends FloviraMapper<FlowSubprocessRun> {
-    @Select("select * from flow_subprocess_run where id=#{id} and tenant_id=#{tenantId} and del_flag='0' for update")
+    @Select("select * from flow_subprocess_run where id=#{id} and tenant_id=#{tenantId} and deleted='0' for update")
     FlowSubprocessRun lockById(@Param("tenantId") String tenantId, @Param("id") Long id);
-    @Select("select * from flow_subprocess_run where parent_instance_id=#{parentId} and tenant_id=#{tenantId} and del_flag='0' and run_status in ('INITIALIZING','RUNNING','READY_TO_RESUME','RESUMING','FAILED','CANCELLING') order by id for update")
+    @Select("select * from flow_subprocess_run where parent_instance_id=#{parentId} and tenant_id=#{tenantId} and deleted='0' and run_status in ('INITIALIZING','RUNNING','READY_TO_RESUME','RESUMING','FAILED','CANCELLING') order by id for update")
     List<FlowSubprocessRun> lockActive(@Param("tenantId") String tenantId, @Param("parentId") Long parentId);
 }

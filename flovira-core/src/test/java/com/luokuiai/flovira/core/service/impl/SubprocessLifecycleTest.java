@@ -244,7 +244,7 @@ public class SubprocessLifecycleTest {
                 .setDefinitionId(1L).setNodeCode("SUB").setExt("child");
             childDefinition = TestEntityFactory.create(Definition.class).setId(2L).setFlowCode("child")
                 .setVersion("1").setTenantId("0").setActivityStatus(ActivityStatus.ACTIVITY.getKey());
-            parent = TestEntityFactory.create(Instance.class).setId(100L).setTenantId("0").setCreateBy("starter");
+            parent = TestEntityFactory.create(Instance.class).setId(100L).setTenantId("0").setCreatedBy("starter");
             TestEntityFactory.put(parent, "VariableMap", variables());
 
             final TaskService taskService = service(TaskService.class);
