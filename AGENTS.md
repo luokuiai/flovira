@@ -1,272 +1,145 @@
 # AGENTS.md
 
-本文件是 Codex 以及其他 coding agent 在本仓库工作的项目级操作指南，也是本仓库 **AI 规则的唯一主来源**。
+This is the primary source of project instructions for coding agents working on Flovira. Keep project instructions in English; preserve the language of user-facing documentation and source comments unless requested otherwise.
 
-它综合了：
+## Project
 
-- 当前 `flovira` 仓库的真实模块结构、技术基线与扩展机制。
-- dromara 开源协作约定与 Apache 2.0 开源协议要求。
-- 工作流引擎作为「公共依赖库（SDK）」对外契约稳定与多生态兼容的长期规则。
-- Karpathy 风格 coding-agent 规则：澄清不确定性、保持简单、避免顺手改无关代码、用可验证结果证明行为。
+Flovira is a lightweight workflow engine / SDK maintained in `luokuiai/flovira`, with Maven group `com.luokuiai`. Applications integrate the backend through jars and the Vue / React designers through separate npm packages. Describe the current project as Flovira; preserve upstream attribution without presenting Flovira as an upstream community project.
 
-## 项目概览
+Core constraints: Java 8 source compatibility, framework / ORM / JSON independence, and deliberate management of public contracts.
 
-`flovira` 是 [Dromara](https://dromara.org/) 社区的国产轻量级工作流引擎，`groupId=com.luokuiai`，发布到 Maven 中央仓库供他人依赖。它**是一个被集成的类库 / SDK，不是业务应用**：简洁轻量（核心仅 7 张表）、五脏俱全、扩展性强；后端通过 jar 集成引擎与设计器 API，前端通过独立 npm 包集成统一审批流程设计器。
+- `flovira-core`: entities, services, abstract DAOs, workflow state transitions, handlers, listeners, expression strategies, ID generation and SPI.
+- `flovira-orm`: MyBatis and MyBatis-Plus implementations. Each has an ORM core plus Spring Boot 2 / 3 / 4 starters (`sb` / `sb3` / `sb4`).
+- `flovira-plugin`: Spring expressions and integration (`modes`), separate Jackson / Jackson 3 / Gson providers (`json`), and designer backend APIs (`ui`). No bundled frontend pages.
+- `flovira-designer`: Bun workspace with independent Vue / React packages, optional React UI adapters and consuming examples.
+- `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
+- Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
+- Form definitions, versions, rendering and page addresses belong to the host application. The engine stores string `formId` references and approval data snapshots, with external callbacks for form choices and field labels. Do not reintroduce built-in form management or designer mode switching.
 
-核心定位决定了最高优先约束：**对外公共 API、实体字段、数据库表结构、配置项都是契约，向后兼容是红线**；**核心引擎与具体框架 / ORM / JSON 库解耦**；**JDK 1.8 源码级兼容**。
+## Instruction hierarchy and maintenance
 
-顶层结构（Gradle 多模块 + Bun 前端工作区 + 脚本）：
+1. Current explicit user instructions.
+2. Applicable module `AGENTS.md`.
+3. This root `AGENTS.md`.
+4. Root `CLAUDE.md` and `.cursor/rules` summaries.
+5. Optional local architecture references.
 
-- `flovira-core`：流程引擎核心，**框架无关、ORM 无关、JSON 库无关**。流程定义 / 节点 / 跳转 / 实例 / 任务 / 历史任务 / 用户 / 表单的实体、服务、抽象 DAO、处理器、监听器、条件与办理人表达式策略、ID 生成、SPI 入口。
-- `flovira-orm`：ORM 适配层，实现 core 的 `FloviraDao` 与实体。按「ORM × 框架」矩阵展开：
-  - `flovira-mybatis`：`*-core` + `*-sb-starter`(SpringBoot2) + `*-sb3-starter`(SpringBoot3) + `*-sb4-starter`(SpringBoot4)。
-  - `flovira-mybatis-plus`：同上四件套。
-- `flovira-plugin`：可插拔扩展。
-  - `flovira-plugin-modes`：Spring 框架模式与 SpEL 表达式实现（`*-sb`）。
-  - `flovira-plugin-json`：独立 JSON 序列化实现（`*-json-jackson`、`*-json-jackson3`、`*-json-gson`），使用方只选择一个。
-  - `flovira-plugin-ui`：设计器 / 流程图后端 API（`*-ui-core`、`*-ui-sb-web`），不内嵌前端静态资源。
-- `flovira-designer`：流程设计器前端工作区；`vue/` 与 `react/` 分别发布独立 npm 包，`react-adapters/` 提供可选 UI 框架适配，`examples/` 提供各技术栈消费示例。
-- `sql/`：建表脚本按数据库分目录：`mysql/`、`oracle/`、`postgresql/`；本 fork 从 1.0.0 重新起版，MySQL 与 PostgreSQL 使用完整的 `flovira-v1.sql` 初始化脚本，不继承 Warm-Flow 或旧 Flovira 升级链。
-- 测试不在本仓库：官方测试在独立仓库 `flovira-test`（gitee），本仓库无 `src/test`。
+Read root and applicable module instructions before editing. Module files contain only module-specific rules. Update this file first when changing lasting project rules, then synchronize summaries as needed. Explain conflicts and follow the user's explicit instructions. Do not turn temporary task context into permanent policy.
 
-## 技术基线
+`.qoder/repowiki` is optional local, ignored documentation; never require it for contributors. Keep temporary investigations and decisions in `.codex/` or `docs/`, outside source packages. Remove unreferenced temporary code and backups from the source tree. README and `flovira.com` are user-facing documentation sources.
 
-- **JDK 1.8 源码级**：Gradle Java convention 默认锁定 source/target 8，Jackson 3 与 Spring Boot 4 模块单独使用 Java 17 convention。主代码**禁止使用 Java 9+ 的语法与 API**（详见「兼容性红线」）。
-- **Spring Boot 生态**：并行支持 Spring Boot 2.7.18 / 3.5.16 / 4.0.2，对应 `sb` / `sb3` / `sb4` 后缀的 starter。
-- **多 ORM**：MyBatis 3.5.15（mybatis-spring-boot 2.3.2）、MyBatis-Plus 3.5.12；README 另提到 JPA / BeetlSql 等生态由社区扩展。
-- **多 JSON**：jackson 2.13.5、jackson3 3.0.4、gson 2.9.0，各实现独立发布。
-- **多数据库**：MySQL、Oracle、PostgreSQL（其它库转换表结构即可）。
-- **基础依赖**：Lombok、`slf4j-api`（仅 API，不绑定日志实现）、JUnit 4（测试在独立仓库）。
-- **依赖版本统一在 `gradle/libs.versions.toml` 与 `buildSrc` convention plugins 中管理**，子模块不私自写死或改版本号；项目版本由共享 Java convention 统一设置。
+## Working rules
 
-## 架构与扩展机制（flovira 的灵魂，改动前必须理解）
+- Identify target files, expected behavior, verification and risks before nontrivial edits.
+- Prefer the smallest correct change consistent with existing patterns. Avoid unrelated formatting, renaming or refactoring.
+- Check `git status --short` before substantial changes. Preserve user work; never revert changes you did not make without authorization.
+- Resolve uncertainty from code. State assumptions or ask a concise question when workflow semantics cannot be determined safely.
+- Do not hide failures with fabricated defaults, swallowed exceptions or simulated success.
+- Report success only with fresh command output or direct inspection. Report failed checks and their practical limits.
+- Treat public APIs, entities, schemas, configuration, SPI, state transitions and cross-ecosystem changes as high risk.
+- Use `rg` for literal searches and available CodeGraph tools for structural queries. Do not use Python for ordinary file reads or searches.
+- Prefix shell commands with `rtk`; use `rtk proxy` when unfiltered output is needed.
 
-引擎通过几个解耦点做到「核心与框架无关、可多生态适配」，**这是本仓库最重要的设计约束，破坏它等于破坏整个工程**：
+## Architecture and extension points
 
-- `FlowEngine`：静态门面，持有各 `XxxService`、实体 `Supplier`、`handler` / `listener`、`jsonConvert`。业务方与内部统一通过 `FlowEngine.xxxService()` / `FlowEngine.newXxx()` 取服务和新建实体，不要绕过它直接 new 实现类。
-- `FrameInvoker`：框架桥接点，通过 `setBeanFunction` / `setCfgFunction` 注入「取 Bean」「取配置」的能力。**core 因此不依赖任何容器**；Spring 适配模块在启动时注入这两个 Function。
-- `Flovira`（config）：引擎配置载体（`enabled`、`framework`、`banner`、`keyType`、`logicDelete`、租户 / 数据填充 / 权限 / 全局监听器的类路径、`dataSourceType`、`ui`、`tokenName`、流程图三原色等），`init()` 负责装配 handler、打印 banner、SPI 加载。
-- **Java SPI**：`ServiceLoaderUtil.loadFirst(...)` + `META-INF/services/`（如 `com.luokuiai.flovira.core.json.JsonConvert`）用于可替换实现（典型：JSON 转换策略）。
-- **自动装配注册**随框架不同而不同：
-  - Spring Boot 2：`META-INF/spring.factories`。
-  - Spring Boot 3 / 4：`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。
-- **ORM 抽象**：core 定义 `FloviraDao<T>`、`FloviraQuery`、`FloviraServiceImpl` 与各实体接口；每个 ORM 模块提供实体实现（如 `FlowDefinition`）、Mapper / Dao 实现（如 `FloviraDaoImpl`）、ID 生成器适配，并通过 starter 把实现接入 `FlowEngine`。
+- Obtain services and entities through `FlowEngine.xxxService()` / `FlowEngine.newXxx()`. Do not instantiate concrete ORM entities or service implementations in engine logic.
+- `FrameInvoker.setBeanFunction` / `setCfgFunction` bridge framework bean lookup and configuration. Core must not depend on a container.
+- `Flovira` configuration initializes handlers, banner and SPI. Preserve existing tenant, data-fill, permission, listener, ID, deletion and datasource extension points.
+- JSON providers implement `JsonConvert` and register through `META-INF/services/com.luokuiai.flovira.core.json.JsonConvert`; consumers select one provider. Preserve `ServiceLoaderUtil` loading behavior.
+- Spring Boot 2 uses `META-INF/spring.factories`; Boot 3 / 4 use `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
+- Core defines `FloviraDao`, `FloviraQuery`, service abstractions and entity interfaces. ORM modules implement them and attach suppliers through starters.
+- New JSON / ORM / framework support must use these extension points and the existing starter matrix. New database support needs a full schema plus dialect, pagination and datasource verification.
 
-新增能力时**必须沿用上述矩阵与扩展点**，不要在 core 里直接耦合某个框架 / ORM / JSON 实现。
+## Compatibility and dependencies
 
-## 核心工作规则
+- Shared Java conventions target Java 8. Jackson 3 and Spring Boot 4 modules use the separate Java 17 convention.
+- Java 8 modules must not use `var`, records, sealed classes, switch expressions, text blocks, pattern matching, `List.of` / `Map.of` / `Set.of`, `Optional.isEmpty`, `Stream.toList`, `String.isBlank` / `strip`, `Files.readString`, or other Java 9+ APIs.
+- Use `Arrays.asList`, `Collections`, `Collectors.toList` and existing `com.luokuiai.flovira.core.utils` alternatives.
+- Core must not import Spring, MyBatis-Plus or concrete framework / ORM / JSON implementations. Use adapters, `FrameInvoker` and SPI.
+- Assess downstream effects before changing public classes, method signatures, fields, enum names / codes / ordering, configuration or SPI. Prefer additive evolution for released stable contracts and a deprecation period when retiring them.
+- During the current pre-1.0 stabilization, explicitly requested contract changes may be applied directly. Document code and development-data migration; do not label every such change as a stable-release breaking change.
+- Keep Spring Boot 2 / 3 / 4 and both ORM implementations aligned where affected.
+- Dependency versions belong in `gradle/libs.versions.toml` and shared `buildSrc` conventions; do not independently pin versions in child modules. Inspect these files for the actual supported versions.
+- Use Lombok and `slf4j-api` without binding a logging implementation. Avoid heavyweight dependencies in core.
 
-- 先思考，再编辑。非平凡任务开始前，先识别目标文件、期望行为、验证方式与风险。
-- 保持简单。优先选择与现有模式一致的最小正确改动。
-- 外科手术式改动。不要格式化、重命名、重排或重构无关代码。
-- 保护用户已有工作。较大改动前先看 `git status --short`，除非用户明确要求，绝不回退不是你做的改动。
-- 管理不确定性。如果流程语义、状态流转、跨生态行为不清晰且无法从代码安全推断，先问一个简洁问题，或明确写出假设。
-- 用证据验证。没有新鲜命令输出或直接检查结果时，不要声称构建、测试、修复已经成功。
-- 暴露真实失败。不要用假默认值、吞异常、模拟成功数据或静默降级掩盖真实问题。
-- 凡涉及**公共 API / 实体字段 / 表结构 / 配置项 / SPI 契约 / 跨生态行为 / 多数据库 SQL** 的改动，一律按高风险处理。
+## Java style and workflow semantics
 
-## 规则源维护
+- Follow `.editorconfig`: UTF-8, LF, final newline, no trailing whitespace, established indentation. No blanket reformatting; no Checkstyle / Spotless assumptions.
+- Preserve entity interfaces, service interfaces plus `service.impl`, abstract DAOs and ORM implementations. Do not introduce unrelated architectural layers.
+- Use Lombok for entity / DTO accessors and existing constructor injection patterns for components.
+- Log with SLF4J placeholders. Do not use `printStackTrace`, `System.out.println` or log sensitive data in production code.
+- Reuse existing utilities. Comments explain intent and non-obvious workflow behavior. Preserve class documentation, original `@author` and `@since` values.
+- Conditions, approver expressions, vote signing and listeners are extension points; follow existing `condition`, `strategy`, `listener` and plugin expression implementations.
+- Read relevant services, strategies, handlers, listeners and enums before changing approval, rejection, jumping, transfer, delegation, added / removed signers, termination, withdrawal, voting or branch behavior.
+- CRUD uses `FloviraDao`. Entity changes must reach both ORM implementations, serialization, DTO conversion and supported SQL schemas.
+- Preserve tenant isolation and logical deletion in both engine-managed and ORM-managed paths.
 
-- `AGENTS.md` 是本仓库 agent 规则主来源。
-- `.qoder/repowiki` 是更细的引擎架构与领域参考（**本地文档，已 gitignore、未纳入仓库**；作者本地可选参考，团队成员默认没有，不要当作必读入口或长期依赖）。
-- 新增、删除或调整长期项目规则时，先更新根 `AGENTS.md`，再按需要同步模块级 `AGENTS.md`、根 `CLAUDE.md` 与 `.cursor/rules`。
-- 如果本文件、其他 agent 规则与用户当前指令冲突，优先遵循用户当前指令，同时说明冲突点、取舍原因与影响。
-- 不要把一次性任务背景写成永久规则。只有能长期约束本仓库开发质量的约定才加入本文件。
+## Branding and attribution
 
-## 规则优先级
+- Preserve Flovira names, `com.luokuiai` packages / group, modules, banner, project links and author attribution unless explicitly authorized otherwise.
+- Keep Apache 2.0 headers in Java files and do not alter `LICENSE` or weaken the project's free/open-source commitments.
+- Existing or derived upstream code retains `Copyright 2024-2025, Warm-Flow (290631660@qq.com).` and other original attribution.
+- Independently authored LuokuiAI Java code uses `Copyright 2026, LuokuiAI (luokuiai@gmail.com).` Mixed substantive code keeps the original notice and adds LuokuiAI attribution.
+- Preserve truthful README fork provenance and upstream developer attribution. These are not current project branding.
+- Frontend package licenses are separate; do not replace MIT frontend notices with backend Apache headers.
+- Preserve Chinese README content and source comments unless the user asks for translation. Agent instruction files use English.
 
-冲突时从高到低：
+## SQL and migration
 
-1. 用户当前明确指令。
-2. 模块级 `AGENTS.md`（所在顶层模块下若存在）。
-3. 仓库根 `AGENTS.md`（本文件）。
-4. 根 `CLAUDE.md` 与 `.cursor/rules/*`（与 `AGENTS.md` 冲突一律以 `AGENTS.md` 为准）。
-5. （可选）本地 `.qoder/repowiki` 等领域 / 架构参考（未纳入仓库，可能不存在）。
+- Synchronize all three schemas: `sql/mysql/flovira-v1.sql`, `sql/postgresql/flovira-v1.sql`, `sql/oracle/flovira-v1.sql`.
+- Maintain complete V1 fresh-install baselines during 1.0.0 development; do not restore an inherited historical upgrade chain.
+- Respect dialect differences in types, sequences / identity, pagination, case and reserved words. Check column comments and indexes against actual columns.
+- Document migration purpose, affected contracts, data mapping, database differences and rollback. Never execute destructive database changes without explicit authorization.
+- Existing development databases must be migrated separately; do not rerun fresh-install schemas over them.
 
-## 模块级 AGENTS.md 与 CLAUDE.md
+## Task scope and verification
 
-- 每个顶层模块（`flovira-core`、`flovira-orm`、`flovira-plugin`、`flovira-designer`）下都有一份模块级 `AGENTS.md`，**只写本模块差异**（职责、改动前必读、高风险点、聚焦验证），通用规范一律指向根 `AGENTS.md`。
-- 根 `CLAUDE.md` 是「以 `AGENTS.md` 为唯一来源」的红线摘要，不承载独有规则。
-- 同一条规则只维护一处：通用规则进根 `AGENTS.md`，模块差异进模块级 `AGENTS.md`，避免多处漂移。开始任务前先读根 `AGENTS.md`，再读所在模块级 `AGENTS.md`。
+Use the lightest sufficient workflow:
 
-## 品牌与版权保护
+- L0: small local fixes, documentation or comments; inspect, edit and run focused checks.
+- L1: changes within a module, services, utilities, one starter or one database; collect context and compile / test affected modules.
+- L2: public core contracts, framework / ORM matrices, SPI, state machines, multi-database schemas or publishing; inspect call paths and record decisions / validation when useful.
 
-- 不要移除、替换或弱化 `flovira`、`Flovira`、`dromara`、`com.luokuiai` 包名 / groupId、模块名、启动 banner、作者信息（`warm` / `290631660@qq.com` 等 `developers`）、README 中的 Star/赞助商/文档/演示链接，除非用户明确要求。
-- **每个 Java 文件保留 Apache 2.0 license header**。
-- 已有或派生自 Warm-Flow 的文件必须保留 `Copyright 2024-2025, Warm-Flow (290631660@qq.com).` 及其它原有归属声明。
-- LuokuiAI 独立新增且未复制上游实质代码的文件使用 `Copyright 2026, LuokuiAI (luokuiai@gmail.com).`。
-- 同时包含上游与 LuokuiAI 实质代码的文件保留原声明并追加 LuokuiAI 声明。新增文件的 `package`、Lombok 与注释风格仍与所在模块保持一致。
-- 保留现有中文 README、中文注释、类注释中的 `@author warm` 与 `@since`，不要批量改成英文或通用模板。
-- 不改动 `LICENSE`，不弱化「永久开源免费、无商业版」的项目声明。
-
-## 任务分级
-
-使用与风险匹配的最轻流程。
-
-- **L0**：单文件小修、注释、文档、单库 SQL 注释类改动。读相关代码，改，跑聚焦编译。
-- **L1**：模块内多文件改动、服务逻辑、工具类、单个 starter 适配、单库 SQL 增改。收集上下文，简短规划，小步编辑，编译受影响模块。
-- **L2**：core 公共 API / 实体 / 抽象 DAO 改动、扩展机制（`FlowEngine` / `FrameInvoker` / SPI / 自动装配）改动、跨生态（SB2/3/4）行为、跨 ORM 行为、多数据库表结构 / 升级脚本、版本发布、流程状态机语义。必要时在 `.codex/` 或 `docs/` 记录关键决策与验证细节。
-
-## 兼容性红线（flovira 最关键的约束）
-
-### 1. JDK 1.8 源码级兼容
-
-主代码（`src/main`）只能用 Java 8 语法与 API。**禁止**：
-
-- `var` 局部变量类型推断、`record`、`sealed`、switch 表达式 / `yield`、文本块 `"""`、增强 `instanceof` 模式匹配。
-- Java 9+ 集合工厂 `List.of` / `Map.of` / `Set.of`（用 `Arrays.asList` / `Collections` / 手动构造）。
-- `Optional.isEmpty()`（用 `!opt.isPresent()`）、`Stream.toList()`（用 `collect(Collectors.toList())`）、`String.isBlank()` / `String.strip()`、`Files.readString` 等 Java 9+ 新方法。
-- 任何只在高版本 JDK 存在的 API。优先复用项目已有的 `com.luokuiai.flovira.core.utils.*`（`StringUtils`、`ObjectUtil`、`CollUtil`、`MapUtil`、`StreamUtils`、`ArrayUtil`、`AssertUtil` 等），引擎已自带 JDK8 下的流式 / 集合 / 字符串替代工具。
-
-### 2. 对外契约向后兼容
-
-- 公共类、方法签名、`FlowEngine` 门面、`FloviraDao` 接口、实体字段、枚举常量（code / 顺序 / 名称）、`Flovira` 配置项都是已发布契约，**改动前评估对下游依赖方的破坏**；不要随意删除 / 重命名 / 改签名 / 重排枚举。
-- 确需废弃时用 `@Deprecated` 并保留过渡期，新增能力优先「加法」而非「改签名」。
-
-### 3. 框架与 ORM 解耦
-
-- `flovira-core` **禁止**出现 `org.springframework.*`、`com.baomidou.*` 等具体框架 / ORM 依赖与 import（当前 core 已做到零此类依赖，必须保持）。
-- 框架差异通过 `FrameInvoker`、SPI、各 starter 解决；ORM 差异通过 `FloviraDao` 实现与各 orm 模块解决。
-
-### 4. 多生态对齐
-
-- 改某个 starter 的能力时，确认是否需要在 `sb` / `sb3` / `sb4` 以及对应 ORM 模块同步；不要只改一处导致生态不一致。
-
-## Java 与编码风格
-
-- **格式基线以 `.editorconfig` 为准**：4 空格缩进、UTF-8、LF 换行、去行尾空格、文件末尾留空行（`json`/`yml`/`js` 为 2 空格）。仓库**未启用 checkstyle / spotless**，没有自动格式化兜底，提交前自觉对齐既有风格。
-- 遵循引擎现有「实体 / 服务接口 + `service.impl` / 抽象 DAO + orm 实现」分层，不引入新的架构风格或 DDD 分层。
-- Lombok：实体 / DTO 用 `@Getter`/`@Setter`/`@Data`，组件用构造器注入；**不要手写可由注解生成的 getter/setter**。
-- 日志使用 `slf4j` + 占位符；不要 `printStackTrace()` / `System.out.println`；不打印敏感信息。
-- 工具优先复用 `com.luokuiai.flovira.core.utils.*`，不为一次性需求新增通用工具类、不重复造轮子、不在 core 引入重型三方工具库。
-- 注释解释意图、流程语义、边界与非显然取舍，不复述下一行代码；新增类保持标准类注释与 `@author`。
-- 表达式（条件 / 办理人 / 票签）与监听器是引擎对外扩展点，新增策略沿用 `condition` / `strategy` / `listener` 既有接口与 `plugin-modes` 的 SpEL/SnEL 实现模式。
-
-## 实体、DAO、服务与状态机
-
-- 实体（`Definition`/`Node`/`Skip`/`Instance`/`Task`/`HisTask`/`User`/`Form`）通过 `FlowEngine.newXxx()` 创建；新增实体字段要同时考虑各 ORM 实体实现、JSON 序列化、SQL 表结构与升级脚本。
-- 单表 CRUD 走 `FloviraDao` 抽象与各 ORM 实现，不在 core 写死某 ORM 的查询 API。
-- 流程状态、跳转、转办、加签 / 减签、终止、撤回、票签 / 会签、互斥 / 并行网关都有业务副作用与状态机约束，改动前先读对应 `service.impl`、`strategy`、`handler`、`listener` 与状态枚举，确认现有流转后再改，不要凭文件名猜行为。
-
-## SQL 与数据库
-
-- 表结构改动必须**同步三套脚本**：`sql/mysql`、`sql/oracle`、`sql/postgresql`；其中 MySQL 与 PostgreSQL 在 1.0.0 阶段直接维护各自完整的 `flovira-v1.sql` 初始化脚本，不创建历史兼容升级脚本。
-- 注意各库方言差异（类型、自增 / 序列、分页、大小写、关键字）；破坏性或迁移脚本必须写明用途、影响范围、回滚方式与各库兼容性，执行需用户明确批准。
-- 引擎自身维护**多租户与逻辑删除**（见 `Flovira.logicDelete` 等）；改动相关字段 / 行为要兼顾「引擎自带实现」与「复用 ORM 框架实现」两条路径。
-
-## 扩展开发指引（新增生态 / ORM / JSON / DB）
-
-- **新增 JSON 实现**：实现 core 的 `JsonConvert`，放到 `flovira-plugin-json`，并加 `META-INF/services/com.luokuiai.flovira.core.json.JsonConvert`。
-- **新增 ORM 支持**：在 `flovira-orm` 下按现有四件套（`core` + `sb`/`sb3`/`sb4` starter）建模块，实现 `FloviraDao`、实体与 ID 生成适配。
-- **新增框架适配**：提供注入 `FrameInvoker` 的启动逻辑与对应自动装配文件（`spring.factories` / `AutoConfiguration.imports`）。
-- **新增数据库**：补三套之外的脚本目录与全量脚本，并验证 `dataSourceType` / 分页 / 方言。
-- 以上均为 L2，先评估必要性与对现有矩阵的影响，再实施。
-
-## 验证规则
-
-本仓库**无 `src/test`**（测试在独立仓库 `flovira-test`），验证以**分模块编译**为主，按风险选择范围：
+Gradle project names may differ from filesystem paths. Inspect `settings.gradle` before selecting task paths.
 
 ```bash
-# 全量构建（Jackson 3 与 Spring Boot 4 模块要求 JDK 17+）
-./gradlew clean build
-
-# 聚焦编译单个模块
-./gradlew :flovira-core:compileJava
-./gradlew :flovira-orm:flovira-mybatis:flovira-mybatis-core:compileJava
-
-# 前端工作区
-cd flovira-designer
-bun install
-bun run build
+rtk proxy ./gradlew clean build
+rtk proxy ./gradlew :flovira-core:compileJava
+rtk proxy ./gradlew :flovira-mybatis-core:compileJava
+# From flovira-designer:
+rtk bun install
+rtk bun run test
+rtk bun run build
 ```
 
-- 文档 / 注释改动：`git diff --check` 即可。
-- core 改动：编译 core，并至少编译一个依赖它的 orm / plugin 模块。
-- 某 starter / 适配改动：编译该模块，必要时编译同一 ORM 的其它 starter 确认生态一致。
-- SPI / 自动装配改动：确认注册文件与实现类一致，编译相关模块。
-- SQL / 表结构改动：核对三套脚本一致性，并确认 MySQL、PostgreSQL 的 V1 初始化脚本包含完整结构，说明各库兼容性。
+- Documentation / comments: `rtk git diff --check`.
+- Core changes: relevant tests, core compilation and at least one downstream ORM / plugin compilation.
+- ORM changes: test each affected ORM; starter changes need affected ecosystem checks.
+- SPI / auto-configuration: verify registrations and implementation classes together.
+- SQL changes: compare all supported schemas and ORM mappings; distinguish static checks from execution against actual databases.
+- Frontend changes: relevant tests, library builds and consuming example builds. Check relevant UI interactions for visual changes.
+- If blocked, report the command, failure, likely cause, impact and next step. Do not remove build plugins, weaken checks or change the JDK baseline to hide failures.
 
-无法完成验证时必须报告：尝试的命令、失败现象、可能原因、对当前改动的风险、建议下一步。**不要为了让构建“通过”而删插件、降基线或改 JDK 版本。**
+## Git and pull requests
 
-## 文档与 AI 产物归档
+- Default branch base is `develop`; other bases require explicit direction.
+- Branch names use `<type>/<kebab-case-topic>`, with one clear goal. Use existing types such as `feat`, `fix`, `refactor`, `docs`, `perf`, `test`, `build`, `ci`, `update`, `upgrade`, `revert`.
+- Commits use English `<type>: <imperative summary>`, no scope by default, lowercase initial, no final period, preferably <=50 characters and at most 72.
+- Existing commit types include `init`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `update`, `upgrade`. Split unrelated logical changes.
+- Omit bodies when the subject suffices. Otherwise explain intent or migration in English, with lines <=72 characters. Stable-release incompatible changes need explicit migration communication; follow current user instructions for pre-release labeling.
+- Inspect staged diffs, run `git diff --cached --check`, and exclude artifacts, temporary files and unrelated work.
+- PRs target `develop` by default, use an English Conventional Commit title, and follow `.github/pull_request_template.md`.
+- Keep `## Summary` and `## Changes`. Summary is one short English paragraph; Changes has 3-7 concrete English bullets, including actual verification.
+- Before creating a PR, verify the branch is pushed, workspace is clean and commits / diff are appropriate. Use Draft when work or verification remains incomplete.
 
-- 面向用户的正式文档以 README 与官网（flovira.com）为准；引擎细节可参考本地 `.qoder/repowiki`（未纳入仓库，仅本地可选）。
-- AI / agent 的一次性调研、决策记录、临时计划放 `.codex/` 或 `docs/`，不要塞进源码包，也不要当作长期必读入口。
-- 临时 / 备份代码、注释掉的旧实现、压测入口不留在源码树，确认无引用后删除（git 历史可追溯）。
+## Publishing and permissions
 
-## Git 协作规范
+- `publishToMavenLocal` publishes locally; remote `publish` requires configured repository, credentials, signing and Central publishing setup. Never commit credentials.
+- `.github/workflows/publish.yml` publishes snapshots on `develop` and releases for version tags. npm releases use `.github/workflows/publish-npm.yml` and Trusted Publishing configured separately for each public package. Inspect workflows before changing publishing behavior.
+- Without user authorization: no commit / push, branch deletion, force push, history rewrite, remote publishing, credential rotation, destructive out-of-scope filesystem actions, destructive database execution, lower JDK baselines or weakened licensing.
+- Existing session authorization persists; do not repeatedly ask for already-authorized actions.
+- Reading, searching, local builds / tests, scoped edits and git status / diff are allowed during relevant tasks.
 
-### 分支规范
+## Responses
 
-- 日常功能、修复、重构和文档分支默认从 `develop` 创建；发布或紧急修复分支仅在用户明确指定时使用其它基线。
-- 分支名统一使用 `<type>/<kebab-case-topic>`，例如 `feat/progress-preview`、`fix/json-provider-loading`、`docs/contribution-rules`。
-- `type` 使用仓库已有类别：`feat`、`fix`、`perf`、`refactor`、`docs`、`test`、`build`、`ci`、`update`、`upgrade`、`revert`。
-- 一个分支只承载一个清晰目标，不把无关修复、格式化或治理改动混入功能分支。
-
-### Commit 规范
-
-- Commit message 必须使用英文，格式为 `<type>: <imperative summary>`，例如 `feat: add workflow progress preview service`。
-- 默认不使用 scope，不写 `feat(core): ...`；确需引入 scope 时，必须先更新本规范并统一仓库历史约定。
-- Subject 使用祈使语气，首字母小写，不加句号；建议不超过 50 个字符，硬上限 72 个字符。
-- 提交信息类型前缀沿用 README 约定：
-
-```
-init: 初始化
-feat: 增加新功能
-fix: 修复问题/BUG
-perf: 优化/性能提升
-refactor: 重构
-revert: 撤销修改
-style: 代码风格相关无影响运行结果的
-update: 其他修改
-upgrade: 升级版本
-```
-
-- 每个 commit 只包含一个逻辑变更；日志文案、功能实现、重构、文档治理等不同目标必须拆成独立提交。
-- Subject 已能说明意图时不写 body；需要解释非显然原因、迁移要求或兼容性影响时使用英文 body，每行不超过 72 个字符。
-- 破坏性变更使用 `<type>!: ...`，并在 body 中增加 `BREAKING CHANGE: ...`，说明影响和迁移方式。
-- Commit 前检查 staged diff、`git diff --cached --check` 和相关验证结果，不提交构建产物、临时文件或任务范围外改动。
-
-### Pull Request 规范
-
-- PR 默认以 `develop` 为 base；除非用户明确要求，不向 `main` 或发布分支直接发起日常功能 PR。
-- PR 标题必须使用英文，并遵循与 commit subject 相同的 Conventional Commit 格式，例如 `feat: add workflow progress preview service`。
-- PR 必须使用 [`.github/pull_request_template.md`](.github/pull_request_template.md)，保留 `## Summary` 和 `## Changes` 两个标题，不另造重复结构。
-- `Summary` 使用一个简短英文段落，说明 SDK 目标、最终结果和 reviewer 需要关注的影响。
-- `Changes` 使用 3–7 条具体、可审查的英文 bullet；其中至少一条写明实际执行的测试、编译或静态检查，不得声称未运行的验证。
-- 创建 PR 前确认分支已推送、工作区干净、commit 全部为英文原子提交，并确认 diff 不包含无关文件。
-- PR 未完成或验证仍有已知阻塞时创建 Draft；满足合并条件后再转为 Ready for review。
-
-## 构建与发布命令
-
-```bash
-./gradlew clean build                  # 编译、测试并打包
-./gradlew publishToMavenLocal          # 发布到本地 Maven 仓库
-./gradlew publish                      # 发布到配置的远程 Maven 仓库
-cd flovira-designer
-bun install                            # 安装前端 workspace 依赖
-bun run build                          # 构建设计器组件库和全部 demo
-```
-
-- 发布远程 Maven 仓库前必须配置目标仓库、凭证、签名和 Central 发布流程；不得把凭证写入仓库。
-- `.github/workflows/publish.yml` 在 `develop` 推送时发布 Maven Snapshot，在 `vX.Y.Z` tag 时发布 Maven 正式版本。
-- `.github/workflows/publish-npm.yml` 在 `vX.Y.Z` tag 时通过 npm Trusted Publishing 发布 Vue/React Designer 及 React UI 适配包；每个公开 npm 包必须分别在 npm 网站配置该 workflow 为 Trusted Publisher。
-
-## 安全边界
-
-没有用户明确批准，不要执行：
-
-- `git commit`、`git push`、删除分支、强推或改写历史。
-- `./gradlew publish` / 发布到远程 Maven 仓库、改版本号后推送、轮换发布凭证。
-- 任务范围外的破坏性文件系统操作。
-- `DROP`、批量 `DELETE`、表结构重写等破坏性数据库脚本的执行。
-- 降低 JDK 基线、删除编译 / 打包插件、放宽开源协议或弱化品牌信息。
-
-默认允许在相关任务中执行：读取文件、搜索代码、运行本地构建 / 编译、编辑项目文件、使用 `git status` / `git diff`。
-
-## Agent 回复风格
-
-- 简洁但具体，优先说明改了什么、验证了什么。
-- 有帮助时带上文件路径。
-- 如实说明不确定性、跨生态 / 兼容性残余风险。
-- 不要掩盖构建或编译失败。
+Be concise and concrete. Explain changes and verification, link useful files, and report uncertainty or incomplete work honestly. Do not claim failed or unrun checks passed.
