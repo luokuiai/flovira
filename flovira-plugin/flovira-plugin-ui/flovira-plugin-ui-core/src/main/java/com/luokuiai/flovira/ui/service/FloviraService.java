@@ -155,7 +155,7 @@ public class FloviraService {
      */
     public static ApiResult<DefJson> queryFlowChart(Long id) {
         try {
-            Instance instance = FlowEngine.insService().getById(id);
+            Instance instance = FlowEngine.instanceService().getById(id);
             String defJsonStr = instance.getDefJson();
             DefJson defJson = FlowEngine.jsonConvert.strToBean(defJsonStr, DefJson.class);
             defJson.setInstance(instance);

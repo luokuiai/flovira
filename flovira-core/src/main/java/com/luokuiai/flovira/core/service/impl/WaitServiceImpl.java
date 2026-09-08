@@ -126,7 +126,7 @@ public class WaitServiceImpl implements WaitService {
     }
 
     private Map<String, WaitConfig> loadWaitConfigs(Long instanceId) {
-        Instance instance = instanceId == null ? null : FlowEngine.insService().getById(instanceId);
+        Instance instance = instanceId == null ? null : FlowEngine.instanceService().getById(instanceId);
         if (instance == null || StringUtils.isEmpty(instance.getDefJson())) {
             throw new IllegalStateException("Instance definition snapshot is missing");
         }

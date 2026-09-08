@@ -60,3 +60,5 @@ flow_skip 的 source/target 仅表示一条定义跳转关系的来源和目标�
 
 关联 ID 集合参数 associateds 统一为 associatedIds；getByAssociateds 统一为 getByAssociatedIds，下游调用需同步更新。
 单个关联 ID 的 Service 查询统一为 listByAssociatedIdAndTypes；DAO、Mapper 与 XML 的集合查询统一为 listByAssociatedIdsAndTypes，集合参数统一为 associatedIds。
+
+实例服务统一使用完整名称：InsService → InstanceService、InsServiceImpl → InstanceServiceImpl、FlowEngine.insService() → FlowEngine.instanceService()；Spring 装配和内部调用同步，下游同步更新 import 和门面调用。

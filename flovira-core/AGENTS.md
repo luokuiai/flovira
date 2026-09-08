@@ -12,7 +12,7 @@
 - `config`：`Flovira` 引擎配置与 `init()` 装配。
 - `invoker/FrameInvoker`：框架桥接（`setBeanFunction` / `setCfgFunction`），core 不依赖容器的关键。
 - `entity`：`Definition`/`Node`/`Skip`/`Instance`/`Task`/`HisTask`/`User`/`Form` 等接口。
-- `service` + `service.impl`：`DefService`/`NodeService`/`SkipService`/`InsService`/`TaskService`/`HisTaskService`/`UserService`/`FormService`/`ChartService`。
+- `service` + `service.impl`：`DefService`/`NodeService`/`SkipService`/`InstanceService`/`TaskService`/`HisTaskService`/`UserService`/`FormService`/`ChartService`。
 - `orm`：抽象 `dao/FloviraDao`、`agent/FloviraQuery`、`service/FloviraServiceImpl`（ORM 接缝，不含具体实现）。
 - `handler`：`DataFillHandler`/`TenantHandler`/`PermissionHandler`。
 - `listener`：`Listener`/`GlobalListener`/`ListenerVariable`。

@@ -97,8 +97,8 @@ public class BeanConfig {
     }
 
     @Bean
-    public InsService instanceService(FlowInstanceDao instanceDao) {
-        return new InsServiceImpl().setDao(instanceDao);
+    public InstanceService instanceService(FlowInstanceDao instanceDao) {
+        return new InstanceServiceImpl().setDao(instanceDao);
     }
 
     @Bean

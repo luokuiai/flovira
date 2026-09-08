@@ -46,7 +46,7 @@ public class FlowEngine {
     private static final DefService defService = null;
     private static final NodeService nodeService = null;
     private static final SkipService skipService = null;
-    private static final InsService insService = null;
+    private static final InstanceService instanceService = null;
     private static final TaskService taskService = null;
     private static final HisTaskService hisTaskService = null;
     private static final UserService userService = null;
@@ -97,8 +97,8 @@ public class FlowEngine {
         return getObj(skipService, SkipService.class);
     }
 
-    public static InsService insService() {
-        return getObj(insService, InsService.class);
+    public static InstanceService instanceService() {
+        return getObj(instanceService, InstanceService.class);
     }
 
     public static TaskService taskService() {

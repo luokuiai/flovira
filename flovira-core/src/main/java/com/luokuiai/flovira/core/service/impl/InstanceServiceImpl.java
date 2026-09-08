@@ -29,7 +29,7 @@ import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.listener.ListenerVariable;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.utils.*;
 
 import java.util.ArrayList;
@@ -44,10 +44,10 @@ import java.util.stream.Collectors;
  * @author warm
  * @since 2023-03-29
  */
-public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>, Instance> implements InsService {
+public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>, Instance> implements InstanceService {
 
     @Override
-    public InsService setDao(FlowInstanceDao<Instance> floviraDao) {
+    public InstanceService setDao(FlowInstanceDao<Instance> floviraDao) {
         this.floviraDao = floviraDao;
         return this;
     }
@@ -269,7 +269,7 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
 
         FlowEngine.taskService().deleteByInsIds(instanceIds);
         FlowEngine.hisTaskService().deleteByInsIds(instanceIds);
-        return FlowEngine.insService().removeByIds(instanceIds);
+        return FlowEngine.instanceService().removeByIds(instanceIds);
     }
 
     @Override
@@ -290,14 +290,14 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
 
     @Override
     public void removeVariables(Long instanceId, String... keys) {
-        Instance instance = FlowEngine.insService().getById(instanceId);
+        Instance instance = FlowEngine.instanceService().getById(instanceId);
         if (instance != null) {
             Map<String, Object> variableMap = instance.getVariableMap();
             for (String key : keys) {
                 variableMap.remove(key);
             }
             instance.setVariables(FlowEngine.jsonConvert.objToStr(variableMap));
-            FlowEngine.insService().updateById(instance);
+            FlowEngine.instanceService().updateById(instance);
         }
     }
 }

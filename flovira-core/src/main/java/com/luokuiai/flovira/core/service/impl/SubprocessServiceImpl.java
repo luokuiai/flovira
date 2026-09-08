@@ -104,7 +104,7 @@ public class SubprocessServiceImpl implements SubprocessService {
         if (!Objects.equals(tenantId, tenant(childDefinition.getTenantId()))) {
             throw new IllegalStateException("Subprocess child definition belongs to another tenant");
         }
-        Instance parent = FlowEngine.insService().getById(task.getInstanceId());
+        Instance parent = FlowEngine.instanceService().getById(task.getInstanceId());
         if (parent == null) {
             throw new IllegalStateException("Parent instance not found: " + task.getInstanceId());
         }
@@ -186,7 +186,7 @@ public class SubprocessServiceImpl implements SubprocessService {
         }
         FlowParams params = FlowParams.build().flowCode(childDefinition.getFlowCode())
             .handler(parent.getCreatedBy()).variables(plan.getVariables());
-        Instance childInstance = FlowEngine.insService().startByDefinitionId(
+        Instance childInstance = FlowEngine.instanceService().startByDefinitionId(
             plan.getBusinessKey(), childDefinition.getId(), params);
         child.setChildInstanceId(childInstance.getId());
         child.setChildStatus(SubprocessChildStatus.RUNNING.name());
@@ -274,7 +274,7 @@ public class SubprocessServiceImpl implements SubprocessService {
 
     @Override
     public void cancelByParent(final Long parentInstanceId, final String reason) {
-        final Instance parent = FlowEngine.insService().getById(parentInstanceId);
+        final Instance parent = FlowEngine.instanceService().getById(parentInstanceId);
         if (parent == null) {
             return;
         }

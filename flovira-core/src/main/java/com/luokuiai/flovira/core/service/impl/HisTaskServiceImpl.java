@@ -276,7 +276,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
 
     @Override
     public List<HisTask> listByBusinessKey(String businessType, String businessId) {
-        List<Instance> instances = FlowEngine.insService().listByBusinessKey(businessType, businessId);
+        List<Instance> instances = FlowEngine.instanceService().listByBusinessKey(businessType, businessId);
         if (CollUtil.isEmpty(instances)) {
             return new ArrayList<HisTask>();
         }

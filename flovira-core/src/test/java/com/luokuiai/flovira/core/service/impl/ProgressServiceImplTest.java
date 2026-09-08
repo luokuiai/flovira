@@ -28,7 +28,7 @@ import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.service.DefService;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.service.NodeService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Before;
@@ -165,12 +165,12 @@ public class ProgressServiceImplTest {
             }
             return defaultValue(method.getReturnType());
         });
-        InsService insService = proxy(InsService.class, (method, args) ->
+        InstanceService instanceService = proxy(InstanceService.class, (method, args) ->
             "getById".equals(method.getName()) ? instance : defaultValue(method.getReturnType()));
         FrameInvoker.setBeanFunction(type -> {
             if (DefService.class.equals(type)) return defService;
             if (NodeService.class.equals(type)) return nodeService;
-            if (InsService.class.equals(type)) return insService;
+            if (InstanceService.class.equals(type)) return instanceService;
             return null;
         });
         FlowEngine.initPermissionHandler(null);

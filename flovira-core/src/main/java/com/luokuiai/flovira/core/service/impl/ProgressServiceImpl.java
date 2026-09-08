@@ -72,7 +72,7 @@ public class ProgressServiceImpl implements ProgressService {
     @Override
     public ProgressResult previewByInstanceId(Long instanceId, Map<String, Object> variables) {
         AssertUtil.isNull(instanceId, ExceptionCons.NULL_INSTANCE_ID);
-        Instance instance = FlowEngine.insService().getById(instanceId);
+        Instance instance = FlowEngine.instanceService().getById(instanceId);
         AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
         Node sourceNode = FlowEngine.nodeService()
             .getByDefIdAndNodeCode(instance.getDefinitionId(), instance.getNodeCode());

@@ -17,6 +17,6 @@
 - `./gradlew clean build --offline`：通过，108 个任务（101 执行、7 up-to-date）。
 - `bun run test`：通过，Vue 8、React 60、Lumen 8、Antd 7，共 83 项。
 - 前端源码本轮未更改，沿用上一轮针对当前源码通过的 `bun run build` 结果（全部组件库、适配器、六个示例）。
-- 最后仅修正 TaskService/InsService 中 FlowParams.variables 的旧属性说明，以及 MySQL flow_user.updated_by 的错误注释；`git diff --check` 通过。
+- 最后仅修正 TaskService/InstanceService 中 FlowParams.variables 的旧属性说明，以及 MySQL flow_user.updated_by 的错误注释；`git diff --check` 通过。
 
 未执行真实数据库的 DDL 或端到端数据库迁移。已有数据库和存量 JSON 仍需按字段命名与统一设计器说明迁移，不能将编译通过视作数据库已升级。

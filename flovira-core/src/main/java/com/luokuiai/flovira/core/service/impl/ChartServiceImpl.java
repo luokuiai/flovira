@@ -67,7 +67,7 @@ public class ChartServiceImpl implements ChartService {
 
     @Override
     public String skipMetadata(PathWayData pathWayData) {
-        Instance instance = FlowEngine.insService().getById(pathWayData.getInsId());
+        Instance instance = FlowEngine.instanceService().getById(pathWayData.getInsId());
         DefJson defJson = FlowEngine.jsonConvert.strToBean(instance.getDefJson(), DefJson.class);
 
         List<NodeJson> nodeList = defJson.getNodeList();

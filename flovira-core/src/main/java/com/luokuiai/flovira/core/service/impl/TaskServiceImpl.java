@@ -261,7 +261,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             flowParams.flowStatus(FlowStatus.CANCEL.getKey());
         }
 
-        Instance instance = FlowEngine.insService().getById(instanceId);
+        Instance instance = FlowEngine.instanceService().getById(instanceId);
         flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
         AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
         Definition definition = FlowEngine.defService().getById(instance.getDefinitionId());
@@ -325,7 +325,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         if (CollUtil.isNotEmpty(addTasks)) {
             saveBatch(addTasks);
         }
-        FlowEngine.insService().updateById(instance);
+        FlowEngine.instanceService().updateById(instance);
         // 保存下一个待办任务的权限人
         FlowEngine.userService().saveBatch(users);
 
@@ -388,7 +388,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         HisTask insHis = FlowEngine.hisTaskService().setSkipInsHis(task, Collections.singletonList(endNode)
             , flowParams);
         FlowEngine.hisTaskService().save(insHis);
-        FlowEngine.insService().updateById(r.instance);
+        FlowEngine.instanceService().updateById(r.instance);
 
         // 删除流程相关办理人
         FlowEngine.userService().deleteByTaskIds(Collections.singletonList(task.getId()));
@@ -406,7 +406,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public boolean deleteByInsIds(List<Long> instanceIds) {
-        List<Instance> instanceList = FlowEngine.insService().getByIds(instanceIds);
+        List<Instance> instanceList = FlowEngine.instanceService().getByIds(instanceIds);
         Definition definition;
         for (Instance instance : instanceList) {
             definition = FlowEngine.defService().getById(instance.getDefinitionId());
@@ -549,7 +549,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         HisTask insHis = FlowEngine.hisTaskService().notSkip(r.task, flowParams);
         FlowEngine.hisTaskService().save(insHis);
 
-        FlowEngine.insService().updateById(r.instance.setFlowStatus(flowParams.getFlowStatus()));
+        FlowEngine.instanceService().updateById(r.instance.setFlowStatus(flowParams.getFlowStatus()));
 
         // 执行任务完成监听器
         ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode
@@ -606,7 +606,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public List<Task> listByBusinessKey(String businessType, String businessId) {
-        List<Instance> instances = FlowEngine.insService().listByBusinessKey(businessType, businessId);
+        List<Instance> instances = FlowEngine.instanceService().listByBusinessKey(businessType, businessId);
         if (CollUtil.isEmpty(instances)) {
             return Collections.emptyList();
         }
@@ -745,7 +745,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     private R getAndCheck(Task task) {
         AssertUtil.isNull(task, ExceptionCons.NOT_FOUNT_TASK);
-        Instance instance = FlowEngine.insService().getById(task.getInstanceId());
+        Instance instance = FlowEngine.instanceService().getById(task.getInstanceId());
         AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
         Definition definition = FlowEngine.defService().getById(instance.getDefinitionId());
         AssertUtil.isFalse(judgeActivityStatus(definition, instance), ExceptionCons.NOT_ACTIVITY);
@@ -1051,7 +1051,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         if (CollUtil.isNotEmpty(addTasks)) {
             saveBatch(addTasks);
         }
-        FlowEngine.insService().updateById(instance);
+        FlowEngine.instanceService().updateById(instance);
         // 保存下一个待办任务的权限人
         FlowEngine.userService().saveBatch(users);
     }

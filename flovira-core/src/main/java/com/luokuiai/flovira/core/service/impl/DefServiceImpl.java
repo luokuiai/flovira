@@ -210,7 +210,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     @Override
     public boolean removeDef(List<Long> ids) {
         ids.forEach(id -> {
-            List<Instance> instances = FlowEngine.insService().getByDefId(id);
+            List<Instance> instances = FlowEngine.instanceService().getByDefId(id);
             AssertUtil.isNotEmpty(instances, ExceptionCons.EXIST_START_TASK);
         });
         FlowEngine.nodeService().deleteNodeByDefIds(ids);
@@ -233,7 +233,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
             .map(Definition::getId)
             .collect(Collectors.toList());
         if (CollUtil.isNotEmpty(otherDefIds)) {
-            List<Instance> instanceList = FlowEngine.insService().listByDefIds(otherDefIds);
+            List<Instance> instanceList = FlowEngine.instanceService().listByDefIds(otherDefIds);
             if (CollUtil.isNotEmpty(instanceList)) {
                 // 已发布已使用过的流程定义
                 Set<Long> useDefIds = StreamUtils.toSet(instanceList, Instance::getDefinitionId);
@@ -258,7 +258,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
 
     @Override
     public boolean unPublish(Long id) {
-        List<Instance> instances = FlowEngine.insService().getByDefId(id);
+        List<Instance> instances = FlowEngine.instanceService().getByDefId(id);
         AssertUtil.isNotEmpty(instances, ExceptionCons.EXIST_START_TASK);
         Definition definition = FlowEngine.newDef().setId(id);
         definition.setPublishStatus(PublishStatus.UNPUBLISHED.getKey());

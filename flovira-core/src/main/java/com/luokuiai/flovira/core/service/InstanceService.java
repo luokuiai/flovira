@@ -28,7 +28,7 @@ import java.util.List;
  * @author warm
  * @since 2023-03-29
  */
-public interface InsService extends IFloviraService<Instance> {
+public interface InstanceService extends IFloviraService<Instance> {
 
     /**
      * 传入业务id开启流程

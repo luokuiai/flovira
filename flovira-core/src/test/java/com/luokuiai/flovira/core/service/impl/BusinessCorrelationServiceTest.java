@@ -28,7 +28,7 @@ import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,18 +63,18 @@ public class BusinessCorrelationServiceTest {
     public void shouldUseFlowCodeAsDefaultBusinessType() {
         Definition definition = TestEntityFactory.create(Definition.class).setFlowCode("PURCHASE");
 
-        assertEquals("PURCHASE", InsServiceImpl.defaultBusinessType(definition));
+        assertEquals("PURCHASE", InstanceServiceImpl.defaultBusinessType(definition));
     }
 
     @Test
     public void shouldPersistExplicitBusinessType() throws Exception {
         Node node = TestEntityFactory.create(Node.class).setDefinitionId(1L).setNodeType(1)
             .setNodeCode("APPROVE").setNodeName("审批");
-        Method method = InsServiceImpl.class.getDeclaredMethod("setStartInstance", Node.class,
+        Method method = InstanceServiceImpl.class.getDeclaredMethod("setStartInstance", Node.class,
             String.class, String.class, FlowParams.class);
         method.setAccessible(true);
 
-        Instance instance = (Instance) method.invoke(new InsServiceImpl(), node, "PURCHASE_ORDER", "1001",
+        Instance instance = (Instance) method.invoke(new InstanceServiceImpl(), node, "PURCHASE_ORDER", "1001",
             new FlowParams().handler("starter"));
 
         assertEquals("PURCHASE_ORDER", instance.getBusinessType());
@@ -94,7 +94,7 @@ public class BusinessCorrelationServiceTest {
             return defaultValue(method.getReturnType());
         });
 
-        List<Instance> result = new InsServiceImpl().setDao(dao).listByBusinessKey("PURCHASE_ORDER", "1001");
+        List<Instance> result = new InstanceServiceImpl().setDao(dao).listByBusinessKey("PURCHASE_ORDER", "1001");
 
         assertSame(expected, result.get(0));
         assertEquals("PURCHASE_ORDER", criteria[0].getBusinessType());
@@ -111,9 +111,9 @@ public class BusinessCorrelationServiceTest {
         final List<Instance> instances = Arrays.asList(
             TestEntityFactory.create(Instance.class).setId(11L),
             TestEntityFactory.create(Instance.class).setId(12L));
-        InsService insService = proxy(InsService.class, (method, args) ->
+        InstanceService instanceService = proxy(InstanceService.class, (method, args) ->
             "listByBusinessKey".equals(method.getName()) ? instances : defaultValue(method.getReturnType()));
-        FrameInvoker.setBeanFunction(type -> InsService.class.equals(type) ? insService : null);
+        FrameInvoker.setBeanFunction(type -> InstanceService.class.equals(type) ? instanceService : null);
         FlowTaskDao<Task> taskDao = proxy(FlowTaskDao.class, (method, args) -> {
             if ("listByInsIds".equals(method.getName())) {
                 taskIds[0] = (List<Long>) args[0];
