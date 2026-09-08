@@ -111,6 +111,8 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         }
         FlowCombine flowCombine = DefJson.copyCombine(defJson);
         Definition definition = flowCombine.getDefinition();
+        // 保存完整设计时，空表单引用表示清除绑定，不能被 ORM 的非空更新策略忽略。
+        definition.setFormId(StringUtils.emptyDefault(definition.getFormId(), ""));
         Long id = definition.getId();
         // 如果是新增的流程定义
         if (ObjectUtil.isNull(id)) {
@@ -152,7 +154,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
 
     @Override
     public String exportJson(Long id) {
-        return FlowEngine.jsonConvert.objToStr(queryDesign(id).setIsPublish(null));
+        return FlowEngine.jsonConvert.objToStr(queryDesign(id).setPublishStatus(null));
     }
 
     @Override
@@ -162,7 +164,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         definition.setNodeList(nodeList);
         List<Skip> skips = FlowEngine.skipService().getByDefId(id);
         Map<String, List<Skip>> flowSkipMap = skips.stream()
-            .collect(Collectors.groupingBy(Skip::getNowNodeCode));
+            .collect(Collectors.groupingBy(Skip::getSourceNodeCode));
         nodeList.forEach(flowNode -> flowNode.setSkipList(flowSkipMap.get(flowNode.getNodeCode())));
         return definition;
     }
@@ -210,7 +212,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     @Override
     public boolean removeDef(List<Long> ids) {
         ids.forEach(id -> {
-            List<Instance> instances = FlowEngine.insService().getByDefId(id);
+            List<Instance> instances = FlowEngine.instanceService().getByDefId(id);
             AssertUtil.isNotEmpty(instances, ExceptionCons.EXIST_START_TASK);
         });
         FlowEngine.nodeService().deleteNodeByDefIds(ids);
@@ -229,11 +231,11 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         // 已发布流程定义，改为已失效或者未发布状态
         List<Long> otherDefIds = definitions.stream()
             .filter(item -> !Objects.equals(definition.getId(), item.getId())
-                && PublishStatus.PUBLISHED.getKey().equals(item.getIsPublish()))
+                && PublishStatus.PUBLISHED.getKey().equals(item.getPublishStatus()))
             .map(Definition::getId)
             .collect(Collectors.toList());
         if (CollUtil.isNotEmpty(otherDefIds)) {
-            List<Instance> instanceList = FlowEngine.insService().listByDefIds(otherDefIds);
+            List<Instance> instanceList = FlowEngine.instanceService().listByDefIds(otherDefIds);
             if (CollUtil.isNotEmpty(instanceList)) {
                 // 已发布已使用过的流程定义
                 Set<Long> useDefIds = StreamUtils.toSet(instanceList, Instance::getDefinitionId);
@@ -252,16 +254,16 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
 
         Definition flowDefinition = FlowEngine.newDef();
         flowDefinition.setId(id);
-        flowDefinition.setIsPublish(PublishStatus.PUBLISHED.getKey());
+        flowDefinition.setPublishStatus(PublishStatus.PUBLISHED.getKey());
         return updateById(flowDefinition);
     }
 
     @Override
     public boolean unPublish(Long id) {
-        List<Instance> instances = FlowEngine.insService().getByDefId(id);
+        List<Instance> instances = FlowEngine.instanceService().getByDefId(id);
         AssertUtil.isNotEmpty(instances, ExceptionCons.EXIST_START_TASK);
         Definition definition = FlowEngine.newDef().setId(id);
-        definition.setIsPublish(PublishStatus.UNPUBLISHED.getKey());
+        definition.setPublishStatus(PublishStatus.UNPUBLISHED.getKey());
         return updateById(definition);
     }
 
@@ -309,7 +311,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     @Override
     public Definition getPublishByFlowCode(String flowCode) {
         return FlowEngine.defService().getOne(FlowEngine.newDef()
-            .setFlowCode(flowCode).setIsPublish(PublishStatus.PUBLISHED.getKey()));
+            .setFlowCode(flowCode).setPublishStatus(PublishStatus.PUBLISHED.getKey()));
     }
 
     private String getNewVersion(Definition definition) {
@@ -327,7 +329,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
                         highestVersion = version;
                     }
                 } catch (NumberFormatException e) {
-                    long timestamp = otherDef.getCreateTime().getTime();
+                    long timestamp = otherDef.getCreatedAt().getTime();
                     if (timestamp > latestTimestamp) {
                         latestTimestamp = timestamp;
                         latestNonPositiveVersion = otherDef.getVersion();
@@ -353,7 +355,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         // 节点校验
         List<Node> allNodes = flowCombine.getAllNodes();
         List<Skip> allSkips = flowCombine.getAllSkips();
-        Map<String, List<Skip>> skipMap = StreamUtils.groupByKey(allSkips, Skip::getNowNodeCode);
+        Map<String, List<Skip>> skipMap = StreamUtils.groupByKey(allSkips, Skip::getSourceNodeCode);
         allNodes.forEach(node -> {
             node.setSkipList(skipMap.get(node.getNodeCode()));
             skipMap.remove(node.getNodeCode());

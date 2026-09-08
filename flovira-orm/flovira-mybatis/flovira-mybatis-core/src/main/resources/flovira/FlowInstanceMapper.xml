@@ -14,17 +14,17 @@
         <result property="nodeType" column="node_type"/>
         <result property="nodeCode" column="node_code"/>
         <result property="nodeName" column="node_name"/>
-        <result property="variable" column="variable"/>
+        <result property="variables" column="variables"/>
         <result property="flowStatus" column="flow_status"/>
         <result property="activityStatus" column="activity_status"/>
         <result property="defJson" column="def_json"/>
-        <result property="createBy" column="create_by"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-        <result property="delFlag" column="del_flag"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
         <result property="tenantId" column="tenant_id"/>
         <result property="ext" column="ext"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="updatedBy" column="updated_by"/>
     </resultMap>
 
     <sql id="selectVo">
@@ -36,17 +36,17 @@
                t.node_type,
                t.node_code,
                t.node_name,
-               t.variable,
+               t.variables,
                t.flow_status,
                t.activity_status,
                t.def_json,
-               t.create_by,
-               t.create_time,
-               t.update_time,
-               t.del_flag,
+               t.created_by,
+               t.created_at,
+               t.updated_at,
+               t.deleted,
                t.tenant_id,
                t.ext,
-               t.update_by
+               t.updated_by
         from flow_instance t
     </sql>
 
@@ -69,17 +69,17 @@
             <if test="entity.definitionId != null ">and t.definition_id = #{entity.definitionId}</if>
             <if test="entity.nodeCode != null and entity.nodeCode != ''">and t.node_code = #{entity.nodeCode}</if>
             <if test="entity.nodeName != null and entity.nodeName != ''">and t.node_name = #{entity.nodeName}</if>
-            <if test="entity.variable != null">and t.variable = #{entity.variable}</if>
+            <if test="entity.variables != null">and t.variables = #{entity.variables}</if>
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and t.flow_status = #{entity.flowStatus}</if>
             <if test="entity.activityStatus != null">and t.activity_status = #{entity.activityStatus}</if>
             <if test="entity.defJson != null  and entity.defJson != ''">and t.def_json = #{entity.defJson}</if>
-            <if test="entity.createBy != null  and entity.createBy != ''">and t.create_by = #{entity.createBy}</if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.createdBy != null  and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
             <if test="entity.ext != null">and t.ext = #{entity.ext}</if>
-            <if test="entity.updateBy != null and entity.updateBy != ''">and t.update_by = #{entity.updateBy}</if>
+            <if test="entity.updatedBy != null and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
         </where>
     </sql>
 
@@ -122,17 +122,17 @@
         node_code,
         node_name,
         node_type,
-        variable,
+        variables,
         flow_status,
         activity_status,
         def_json,
-        create_by,
-        create_time,
-        update_time,
-        del_flag,
+        created_by,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
         ext,
-        update_by
+        updated_by
         )
         values
         <foreach collection="list" item="item" separator=",">
@@ -144,17 +144,17 @@
             #{item.nodeCode},
             #{item.nodeName},
             #{item.nodeType},
-            #{item.variable},
+            #{item.variables},
             #{item.flowStatus},
             #{item.activityStatus},
             #{item.defJson},
-            #{item.createBy},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdBy},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
             #{item.ext},
-            #{item.updateBy}
+            #{item.updatedBy}
             )
         </foreach>
     </sql>
@@ -168,17 +168,17 @@
         node_code,
         node_name,
         node_type,
-        variable,
+        variables,
         flow_status,
         activity_status,
         def_json,
-        create_by,
-        create_time,
-        update_time,
-        del_flag,
+        created_by,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
         ext,
-        update_by
+        updated_by
         )
         <foreach collection="list" item="item" separator=" union all">
             (
@@ -189,17 +189,17 @@
             #{item.nodeCode},
             #{item.nodeName},
             #{item.nodeType},
-            #{item.variable},
+            #{item.variables},
             #{item.flowStatus},
             #{item.activityStatus},
             #{item.defJson},
-            #{item.createBy},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdBy},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
             #{item.ext},
-            #{item.updateBy}
+            #{item.updatedBy}
             )
         </foreach>
     </sql>
@@ -210,14 +210,14 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
     <select id="selectById" resultMap="FlowInstanceResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -227,7 +227,7 @@
         <foreach item="defId" collection="defIds" open="(" separator="," close=")">
             #{defId}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -241,17 +241,17 @@
             <if test="nodeCode != null and nodeCode != ''">node_code,</if>
             <if test="nodeName != null and nodeName != ''">node_name,</if>
             <if test="nodeType != null">node_type,</if>
-            <if test="variable != null">variable,</if>
+            <if test="variables != null">variables,</if>
             <if test="flowStatus != null and flowStatus != ''">flow_status,</if>
             <if test="activityStatus != null">activity_status,</if>
             <if test="defJson != null and defJson != ''">def_json,</if>
-            <if test="createBy != null and createBy != ''">create_by,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="createdBy != null and createdBy != ''">created_by,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
             <if test="ext != null">ext,</if>
-            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -261,17 +261,17 @@
             <if test="nodeCode != null and nodeCode != ''">#{nodeCode},</if>
             <if test="nodeName != null and nodeName != ''">#{nodeName},</if>
             <if test="nodeType != null">#{nodeType},</if>
-            <if test="variable != null">#{variable},</if>
+            <if test="variables != null">#{variables},</if>
             <if test="flowStatus != null and flowStatus != ''">#{flowStatus},</if>
             <if test="activityStatus != null">#{activityStatus},</if>
             <if test="defJson != null and defJson != ''">#{defJson},</if>
-            <if test="createBy != null and createBy != ''">#{createBy},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
             <if test="ext != null">#{ext},</if>
-            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">#{updatedBy},</if>
         </trim>
     </insert>
 
@@ -284,18 +284,18 @@
             <if test="nodeType != null">node_type = #{nodeType},</if>
             <if test="nodeCode != null and nodeCode != ''">node_code = #{nodeCode},</if>
             <if test="nodeName != null and nodeName != ''">node_name = #{nodeName},</if>
-            <if test="variable != null">variable = #{variable},</if>
+            <if test="variables != null">variables = #{variables},</if>
             <if test="flowStatus != null and flowStatus != ''">flow_status = #{flowStatus},</if>
             <if test="activityStatus != null">activity_status = #{activityStatus},</if>
             <if test="defJson != null and defJson != ''">def_json = #{defJson},</if>
-            <if test="createBy != null and createBy != ''">create_by = #{createBy},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
             <if test="ext != null">ext = #{ext},</if>
-            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by = #{updatedBy},</if>
         </trim>
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
@@ -308,10 +308,10 @@
 
     <update id="updateByIdLogic">
         update flow_instance
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -325,13 +325,13 @@
 
     <update id="updateByIdsLogic">
         update flow_instance
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -346,12 +346,12 @@
             <if test="nodeName != null and nodeName != ''">and node_name = #{nodeName}</if>
             <if test="nodeType != null">and node_type = #{nodeType}</if>
             <if test="flowStatus != null and flowStatus != ''">and flow_status = #{flowStatus}</if>
-            <if test="variable != null">and flow_status = #{variable}</if>
+            <if test="variables != null">and flow_status = #{variables}</if>
             <if test="activityStatus != null">and activity_status = #{activityStatus}</if>
             <if test="defJson != null and defJson != ''">and def_json = #{defJson}</if>
-            <if test="createBy != null and createBy != ''">and create_by = #{createBy}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
+            <if test="createdBy != null and createdBy != ''">and created_by = #{createdBy}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
             <if test="ext != null">and ext = #{ext}</if>
         </where>
@@ -359,7 +359,7 @@
 
     <update id="updateLogic">
         update flow_instance
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.businessId != null and entity.businessId != ''">and business_id = #{entity.businessId}
@@ -370,15 +370,15 @@
             <if test="entity.nodeName != null and entity.nodeName != ''">and node_name = #{entity.nodeName}</if>
             <if test="entity.nodeType != null">and node_type = #{entity.nodeType}</if>
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and flow_status = #{entity.flowStatus}</if>
-            <if test="entity.variable != null">and flow_status = #{entity.variable}</if>
+            <if test="entity.variables != null">and flow_status = #{entity.variables}</if>
             <if test="entity.activityStatus != null">and activity_status = #{entity.activityStatus}</if>
             <if test="entity.defJson != null and entity.defJson != ''">and def_json = #{entity.defJson}</if>
-            <if test="entity.createBy != null and entity.createBy != ''">and create_by = #{entity.createBy}</if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
+            <if test="entity.createdBy != null and entity.createdBy != ''">and created_by = #{entity.createdBy}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
             <if test="entity.ext != null">and ext = #{entity.ext}</if>
-            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag =
+            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}
             </if>
         </where>

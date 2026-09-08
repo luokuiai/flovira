@@ -25,26 +25,12 @@
     <wf-header class="wf-designer-body" :style="headerStyle">
       <!-- 画布工具栏（抽为 FlowDesignerToolbar 子组件；画布操作仍由容器持有，props 入 / 事件出） -->
       <BaseInfo :style="baseInfoStyle" ref="baseInfoRef" v-if="!onlyDesignShow" v-show="activeStep === 0"
-                :logic-json="logicJson" :category-list="categoryList" :form-path-list="formPathList"
+                :logic-json="logicJson" :category-list="categoryList" :form-options="formOptions"
                 :definition-id="definitionId" :disabled="disabled"
-                @update:flow-name="handleFlowNameUpdate" @update:model-value="handleModelValueUpdate"
+                @update:flow-name="handleFlowNameUpdate"
                 @validate-error="handleBaseInfoValidateError"/>
 
-      <!-- 自定义拖拽侧边栏：仅经典模式流程设计页签显示 + 延迟显示避免与 LogicFlow DOM 冲突。
-           #sidebar 插槽可整体替换内置面板（透出命令式 dragInNode + lf / disabled）；
-           paletteNodes 可仅自定义内置面板的节点列表（任一分组不传用内置默认）。 -->
       <div class="wf-design-workspace" v-show="activeStep === 1">
-        <template v-if="sidebarVisible">
-          <slot name="sidebar" :drag-in-node="handleDragInNode" :lf="lf" :disabled="disabled">
-            <DiagramSidebar
-              class="diagram-sidebar"
-              :flow-nodes="paletteNodes?.flowNodes"
-              :gateway-nodes="paletteNodes?.gatewayNodes"
-              @dragInNode="handleDragInNode"
-            />
-          </slot>
-        </template>
-
         <div class="wf-canvas-stage">
           <div class="container" ref="containerRef"></div>
           <FlowDesignerToolbar
@@ -63,7 +49,7 @@
         <PropertySetting ref="propertySettingRef" :node="nodeClick" :lf="lf" :disabled="disabled"
                          display-mode="panel"
                          :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips"
-                         :form-path-list="formPathList" @visibility-change="handlePropertyVisibilityChange">
+                         :form-options="formOptions" @visibility-change="handlePropertyVisibilityChange">
           <!-- 属性面板插槽透传：FlowDesigner → PropertySetting → 节点属性子组件（start/between/gateway/end/skip）。
                消费方可用 #node-form-extra（透出 { form, disabled }）等具名插槽往节点属性抽屉注入自定义表单项。
                透传全部插槽：节点子组件未声明的插槽自动忽略，header-*/logo 等不会渲染到属性面板。 -->
@@ -101,17 +87,15 @@ import { designerResourceItems, queryDef, saveJson } from "@/api/flow/definition
 import { resourcesToTree } from '@/data/contracts';
 import {
     getPreviousNodes,
-    isClassics, isGateWay,
+    isGateWay,
     json2LogicFlowJson,
     logicFlowJsonToFlovira
 } from "@/components/design/common/js/tool";
 import {computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties} from "vue";
 import BaseInfo from "@/components/design/common/vue/baseInfo.vue";
-import initClassicsData from "@/components/design/classics/initClassicsData.json";
 import initMimicData from "@/components/design/mimic/initMimicData.json";
 import {addBetweenNode, addGatewayNode, gatewayAddNode, removeNode} from "@/components/design/mimic/js/mimic";
 import EdgeTooltip from "@/components/design/mimic/vue/EdgeTooltip.vue";
-import DiagramSidebar from "@/components/design/common/vue/DiagramSidebar.vue";
 import FlowDesignerHeader from "@/components/design/FlowDesignerHeader.vue";
 import FlowDesignerToolbar from "@/components/design/FlowDesignerToolbar.vue";
 import { useLogicFlowCanvas } from '@/composables/useLogicFlowCanvas';
@@ -181,11 +165,10 @@ const skipConditionShow = ref(true);
 const nodes = ref<any[]>([]);
 const skips = ref<any[]>([]);
 const categoryList = ref<any[]>([]);
-const formPathList = ref<any[]>([]);
+const formOptions = ref<any[]>([]);
 // 画布容器 DOM（LogicFlow 挂载点），交给 useLogicFlowCanvas 管理
 const containerRef = ref<HTMLElement>();
 // 控制侧边栏显示：延迟到画布初始化完成后显示，避免与 LogicFlow DOM 初始化冲突
-const sidebarVisible = ref(false);
 
 // 数据加载态：初始流程定义加载中（queryDef 在途）；isEmpty：加载完成但无可用定义数据（如 definitionId 失效）
 const loading = ref(false);
@@ -259,10 +242,6 @@ const {
   getBaseInfo,
   bindEvents: initEvent,
   onReady: (lfInstance) => {
-    // LogicFlow 完全初始化后，再显示自定义拖拽侧边栏（避免 DOM 操作冲突）
-    if (isClassics(logicJson.value.modelValue)) {
-      sidebarVisible.value = true;
-    }
     // 画布渲染完成：以当前内容为「干净」基线，并在下一 tick 开放变更追踪
     // （跳过初始渲染同步触发的 history:change，避免一打开就被标记为 dirty）
     markPristine();
@@ -338,7 +317,7 @@ async function handleStepClick(index: number) {
   activeStep.value = index;
 
   if (index === 1) {
-    handleModelValueUpdate()
+    ensureCanvas()
   }
 }
 
@@ -368,15 +347,15 @@ onMounted(() => {
 
 async function loadDesignerTrees() {
   try {
-    const [categories, formPaths] = await Promise.all([
+    const [categories, forms] = await Promise.all([
       designerResourceItems({ resourceType: 'CATEGORY', pageNum: 1, pageSize: 1000 }),
-      designerResourceItems({ resourceType: 'FORM_PATH', pageNum: 1, pageSize: 1000 }),
+      designerResourceItems({ resourceType: 'FORM', pageNum: 1, pageSize: 1000 }),
     ]);
     categoryList.value = resourcesToTree(categories);
-    formPathList.value = resourcesToTree(formPaths);
+    formOptions.value = resourcesToTree(forms);
   } catch (_) {
     categoryList.value = [];
-    formPathList.value = [];
+    formOptions.value = [];
   }
 }
 
@@ -390,14 +369,14 @@ function applyDefinition(data: any) {
   loading.value = false;
   isEmpty.value = !data;
   jsonString.value = data;
-  if (data?.isPublish && data.isPublish !== 0) {
+  if (data?.publishStatus && data.publishStatus !== 0) {
     disabled.value = true;
   }
   if (jsonString.value) {
     logicJson.value = json2LogicFlowJson(jsonString.value);
     if (!logicJson.value.nodes || logicJson.value.nodes.length === 0) {
-      // 空流程：回退到内置初始模板（经典 / 仿钉钉）
-      let initData = isClassics(logicJson.value.modelValue) ? initClassicsData : initMimicData;
+      // 空流程：回退到内置初始模板
+      const initData = initMimicData;
       logicJson.value = {
         ...logicJson.value,
         ...initData
@@ -451,22 +430,17 @@ function handleFlowNameUpdate(newName: string) {
   logicJson.value.flowName = newName; // 更新父组件中的流程名称
 }
 
-function handleModelValueUpdate() {
-  // 原设计器模型
-  const modeOrg = logicJson.value.modelValue;
+function ensureCanvas() {
   // 获取基础信息
   getBaseInfo();
-  const modeNew = logicJson.value.modelValue;
 
-  if (!lf.value || modeOrg !== modeNew) {
-    // 先隐藏侧边栏，等 initLogicFlow 完成后再显示
-    sidebarVisible.value = false;
+  if (!lf.value) {
     // 重新渲染期间关闭变更追踪：忽略初始渲染触发的 history:change（onReady 后下一 tick 重新开放）
     canvasReady.value = false;
     nextTick(() => {
       if (!jsonString.value.nodeList || jsonString.value.nodeList.length === 0) {
         // 读取本地文件/initData.json文件，并将数据转换json对象
-        let initData = isClassics(logicJson.value.modelValue) ? initClassicsData : initMimicData;
+        const initData = initMimicData;
         logicJson.value = {
           ...logicJson.value,
           ...initData
@@ -536,95 +510,68 @@ function initEvent() {
   // 初始渲染同步触发的 history:change 由 canvasReady 守卫忽略（见 markDirty / onReady）。
   eventCenter.on('history:change', markDirty)
 
-  if (!isClassics(logicJson.value.modelValue)) {
-    // 更新节点名称
-    eventCenter.on('update:nodeName', (data) => {
-      if (disabled.value) return;
-      lf.value.updateText(data.id, data.nodeName)
-      lf.value.setProperties(data.id, {
-        nodeName: data.nodeName
-      })
+  // 更新节点名称
+  eventCenter.on('update:nodeName', (data) => {
+    if (disabled.value) return;
+    lf.value.updateText(data.id, data.nodeName)
+    lf.value.setProperties(data.id, {
+      nodeName: data.nodeName
     })
+  })
 
-    // 网关节点单击事件
-    eventCenter.on('node:click', (args) => {
-      nodeClick.value = args.data
-      emitNodeClick(args.data)
-      // 只读态不响应网关「加节点」
-      if (isGateWay(nodeClick.value.type) && !disabled.value) {
-        gatewayAddNode(lf.value, nodeClick.value);
-      }
-    })
+  // 网关节点单击事件
+  eventCenter.on('node:click', (args) => {
+    nodeClick.value = args.data
+    emitNodeClick(args.data)
+    // 只读态不响应网关「加节点」
+    if (isGateWay(nodeClick.value.type) && !disabled.value) {
+      gatewayAddNode(lf.value, nodeClick.value);
+    }
+  })
 
-    eventCenter.on('edit:node', (args) => {
-      if (args.click) {
-        nodeClick.value = lf.value.getNodeModelById(args.id)
-        let graphData = lf.value.getGraphData()
-        nodes.value = graphData['nodes']
-        skips.value = graphData['edges']
-        proxy.$nextTick(() => {
-          propertySettingRef.value.show()
-        })
-      }
-    })
-
-    // 单击边
-    eventCenter.on('show:EdgeSetting', (args) => {
-      nodeClick.value = lf.value.getEdgeModelById(args.id)
-      const nodeModel = lf.value.getNodeModelById(nodeClick.value.sourceNodeId);
-      skipConditionShow.value = ['serial', 'inclusive'].includes(nodeModel['type'])
-      let graphData = lf.value.getGraphData()
-      nodes.value = graphData['nodes']
-      skips.value = graphData['edges']
-      proxy.$nextTick(() => {
-        propertySettingRef.value.show(['serial', 'inclusive'].includes(nodeModel['type']))
-      })
-    });
-
-    // 鼠标进入边
-    eventCenter.on('show:EdgeTooltip', (args) => {
-      // 只读态不弹出边「+」加节点菜单
-      if (disabled.value) return;
-      tooltipVisible.value = true;
-      tooltipPosition.value = { x: args.e.clientX, y: args.e.clientY };
-      tooltipEdge.value = lf.value.getEdgeModelById(args.id)
-    });
-    // 鼠标离开边
-    eventCenter.on('hide:EdgeTooltip', () => {
-      tooltipVisible.value = false;
-    });
-    // 删除节点事件
-    eventCenter.on('delete:node', (args) => {
-      if (disabled.value) return;
-      const nodeModel = lf.value.getNodeModelById(args.id)
-      removeNode(lf.value, nodeModel)
-    })
-  } else {
-    // 中间节点双击事件
-    eventCenter.on('node:click', (args) => {
-      nodeClick.value = args.data
-      emitNodeClick(args.data)
+  eventCenter.on('edit:node', (args) => {
+    if (args.click) {
+      nodeClick.value = lf.value.getNodeModelById(args.id)
       let graphData = lf.value.getGraphData()
       nodes.value = graphData['nodes']
       skips.value = graphData['edges']
       proxy.$nextTick(() => {
         propertySettingRef.value.show()
       })
-    })
+    }
+  })
 
-    // 边双击事件
-    eventCenter.on('edge:click  ', (args) => {
-      nodeClick.value = args.data
-      const nodeModel = lf.value.getNodeModelById(nodeClick.value.sourceNodeId);
-      skipConditionShow.value = ['serial', 'inclusive'].includes(nodeModel['type'])
-      let graphData = lf.value.getGraphData()
-      nodes.value = graphData['nodes']
-      skips.value = graphData['edges']
-      proxy.$nextTick(() => {
-        propertySettingRef.value.show(['serial', 'inclusive'].includes(nodeModel['type']))
-      })
+  // 单击边
+  eventCenter.on('show:EdgeSetting', (args) => {
+    nodeClick.value = lf.value.getEdgeModelById(args.id)
+    const nodeModel = lf.value.getNodeModelById(nodeClick.value.sourceNodeId);
+    skipConditionShow.value = ['serial', 'inclusive'].includes(nodeModel['type'])
+    let graphData = lf.value.getGraphData()
+    nodes.value = graphData['nodes']
+    skips.value = graphData['edges']
+    proxy.$nextTick(() => {
+      propertySettingRef.value.show(['serial', 'inclusive'].includes(nodeModel['type']))
     })
-  }
+  });
+
+  // 鼠标进入边
+  eventCenter.on('show:EdgeTooltip', (args) => {
+    // 只读态不弹出边「+」加节点菜单
+    if (disabled.value) return;
+    tooltipVisible.value = true;
+    tooltipPosition.value = { x: args.e.clientX, y: args.e.clientY };
+    tooltipEdge.value = lf.value.getEdgeModelById(args.id)
+  });
+  // 鼠标离开边
+  eventCenter.on('hide:EdgeTooltip', () => {
+    tooltipVisible.value = false;
+  });
+  // 删除节点事件
+  eventCenter.on('delete:node', (args) => {
+    if (disabled.value) return;
+    const nodeModel = lf.value.getNodeModelById(args.id)
+    removeNode(lf.value, nodeModel)
+  })
 
   eventCenter.on('edge:add', (args) => {
     let graphData = lf.value.getGraphData()

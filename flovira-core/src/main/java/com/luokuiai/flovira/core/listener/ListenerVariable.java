@@ -64,7 +64,7 @@ public class ListenerVariable {
     /**
      * 流程变量
      */
-    private Map<String, Object> variable;
+    private Map<String, Object> variables;
 
     /**
      * 工作流内置参数
@@ -75,49 +75,49 @@ public class ListenerVariable {
     public ListenerVariable() {
     }
 
-    public ListenerVariable(Definition definition, Instance instance, Map<String, Object> variable) {
+    public ListenerVariable(Definition definition, Instance instance, Map<String, Object> variables) {
         this.definition = definition;
         this.instance = instance;
-        this.variable = variable;
+        this.variables = variables;
     }
 
-    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variable) {
+    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variables) {
         this.definition = definition;
         this.instance = instance;
         this.node = node;
-        this.variable = variable;
+        this.variables = variables;
     }
 
-    public ListenerVariable(Definition definition, Instance instance, Map<String, Object> variable, Task task) {
+    public ListenerVariable(Definition definition, Instance instance, Map<String, Object> variables, Task task) {
         this.definition = definition;
         this.instance = instance;
-        this.variable = variable;
+        this.variables = variables;
         this.task = task;
     }
 
-    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variable, Task task) {
+    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variables, Task task) {
         this.definition = definition;
         this.instance = instance;
         this.node = node;
-        this.variable = variable;
+        this.variables = variables;
         this.task = task;
     }
 
-    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variable, Task task, List<Node> nextNodes) {
+    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variables, Task task, List<Node> nextNodes) {
         this.definition = definition;
         this.instance = instance;
         this.node = node;
-        this.variable = variable;
+        this.variables = variables;
         this.task = task;
         this.nextNodes = nextNodes;
     }
 
-    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variable, Task task
+    public ListenerVariable(Definition definition, Instance instance, Node node, Map<String, Object> variables, Task task
         , List<Node> nextNodes, List<Task> nextTasks) {
         this.definition = definition;
         this.instance = instance;
         this.node = node;
-        this.variable = variable;
+        this.variables = variables;
         this.task = task;
         this.nextNodes = nextNodes;
         this.nextTasks = nextTasks;
@@ -177,12 +177,12 @@ public class ListenerVariable {
         return this;
     }
 
-    public Map<String, Object> getVariable() {
-        return variable;
+    public Map<String, Object> getVariables() {
+        return variables;
     }
 
-    public ListenerVariable setVariable(Map<String, Object> variable) {
-        this.variable = variable;
+    public ListenerVariable setVariables(Map<String, Object> variables) {
+        this.variables = variables;
         return this;
     }
 
@@ -205,7 +205,7 @@ public class ListenerVariable {
             ", task=" + task +
             ", nextNodes=" + nextNodes +
             ", nextTasks=" + nextTasks +
-            ", variable=" + variable +
+            ", variables=" + variables +
             ", flowParams=" + flowParams +
             '}';
     }

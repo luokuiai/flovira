@@ -55,7 +55,7 @@ public class ProjectOwnerApproverResolver implements ApproverResolver {
     @Override
     public List<String> resolve(Node node, ApproverRule rule, FlowParams flowParams) {
         // 由业务系统校验自定义配置，并根据 rule 与 flowParams 解析用户。
-        return projectService.findOwnerIds(flowParams.getVariable());
+        return projectService.findOwnerIds(flowParams.getVariables());
     }
 }
 ```

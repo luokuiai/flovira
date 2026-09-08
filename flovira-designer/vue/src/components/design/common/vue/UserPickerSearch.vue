@@ -29,7 +29,7 @@
             @keyup.enter="onQuery"
           />
         </wf-form-item>
-        <wf-form-item :label="t('selectUser.createTime')">
+        <wf-form-item :label="t('selectUser.createdAt')">
           <wf-date-picker
             v-model="dateRangeProxy"
             value-format="YYYY-MM-DD"

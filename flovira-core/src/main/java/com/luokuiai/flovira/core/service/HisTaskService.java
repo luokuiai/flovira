@@ -40,10 +40,10 @@ public interface HisTaskService extends IFloviraService<HisTask> {
      * 根据任务id和协作类型查询
      *
      * @param taskId         任务id
-     * @param cooperateTypes 协作类型集合
+     * @param cooperationTypes 协作类型集合
      * @return {@code List<HisTask>}
      */
-    List<HisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer... cooperateTypes);
+    List<HisTask> listByTaskIdAndCooperationTypes(Long taskId, Integer... cooperationTypes);
 
     /**
      * 根据实例Id和节点编码查询

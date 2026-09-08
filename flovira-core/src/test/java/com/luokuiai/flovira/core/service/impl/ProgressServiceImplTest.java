@@ -28,7 +28,7 @@ import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.service.DefService;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.service.NodeService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Before;
@@ -86,7 +86,7 @@ public class ProgressServiceImplTest {
     public void shouldStartAfterCurrentNodeAndOverlayInstanceVariables() {
         Definition definition = TestEntityFactory.create(Definition.class).setId(1L).setFlowCode("LEAVE");
         Instance instance = TestEntityFactory.create(Instance.class).setId(2L).setDefinitionId(1L)
-            .setNodeCode("first").setVariable("instance");
+            .setNodeCode("first").setVariables("instance");
         Map<String, Object> instanceVariables = new HashMap<>();
         instanceVariables.put("amount", 10);
         instanceVariables.put("retained", "kept");
@@ -165,12 +165,12 @@ public class ProgressServiceImplTest {
             }
             return defaultValue(method.getReturnType());
         });
-        InsService insService = proxy(InsService.class, (method, args) ->
+        InstanceService instanceService = proxy(InstanceService.class, (method, args) ->
             "getById".equals(method.getName()) ? instance : defaultValue(method.getReturnType()));
         FrameInvoker.setBeanFunction(type -> {
             if (DefService.class.equals(type)) return defService;
             if (NodeService.class.equals(type)) return nodeService;
-            if (InsService.class.equals(type)) return insService;
+            if (InstanceService.class.equals(type)) return instanceService;
             return null;
         });
         FlowEngine.initPermissionHandler(null);
@@ -215,8 +215,8 @@ public class ProgressServiceImplTest {
     }
 
     private static Skip skip(String source, String target, String skipType, String condition) {
-        return TestEntityFactory.create(Skip.class).setDefinitionId(1L).setNowNodeCode(source)
-            .setNextNodeCode(target).setSkipType(skipType).setSkipCondition(condition);
+        return TestEntityFactory.create(Skip.class).setDefinitionId(1L).setSourceNodeCode(source)
+            .setTargetNodeCode(target).setSkipType(skipType).setSkipCondition(condition);
     }
 
     @SuppressWarnings("unchecked")

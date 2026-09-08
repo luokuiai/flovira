@@ -53,8 +53,8 @@ public class FlowSkipDaoImpl extends FloviraDaoImpl<FlowSkip> implements FlowSki
     @Override
     public int deleteSkipByDefIds(Collection<? extends Serializable> defIds) {
         FlowSkip entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateSkipByDefIdsLogic(defIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateSkipByDefIdsLogic(defIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().deleteSkipByDefIds(defIds, entity);
     }

@@ -49,7 +49,7 @@ public class FlowHisTaskDaoImpl extends FloviraDaoImpl<FlowHisTask> implements F
         LambdaQueryWrapper<FlowHisTask> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(FlowHisTask::getInstanceId, instanceId)
             .eq(FlowHisTask::getSkipType, SkipType.PASS.getKey())
-            .orderByDesc(FlowHisTask::getCreateTime);
+            .orderByDesc(FlowHisTask::getCreatedAt);
         return getMapper().selectList(queryWrapper);
     }
 
@@ -58,7 +58,7 @@ public class FlowHisTaskDaoImpl extends FloviraDaoImpl<FlowHisTask> implements F
         LambdaQueryWrapper<FlowHisTask> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(FlowHisTask::getInstanceId, instanceId)
             .in(CollUtil.isNotEmpty(nodeCodes), FlowHisTask::getNodeCode, nodeCodes)
-            .orderByDesc(FlowHisTask::getCreateTime);
+            .orderByDesc(FlowHisTask::getCreatedAt);
         return getMapper().selectList(queryWrapper);
     }
 
@@ -74,9 +74,9 @@ public class FlowHisTaskDaoImpl extends FloviraDaoImpl<FlowHisTask> implements F
     }
 
     @Override
-    public List<FlowHisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer[] cooperateTypes) {
+    public List<FlowHisTask> listByTaskIdAndCooperationTypes(Long taskId, Integer[] cooperationTypes) {
         LambdaQueryWrapper<FlowHisTask> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(FlowHisTask::getTaskId, taskId).in(FlowHisTask::getCooperateType, Arrays.asList(cooperateTypes));
+        queryWrapper.eq(FlowHisTask::getTaskId, taskId).in(FlowHisTask::getCooperationType, Arrays.asList(cooperationTypes));
         return getMapper().selectList(queryWrapper);
     }
 

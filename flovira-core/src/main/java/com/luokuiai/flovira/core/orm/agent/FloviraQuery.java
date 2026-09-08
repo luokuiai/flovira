@@ -101,8 +101,8 @@ public class FloviraQuery<T> implements OrderBy {
      *
      * @return 集合
      */
-    public FloviraQuery<T> orderByCreateTime() {
-        this.orderBy = "create_time";
+    public FloviraQuery<T> orderByCreatedAt() {
+        this.orderBy = "created_at";
         return this;
     }
 
@@ -111,8 +111,8 @@ public class FloviraQuery<T> implements OrderBy {
      *
      * @return 集合
      */
-    public FloviraQuery<T> orderByUpdateTime() {
-        this.orderBy = "update_time";
+    public FloviraQuery<T> orderByUpdatedAt() {
+        this.orderBy = "updated_at";
         return this;
     }
 

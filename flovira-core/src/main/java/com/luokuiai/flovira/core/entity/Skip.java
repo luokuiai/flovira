@@ -34,28 +34,28 @@ public interface Skip extends RootEntity {
     Skip setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Skip setCreateTime(Date createTime);
+    Skip setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Skip setUpdateTime(Date updateTime);
+    Skip setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Skip setCreateBy(String createBy);
+    Skip setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Skip setUpdateBy(String updateBy);
+    Skip setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -64,10 +64,10 @@ public interface Skip extends RootEntity {
     Skip setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Skip setDelFlag(String delFlag);
+    Skip setDeleted(String deleted);
 
     Long getDefinitionId();
 
@@ -77,21 +77,21 @@ public interface Skip extends RootEntity {
 
     Skip setNodeId(Long nodeId);
 
-    String getNowNodeCode();
+    String getSourceNodeCode();
 
-    Skip setNowNodeCode(String nowNodeCode);
+    Skip setSourceNodeCode(String sourceNodeCode);
 
-    Integer getNowNodeType();
+    Integer getSourceNodeType();
 
-    Skip setNowNodeType(Integer nowNodeType);
+    Skip setSourceNodeType(Integer sourceNodeType);
 
-    String getNextNodeCode();
+    String getTargetNodeCode();
 
-    Skip setNextNodeCode(String nextNodeCode);
+    Skip setTargetNodeCode(String targetNodeCode);
 
-    Integer getNextNodeType();
+    Integer getTargetNodeType();
 
-    Skip setNextNodeType(Integer nextNodeType);
+    Skip setTargetNodeType(Integer targetNodeType);
 
     String getSkipName();
 
@@ -112,12 +112,12 @@ public interface Skip extends RootEntity {
     default Skip copy() {
         return FlowEngine.newSkip()
             .setTenantId(getTenantId())
-            .setDelFlag(getDelFlag())
+            .setDeleted(getDeleted())
             .setDefinitionId(getDefinitionId())
-            .setNowNodeCode(getNowNodeCode())
-            .setNowNodeType(getNowNodeType())
-            .setNextNodeCode(getNextNodeCode())
-            .setNextNodeType(getNextNodeType())
+            .setSourceNodeCode(getSourceNodeCode())
+            .setSourceNodeType(getSourceNodeType())
+            .setTargetNodeCode(getTargetNodeCode())
+            .setTargetNodeType(getTargetNodeType())
             .setSkipName(getSkipName())
             .setSkipType(getSkipType())
             .setSkipCondition(getSkipCondition())

@@ -56,8 +56,8 @@ public class FlowHisTaskDaoImpl extends FloviraDaoImpl<FlowHisTask> implements F
     @Override
     public int deleteByInsIds(List<Long> instanceIds) {
         FlowHisTask entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateByInsIdsLogic(instanceIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateByInsIdsLogic(instanceIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().deleteByInsIds(instanceIds, entity);
     }
@@ -68,8 +68,8 @@ public class FlowHisTaskDaoImpl extends FloviraDaoImpl<FlowHisTask> implements F
     }
 
     @Override
-    public List<FlowHisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer[] cooperateTypes) {
-        return getMapper().listByTaskIdAndCooperateTypes(cooperateTypes, TenantDeleteUtil.getEntity(newEntity()).setTaskId(taskId));
+    public List<FlowHisTask> listByTaskIdAndCooperationTypes(Long taskId, Integer[] cooperationTypes) {
+        return getMapper().listByTaskIdAndCooperationTypes(cooperationTypes, TenantDeleteUtil.getEntity(newEntity()).setTaskId(taskId));
     }
 
 }

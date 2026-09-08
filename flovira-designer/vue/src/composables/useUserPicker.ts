@@ -61,7 +61,7 @@ export function useUserPicker(props: UseUserPickerProps, emit: UseUserPickerEmit
     { key: 1, label: t('selectUser.permCode'), visible: true },
     { key: 2, label: t('between.handlerName'), visible: true },
     { key: 3, label: t('selectUser.permGroup'), visible: true },
-    { key: 4, label: t('selectUser.createTime'), visible: true }
+    { key: 4, label: t('selectUser.createdAt'), visible: true }
   ]);
   const checkedItemList = ref<any[]>([]); // 已选的itemList
   const strategyLabels: Record<string, string> = {
@@ -165,7 +165,7 @@ export function useUserPicker(props: UseUserPickerProps, emit: UseUserPickerEmit
         handlerCode: item.code,
         handlerName: item.name,
         groupName: item.metadata?.groupName,
-        createTime: item.metadata?.createTime,
+        createdAt: item.metadata?.createdAt,
       }));
       rows.forEach(item => {
         item.isChecked = checkedItemList.value.findIndex(e => e.storageId === item.storageId) !== -1;

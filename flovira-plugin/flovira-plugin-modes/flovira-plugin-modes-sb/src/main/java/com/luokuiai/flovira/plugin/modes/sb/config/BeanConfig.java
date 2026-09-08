@@ -97,8 +97,8 @@ public class BeanConfig {
     }
 
     @Bean
-    public InsService instanceService(FlowInstanceDao instanceDao) {
-        return new InsServiceImpl().setDao(instanceDao);
+    public InstanceService instanceService(FlowInstanceDao instanceDao) {
+        return new InstanceServiceImpl().setDao(instanceDao);
     }
 
     @Bean
@@ -144,16 +144,6 @@ public class BeanConfig {
     @Bean
     public UserService flowUserService(FlowUserDao userDao) {
         return new UserServiceImpl().setDao(userDao);
-    }
-
-    @Bean
-    public FlowFormDao formDao() {
-        return new FlowFormDaoImpl();
-    }
-
-    @Bean
-    public FormService flowFormService(FlowFormDao formDao) {
-        return new FormServiceImpl().setDao(formDao);
     }
 
     @Bean
@@ -218,7 +208,6 @@ public class BeanConfig {
         FlowEngine.setNewSkip(FlowSkip::new);
         FlowEngine.setNewTask(FlowTask::new);
         FlowEngine.setNewUser(FlowUser::new);
-        FlowEngine.setNewForm(FlowForm::new);
         FlowEngine.setNewSubprocessRun(FlowSubprocessRun::new);
         FlowEngine.setNewSubprocessChild(FlowSubprocessChild::new);
         FlowEngine.setNewSubprocessEvent(FlowSubprocessEvent::new);

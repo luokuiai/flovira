@@ -1,19 +1,9 @@
 import LogicFlow from '@logicflow/core'
 import '@logicflow/core/lib/style/index.css'
-import { InsertNodeInPolyline, Menu, Snapshot } from '@logicflow/extension'
+import { Menu, Snapshot } from '@logicflow/extension'
 import '@logicflow/extension/lib/style/index.css'
 import { onUnmounted, ref, watch, type Ref } from 'vue'
-import { isClassics, logicFlowJsonToFlovira } from '@/components/design/common/js/tool'
-import StartC from '@/components/design/classics/js/start'
-import BetweenC from '@/components/design/classics/js/between'
-import SubProcessC from '@/components/design/classics/js/subProcess'
-import WaitC from '@/components/design/classics/js/wait'
-import CarbonCopyC from '@/components/design/classics/js/carbonCopy'
-import SerialC from '@/components/design/classics/js/serial'
-import ParallelC from '@/components/design/classics/js/parallel'
-import InclusiveC from '@/components/design/classics/js/inclusive'
-import EndC from '@/components/design/classics/js/end'
-import SkipC from '@/components/design/classics/js/skip'
+import { logicFlowJsonToFlovira } from '@/components/design/common/js/tool'
 import StartM from '@/components/design/mimic/js/start'
 import BetweenM from '@/components/design/mimic/js/between'
 import SubProcessM from '@/components/design/mimic/js/subProcess'
@@ -37,7 +27,7 @@ export interface UseLogicFlowCanvasOptions {
   props: FlowDesignerProps
   /** 画布容器 DOM（模板 `ref="containerRef"`），LogicFlow 挂载点 */
   containerRef: Ref<HTMLElement | undefined>
-  /** 当前流程 JSON（读取 modelValue / flowName / version，render 数据源；clear 在仿钉钉模式会重置它） */
+  /** 当前流程 JSON（读取 flowName / version，render 数据源；clear 会重置画布） */
   logicJson: Ref<Record<string, any>>
   /** 只读标志（静默模式 / __WF_DESIGNER_DISABLED__） */
   disabled: Ref<boolean>
@@ -120,11 +110,11 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
         isSilentMode: disabled.value,
         textEdit: false,      // 是否开启文本编辑。
         snapToGrid: true,   // 是否开启网格吸附，开启后拖动节点会有以网格大小为补步长移动
-        hideAnchors: !isClassics(logicJson.value.modelValue),   // 是否隐藏节点的锚点，静默模式下默认隐藏。
-        adjustNodePosition: isClassics(logicJson.value.modelValue),   // 是否允许拖动节点。
-        hoverOutline: isClassics(logicJson.value.modelValue),   // 鼠标 hover 的时候是否显示节点的外框。
-        nodeSelectedOutline: isClassics(logicJson.value.modelValue),    // 节点被选中时是否显示节点的外框。
-        edgeSelectedOutline: isClassics(logicJson.value.modelValue),    //	边被选中时是否显示边的外框。
+        hideAnchors: true,   // 是否隐藏节点的锚点，静默模式下默认隐藏。
+        adjustNodePosition: false,   // 是否允许拖动节点。
+        hoverOutline: false,   // 鼠标 hover 的时候是否显示节点的外框。
+        nodeSelectedOutline: false,    // 节点被选中时是否显示节点的外框。
+        edgeSelectedOutline: false,    //	边被选中时是否显示边的外框。
         grid: {
           size: 20,
           visible: props.showGrid,
@@ -137,20 +127,7 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
         background: {
           backgroundColor: themeColors.value.bgPage,
         },
-        keyboard: isClassics(logicJson.value.modelValue) ? {
-          enabled: true,
-          shortcuts: [
-            {
-              keys: ["delete"],
-              callback: () => {
-                const elements = lf.value.getSelectElements(true)
-                lf.value.clearSelectElements()
-                elements.edges.forEach((edge: any) => lf.value.deleteEdge(edge.id))
-                elements.nodes.forEach((node: any) => lf.value.deleteNode(node.id))
-              },
-            },
-          ],
-        } : { enabled: false },
+        keyboard: { enabled: false },
         // 消费方自定义 LogicFlow 初始化选项（顶层覆盖内置默认值，如 grid / keyboard / 交互开关）
         ...(props.lfOptions ?? {}),
         // container 由组件内部管理，强制覆盖，避免消费方误传破坏画布挂载
@@ -544,43 +521,23 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
    * 初始化菜单
    */
   function initMenu() {
-    // 只有仿钉钉模式才初始化菜单
-    if (!isClassics(logicJson.value.modelValue)) {
-      // 为菜单追加选项（必须在 lf.render() 之前设置）
-      lf.value.extension.menu.setMenuConfig({
-        nodeMenu: [],
-        edgeMenu: [],
-      })
-    }
+    lf.value.extension.menu.setMenuConfig({ nodeMenu: [], edgeMenu: [] })
   }
 
   /**
    * 注册自定义节点和边
    */
   function register() {
-    if (isClassics(logicJson.value.modelValue)) {
-      lf.value.register(StartC)
-      lf.value.register(BetweenC)
-      lf.value.register(SubProcessC)
-      lf.value.register(WaitC)
-      lf.value.register(CarbonCopyC)
-      lf.value.register(SerialC)
-      lf.value.register(ParallelC)
-      lf.value.register(InclusiveC)
-      lf.value.register(EndC)
-      lf.value.register(SkipC)
-    } else {
-      lf.value.register(StartM)
-      lf.value.register(BetweenM)
-      lf.value.register(SubProcessM)
-      lf.value.register(WaitM)
-      lf.value.register(CarbonCopyM)
-      lf.value.register(SerialM)
-      lf.value.register(ParallelM)
-      lf.value.register(InclusiveM)
-      lf.value.register(EndM)
-      lf.value.register(SkipM)
-    }
+    lf.value.register(StartM)
+    lf.value.register(BetweenM)
+    lf.value.register(SubProcessM)
+    lf.value.register(WaitM)
+    lf.value.register(CarbonCopyM)
+    lf.value.register(SerialM)
+    lf.value.register(ParallelM)
+    lf.value.register(InclusiveM)
+    lf.value.register(EndM)
+    lf.value.register(SkipM)
     // 消费方自定义节点：在内置节点之后注册，可新增节点类型或覆盖内置同名 type
     ;(props.customNodes ?? []).forEach((node) => {
       if (node) lf.value.register(node)
@@ -593,10 +550,6 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
    * 添加扩展
    */
   function use() {
-    // 只有经典模式才有拖拽面板（已使用自定义 DiagramSidebar 替代内置 DndPanel）
-    if (isClassics(logicJson.value.modelValue)) {
-      LogicFlow.use(InsertNodeInPolyline)
-    }
     LogicFlow.use(Menu)
     LogicFlow.use(Snapshot)
     // 消费方自定义 LogicFlow 扩展（MiniMap / Control / Group 等），在内置扩展之后注册
@@ -649,15 +602,11 @@ export function useLogicFlowCanvas(options: UseLogicFlowCanvasOptions) {
 
   //清空
   const clear = async () => {
-    if (isClassics(logicJson.value.modelValue)) {
-      lf.value.clearData()
-    } else {
-      logicJson.value = {
-        ...logicJson.value,
-        ...initMimicData,
-      }
-      lf.value.render(logicJson.value)
+    logicJson.value = {
+      ...logicJson.value,
+      ...initMimicData,
     }
+    lf.value.render(logicJson.value)
   }
 
   /**

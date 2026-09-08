@@ -1,26 +1,24 @@
 -- Flovira 1.0.0 PostgreSQL initialization schema.
--- This is a fresh-install baseline and is not an upgrade from Warm-Flow or earlier Flovira releases.
+-- Fresh-install baseline; migrate existing databases separately.
 
 CREATE TABLE flow_definition
 (
     id              int8         NOT NULL,
     flow_code       varchar(40)  NOT NULL,
     flow_name       varchar(100) NOT NULL,
-    model_value     varchar(40)  NOT NULL DEFAULT 'CLASSICS',
     category        varchar(100) NULL,
     "version"       varchar(20)  NOT NULL,
-    is_publish      int2         NOT NULL DEFAULT 0,
-    form_custom     bpchar(1)    NULL     DEFAULT 'N':: character varying,
-    form_path       varchar(100) NULL,
+    publish_status      int2         NOT NULL DEFAULT 0,
+    form_id       varchar(100) NULL,
     activity_status int2         NOT NULL DEFAULT 1,
     listener_type   varchar(100) NULL,
     listener_path   varchar(400) NULL,
     ext             varchar(500) NULL,
-    create_time     timestamp    NULL,
-    create_by       varchar(64)  NULL     DEFAULT '':: character varying,
-    update_time     timestamp    NULL,
-    update_by       varchar(64)  NULL     DEFAULT '':: character varying,
-    del_flag        bpchar(1)    NULL     DEFAULT '0':: character varying,
+    created_at     timestamp    NULL,
+    created_by       varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at     timestamp    NULL,
+    updated_by       varchar(64)  NULL     DEFAULT '':: character varying,
+    deleted        bpchar(1)    NULL     DEFAULT '0':: character varying,
     tenant_id       varchar(40)  NULL,
     CONSTRAINT flow_definition_pkey PRIMARY KEY (id)
 );
@@ -29,21 +27,19 @@ COMMENT ON TABLE flow_definition IS '流程定义表';
 COMMENT ON COLUMN flow_definition.id IS '主键id';
 COMMENT ON COLUMN flow_definition.flow_code IS '流程编码';
 COMMENT ON COLUMN flow_definition.flow_name IS '流程名称';
-COMMENT ON COLUMN flow_definition.model_value IS '设计器模型（CLASSICS经典模型 MIMIC仿钉钉模型）';
 COMMENT ON COLUMN flow_definition.category IS '流程类别';
 COMMENT ON COLUMN flow_definition."version" IS '流程版本';
-COMMENT ON COLUMN flow_definition.is_publish IS '是否发布（0未发布 1已发布 9失效）';
-COMMENT ON COLUMN flow_definition.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_definition.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_definition.publish_status IS '是否发布（0未发布 1已发布 9失效）';
+COMMENT ON COLUMN flow_definition.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_definition.activity_status IS '流程激活状态（0挂起 1激活）';
 COMMENT ON COLUMN flow_definition.listener_type IS '监听器类型';
 COMMENT ON COLUMN flow_definition.listener_path IS '监听器路径';
 COMMENT ON COLUMN flow_definition.ext IS '扩展字段，预留给业务系统使用';
-COMMENT ON COLUMN flow_definition.create_time IS '创建时间';
-COMMENT ON COLUMN flow_definition.create_by IS '创建人';
-COMMENT ON COLUMN flow_definition.update_time IS '更新时间';
-COMMENT ON COLUMN flow_definition.update_by IS '更新人';
-COMMENT ON COLUMN flow_definition.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_definition.created_at IS '创建时间';
+COMMENT ON COLUMN flow_definition.created_by IS '创建人';
+COMMENT ON COLUMN flow_definition.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_definition.updated_by IS '更新人';
+COMMENT ON COLUMN flow_definition.deleted IS '删除标志';
 COMMENT ON COLUMN flow_definition.tenant_id IS '租户id';
 
 CREATE TABLE flow_node
@@ -59,15 +55,14 @@ CREATE TABLE flow_node
     any_node_skip   varchar(100)  NULL,
     listener_type   varchar(100)  NULL,
     listener_path   varchar(400)  NULL,
-    form_custom     bpchar(1)     NULL DEFAULT 'N':: character varying,
-    form_path       varchar(100)  NULL,
+    form_id       varchar(100)  NULL,
     "version"       varchar(20)   NOT NULL,
-    create_time     timestamp     NULL,
-    create_by       varchar(64)   NULL     DEFAULT '':: character varying,
-    update_time     timestamp     NULL,
-    update_by       varchar(64)   NULL     DEFAULT '':: character varying,
+    created_at     timestamp     NULL,
+    created_by       varchar(64)   NULL     DEFAULT '':: character varying,
+    updated_at     timestamp     NULL,
+    updated_by       varchar(64)   NULL     DEFAULT '':: character varying,
     ext             text          NULL,
-    del_flag        bpchar(1)     NULL DEFAULT '0':: character varying,
+    deleted        bpchar(1)     NULL DEFAULT '0':: character varying,
     tenant_id       varchar(40)   NULL,
     CONSTRAINT flow_node_pkey PRIMARY KEY (id)
 );
@@ -84,15 +79,14 @@ COMMENT ON COLUMN flow_node.coordinate IS '坐标';
 COMMENT ON COLUMN flow_node.any_node_skip IS '任意结点跳转';
 COMMENT ON COLUMN flow_node.listener_type IS '监听器类型';
 COMMENT ON COLUMN flow_node.listener_path IS '监听器路径';
-COMMENT ON COLUMN flow_node.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_node.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_node.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_node."version" IS '版本';
-COMMENT ON COLUMN flow_node.create_time IS '创建时间';
-COMMENT ON COLUMN flow_node.create_by IS '创建人';
-COMMENT ON COLUMN flow_node.update_time IS '更新时间';
-COMMENT ON COLUMN flow_node.update_by IS '更新人';
+COMMENT ON COLUMN flow_node.created_at IS '创建时间';
+COMMENT ON COLUMN flow_node.created_by IS '创建人';
+COMMENT ON COLUMN flow_node.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_node.updated_by IS '更新人';
 COMMENT ON COLUMN flow_node.ext IS '节点扩展属性';
-COMMENT ON COLUMN flow_node.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_node.deleted IS '删除标志';
 COMMENT ON COLUMN flow_node.tenant_id IS '租户id';
 
 
@@ -100,19 +94,19 @@ CREATE TABLE flow_skip
 (
     id             int8         NOT NULL,
     definition_id  int8         NOT NULL,
-    now_node_code  varchar(100) NOT NULL,
-    now_node_type  int2         NULL,
-    next_node_code varchar(100) NOT NULL,
-    next_node_type int2         NULL,
+    source_node_code  varchar(100) NOT NULL,
+    source_node_type  int2         NULL,
+    target_node_code varchar(100) NOT NULL,
+    target_node_type int2         NULL,
     skip_name      varchar(100) NULL,
     skip_type      varchar(40)  NULL,
     skip_condition varchar(200) NULL,
     coordinate     varchar(100) NULL,
-    create_time    timestamp    NULL,
-    create_by      varchar(64)  NULL     DEFAULT '':: character varying,
-    update_time    timestamp    NULL,
-    update_by      varchar(64)  NULL     DEFAULT '':: character varying,
-    del_flag       bpchar(1)    NULL DEFAULT '0':: character varying,
+    created_at    timestamp    NULL,
+    created_by      varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at    timestamp    NULL,
+    updated_by      varchar(64)  NULL     DEFAULT '':: character varying,
+    deleted       bpchar(1)    NULL DEFAULT '0':: character varying,
     tenant_id      varchar(40)  NULL,
     CONSTRAINT flow_skip_pkey PRIMARY KEY (id)
 );
@@ -120,19 +114,19 @@ COMMENT ON TABLE flow_skip IS '节点跳转关联表';
 
 COMMENT ON COLUMN flow_skip.id IS '主键id';
 COMMENT ON COLUMN flow_skip.definition_id IS '流程定义id';
-COMMENT ON COLUMN flow_skip.now_node_code IS '当前流程节点的编码';
-COMMENT ON COLUMN flow_skip.now_node_type IS '当前节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
-COMMENT ON COLUMN flow_skip.next_node_code IS '下一个流程节点的编码';
-COMMENT ON COLUMN flow_skip.next_node_type IS '下一个节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
+COMMENT ON COLUMN flow_skip.source_node_code IS '跳转来源节点编码';
+COMMENT ON COLUMN flow_skip.source_node_type IS '跳转来源节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
+COMMENT ON COLUMN flow_skip.target_node_code IS '跳转目标节点编码';
+COMMENT ON COLUMN flow_skip.target_node_type IS '跳转目标节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 COMMENT ON COLUMN flow_skip.skip_name IS '跳转名称';
 COMMENT ON COLUMN flow_skip.skip_type IS '跳转类型（PASS审批通过 REJECT退回）';
 COMMENT ON COLUMN flow_skip.skip_condition IS '跳转条件';
 COMMENT ON COLUMN flow_skip.coordinate IS '坐标';
-COMMENT ON COLUMN flow_skip.create_time IS '创建时间';
-COMMENT ON COLUMN flow_skip.create_by IS '创建人';
-COMMENT ON COLUMN flow_skip.update_time IS '更新时间';
-COMMENT ON COLUMN flow_skip.update_by IS '更新人';
-COMMENT ON COLUMN flow_skip.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_skip.created_at IS '创建时间';
+COMMENT ON COLUMN flow_skip.created_by IS '创建人';
+COMMENT ON COLUMN flow_skip.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_skip.updated_by IS '更新人';
+COMMENT ON COLUMN flow_skip.deleted IS '删除标志';
 COMMENT ON COLUMN flow_skip.tenant_id IS '租户id';
 
 CREATE TABLE flow_instance
@@ -144,16 +138,16 @@ CREATE TABLE flow_instance
     node_type       int2         NOT NULL,
     node_code       varchar(40)  NOT NULL,
     node_name       varchar(100) NULL,
-    variable        text         NULL,
+    variables        text         NULL,
     flow_status     varchar(20)  NOT NULL,
     activity_status int2         NOT NULL DEFAULT 1,
     def_json        text         NULL,
-    create_time     timestamp    NULL,
-    create_by       varchar(64)  NULL     DEFAULT '':: character varying,
-    update_time     timestamp    NULL,
-    update_by       varchar(64)  NULL     DEFAULT '':: character varying,
+    created_at     timestamp    NULL,
+    created_by       varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at     timestamp    NULL,
+    updated_by       varchar(64)  NULL     DEFAULT '':: character varying,
     ext             varchar(500) NULL,
-    del_flag        bpchar(1)    NULL     DEFAULT '0':: character varying,
+    deleted        bpchar(1)    NULL     DEFAULT '0':: character varying,
     tenant_id       varchar(40)  NULL,
     CONSTRAINT flow_instance_pkey PRIMARY KEY (id)
 );
@@ -166,16 +160,16 @@ COMMENT ON COLUMN flow_instance.business_id IS '业务id';
 COMMENT ON COLUMN flow_instance.node_type IS '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 COMMENT ON COLUMN flow_instance.node_code IS '流程节点编码';
 COMMENT ON COLUMN flow_instance.node_name IS '流程节点名称';
-COMMENT ON COLUMN flow_instance.variable IS '任务变量';
+COMMENT ON COLUMN flow_instance.variables IS '任务变量';
 COMMENT ON COLUMN flow_instance.flow_status IS '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
 COMMENT ON COLUMN flow_instance.activity_status IS '流程激活状态（0挂起 1激活）';
 COMMENT ON COLUMN flow_instance.def_json IS '流程定义json';
-COMMENT ON COLUMN flow_instance.create_time IS '创建时间';
-COMMENT ON COLUMN flow_instance.create_by IS '创建人';
-COMMENT ON COLUMN flow_instance.update_time IS '更新时间';
-COMMENT ON COLUMN flow_instance.update_by IS '更新人';
+COMMENT ON COLUMN flow_instance.created_at IS '创建时间';
+COMMENT ON COLUMN flow_instance.created_by IS '创建人';
+COMMENT ON COLUMN flow_instance.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_instance.updated_by IS '更新人';
 COMMENT ON COLUMN flow_instance.ext IS '扩展字段，预留给业务系统使用';
-COMMENT ON COLUMN flow_instance.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_instance.deleted IS '删除标志';
 COMMENT ON COLUMN flow_instance.tenant_id IS '租户id';
 CREATE INDEX idx_flow_instance_business ON flow_instance (tenant_id, business_type, business_id);
 
@@ -188,13 +182,12 @@ CREATE TABLE flow_task
     node_name     varchar(100) NULL,
     node_type     int2         NOT NULL,
     flow_status      varchar(20)  NOT NULL,
-    form_custom   bpchar(1)    NULL DEFAULT 'N':: character varying,
-    form_path     varchar(100) NULL,
-    create_time   timestamp    NULL,
-    create_by     varchar(64)  NULL     DEFAULT '':: character varying,
-    update_time   timestamp    NULL,
-    update_by     varchar(64)  NULL     DEFAULT '':: character varying,
-    del_flag      bpchar(1)    NULL DEFAULT '0':: character varying,
+    form_id     varchar(100) NULL,
+    created_at   timestamp    NULL,
+    created_by     varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at   timestamp    NULL,
+    updated_by     varchar(64)  NULL     DEFAULT '':: character varying,
+    deleted      bpchar(1)    NULL DEFAULT '0':: character varying,
     tenant_id     varchar(40)  NULL,
     timeout_at    timestamp    NULL,
     timeout_action varchar(32) NULL,
@@ -212,13 +205,12 @@ COMMENT ON COLUMN flow_task.node_code IS '节点编码';
 COMMENT ON COLUMN flow_task.node_name IS '节点名称';
 COMMENT ON COLUMN flow_task.node_type IS '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 COMMENT ON COLUMN flow_task.flow_status IS '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
-COMMENT ON COLUMN flow_task.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_task.form_path IS '审批表单路径';
-COMMENT ON COLUMN flow_task.create_time IS '创建时间';
-COMMENT ON COLUMN flow_task.create_by IS '创建人';
-COMMENT ON COLUMN flow_task.update_time IS '更新时间';
-COMMENT ON COLUMN flow_task.update_by IS '更新人';
-COMMENT ON COLUMN flow_task.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_task.form_id IS '外部业务表单标识';
+COMMENT ON COLUMN flow_task.created_at IS '创建时间';
+COMMENT ON COLUMN flow_task.created_by IS '创建人';
+COMMENT ON COLUMN flow_task.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_task.updated_by IS '更新人';
+COMMENT ON COLUMN flow_task.deleted IS '删除标志';
 COMMENT ON COLUMN flow_task.tenant_id IS '租户id';
 COMMENT ON COLUMN flow_task.timeout_at IS '冻结的节点超时时间';
 COMMENT ON COLUMN flow_task.timeout_action IS '节点超时动作';
@@ -240,18 +232,17 @@ CREATE TABLE flow_his_task
     target_node_code varchar(200) NULL,
     target_node_name varchar(200) NULL,
     approver         varchar(40)  NULL,
-    cooperate_type   int2         NOT NULL DEFAULT 0,
+    cooperation_type   int2         NOT NULL DEFAULT 0,
     collaborator     varchar(500)  NULL,
     skip_type        varchar(10)  NULL,
     flow_status      varchar(20)  NOT NULL,
-    form_custom      bpchar(1)    NULL     DEFAULT 'N':: character varying,
-    form_path        varchar(100) NULL,
+    form_id        varchar(100) NULL,
     ext              text         NULL,
     message          varchar(500) NULL,
-    variable         text         NULL,
-    create_time      timestamp    NULL,
-    update_time      timestamp    NULL,
-    del_flag         bpchar(1)    NULL     DEFAULT '0':: character varying,
+    variables         text         NULL,
+    created_at      timestamp    NULL,
+    updated_at      timestamp    NULL,
+    deleted         bpchar(1)    NULL     DEFAULT '0':: character varying,
     tenant_id        varchar(40)  NULL,
     CONSTRAINT flow_his_task_pkey PRIMARY KEY (id)
 );
@@ -267,48 +258,47 @@ COMMENT ON COLUMN flow_his_task.node_type IS '开始节点类型（0开始节点
 COMMENT ON COLUMN flow_his_task.target_node_code IS '目标节点编码';
 COMMENT ON COLUMN flow_his_task.target_node_name IS '结束节点名称';
 COMMENT ON COLUMN flow_his_task.approver IS '审批者';
-COMMENT ON COLUMN flow_his_task.cooperate_type IS '协作方式(1审批 2转办 3委派 4会签 5票签 6加签 7减签)';
+COMMENT ON COLUMN flow_his_task.cooperation_type IS '协作方式(1审批 2转办 3委派 4会签 5票签 6加签 7减签)';
 COMMENT ON COLUMN flow_his_task.collaborator IS '协作人';
 COMMENT ON COLUMN flow_his_task.skip_type IS '流转类型（PASS通过 REJECT退回 NONE无动作）';
 COMMENT ON COLUMN flow_his_task.flow_status IS '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
-COMMENT ON COLUMN flow_his_task.form_custom IS '审批表单是否自定义（Y是 N否）';
-COMMENT ON COLUMN flow_his_task.form_path IS '审批表单路径';
+COMMENT ON COLUMN flow_his_task.form_id IS '外部业务表单标识';
 COMMENT ON COLUMN flow_his_task.message IS '审批意见';
-COMMENT ON COLUMN flow_his_task.variable IS '任务变量';
+COMMENT ON COLUMN flow_his_task.variables IS '任务变量';
 COMMENT ON COLUMN flow_his_task.ext IS '扩展字段，预留给业务系统使用';
-COMMENT ON COLUMN flow_his_task.create_time IS '任务开始时间';
-COMMENT ON COLUMN flow_his_task.update_time IS '审批完成时间';
-COMMENT ON COLUMN flow_his_task.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_his_task.created_at IS '任务开始时间';
+COMMENT ON COLUMN flow_his_task.updated_at IS '审批完成时间';
+COMMENT ON COLUMN flow_his_task.deleted IS '删除标志';
 COMMENT ON COLUMN flow_his_task.tenant_id IS '租户id';
-CREATE INDEX idx_flow_his_task_instance_time ON flow_his_task (tenant_id, instance_id, create_time);
+CREATE INDEX idx_flow_his_task_instance_time ON flow_his_task (tenant_id, instance_id, created_at);
 
 CREATE TABLE flow_user
 (
     id           int8        NOT NULL,
     "type"       bpchar(1)   NOT NULL,
     processed_by varchar(80) NULL,
-    associated   int8        NOT NULL,
-    create_time  timestamp    NULL,
-    create_by    varchar(64)  NULL     DEFAULT '':: character varying,
-    update_time  timestamp    NULL,
-    update_by    varchar(64)  NULL     DEFAULT '':: character varying,
-    del_flag     bpchar(1)   NULL DEFAULT '0':: character varying,
+    associated_id   int8        NOT NULL,
+    created_at  timestamp    NULL,
+    created_by    varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at  timestamp    NULL,
+    updated_by    varchar(64)  NULL     DEFAULT '':: character varying,
+    deleted     bpchar(1)   NULL DEFAULT '0':: character varying,
     tenant_id    varchar(40) NULL,
     CONSTRAINT flow_user_pk PRIMARY KEY (id)
 );
 CREATE INDEX user_processed_type ON flow_user USING btree (processed_by, type);
-CREATE INDEX user_associated_idx ON FLOW_USER USING btree (associated);
+CREATE INDEX user_associated_idx ON FLOW_USER USING btree (associated_id);
 COMMENT ON TABLE flow_user IS '流程用户表';
 
 COMMENT ON COLUMN flow_user.id IS '主键id';
 COMMENT ON COLUMN flow_user."type" IS '人员类型（1待办任务的审批人权限 2待办任务的转办人权限 3待办任务的委托人权限）';
 COMMENT ON COLUMN flow_user.processed_by IS '权限人';
-COMMENT ON COLUMN flow_user.associated IS '任务表id';
-COMMENT ON COLUMN flow_user.create_time IS '创建时间';
-COMMENT ON COLUMN flow_user.create_by IS '创建人';
-COMMENT ON COLUMN flow_user.update_time IS '更新时间';
-COMMENT ON COLUMN flow_user.update_by IS '更新人';
-COMMENT ON COLUMN flow_user.del_flag IS '删除标志';
+COMMENT ON COLUMN flow_user.associated_id IS '任务表id';
+COMMENT ON COLUMN flow_user.created_at IS '创建时间';
+COMMENT ON COLUMN flow_user.created_by IS '创建人';
+COMMENT ON COLUMN flow_user.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_user.updated_by IS '更新人';
+COMMENT ON COLUMN flow_user.deleted IS '删除标志';
 COMMENT ON COLUMN flow_user.tenant_id IS '租户id';
 CREATE TABLE flow_subprocess_run (
     id bigint PRIMARY KEY, parent_instance_id bigint NOT NULL, parent_task_id bigint NOT NULL,
@@ -320,20 +310,20 @@ CREATE TABLE flow_subprocess_run (
     completed_count integer NOT NULL DEFAULT 0, failed_count integer NOT NULL DEFAULT 0,
     cancelled_count integer NOT NULL DEFAULT 0, run_status varchar(30) NOT NULL,
     failure_code varchar(100), lock_version integer NOT NULL DEFAULT 0,
-    initialized_at timestamp, completed_at timestamp, create_time timestamp, create_by varchar(64) DEFAULT '',
-    update_time timestamp, update_by varchar(64) DEFAULT '', del_flag char(1) NOT NULL DEFAULT '0',
+    initialized_at timestamp, completed_at timestamp, created_at timestamp, created_by varchar(64) DEFAULT '',
+    updated_at timestamp, updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0',
     tenant_id varchar(40) NOT NULL DEFAULT '0', CONSTRAINT uk_subprocess_run_parent_task UNIQUE (tenant_id,parent_task_id)
 );
 CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run (tenant_id,parent_instance_id,parent_node_code);
-CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (run_status,update_time);
+CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (run_status,updated_at);
 
 CREATE TABLE flow_subprocess_child (
     id bigint PRIMARY KEY, run_id bigint NOT NULL, item_key varchar(200) NOT NULL, item_label varchar(200),
     child_business_key varchar(100) NOT NULL, child_flow_code varchar(100) NOT NULL,
     child_definition_id bigint NOT NULL, child_definition_version varchar(20) NOT NULL,
     child_instance_id bigint, child_status varchar(20) NOT NULL, outcome varchar(20),
-    started_at timestamp, completed_at timestamp, create_time timestamp, create_by varchar(64) DEFAULT '',
-    update_time timestamp, update_by varchar(64) DEFAULT '', del_flag char(1) NOT NULL DEFAULT '0',
+    started_at timestamp, completed_at timestamp, created_at timestamp, created_by varchar(64) DEFAULT '',
+    updated_at timestamp, updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0',
     tenant_id varchar(40) NOT NULL DEFAULT '0', CONSTRAINT uk_subprocess_child_item UNIQUE (tenant_id,run_id,item_key),
     CONSTRAINT uk_subprocess_child_instance UNIQUE (tenant_id,child_instance_id)
 );
@@ -343,8 +333,8 @@ CREATE TABLE flow_subprocess_event (
     id bigint PRIMARY KEY, run_id bigint NOT NULL, child_id bigint, parent_instance_id bigint NOT NULL,
     child_instance_id bigint, parent_node_code varchar(100) NOT NULL, event_type varchar(50) NOT NULL,
     event_result varchar(30) NOT NULL, reason varchar(500), occurred_at timestamp NOT NULL,
-    create_time timestamp, create_by varchar(64) DEFAULT '', update_time timestamp, update_by varchar(64) DEFAULT '',
-    del_flag char(1) NOT NULL DEFAULT '0', tenant_id varchar(40) NOT NULL DEFAULT '0'
+    created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp, updated_by varchar(64) DEFAULT '',
+    deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40) NOT NULL DEFAULT '0'
 );
 CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,occurred_at,id);
 CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id);

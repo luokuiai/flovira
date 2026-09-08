@@ -89,12 +89,6 @@ export interface FlowDesignerProps {
    */
   onRegister?: (lf: LogicFlow) => void
   /**
-   * 自定义经典模式左侧拖拽面板（DiagramSidebar）的节点列表（覆盖内置默认）。
-   * 仅经典模式生效。任一分组不传用内置默认，传空数组隐藏该分组。
-   * 需要完全替换面板时改用 `#sidebar` 插槽（透出 dragInNode / lf / disabled）。
-   */
-  paletteNodes?: FlowDesignerPaletteNodes
-  /**
    * 受控流程 JSON（配合 `v-model:json`）：flovira 定义对象或其 JSON 字符串。
    * 语义为「初始注入 + 变更回写」——挂载时作为初始数据源（优先级高于 initialJson / definitionId），
    * 画布变更时通过 `update:json` 事件回写最新 json。

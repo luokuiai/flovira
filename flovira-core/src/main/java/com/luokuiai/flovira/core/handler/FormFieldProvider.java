@@ -1,5 +1,4 @@
 /*
- *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
  *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,19 +13,21 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.luokuiai.flovira.orm.mapper;
+package com.luokuiai.flovira.core.handler;
 
-import org.apache.ibatis.annotations.Param;
-import com.luokuiai.flovira.orm.entity.FlowForm;
-
-import java.util.List;
+import java.util.Map;
 
 /**
- * @author vanlin
- * 流程表单Mapper
+ * 由业务系统提供表单字段名称，供审批数据变更记录展示使用。
+ * 表单结构、版本及页面均由业务系统维护。
  *
- * @since 2024/8/19 14:30
+ * @author LuokuiAI
  */
-public interface FlowFormMapper extends FloviraMapper<FlowForm> {
-    List<FlowForm> queryByCodeList(@Param("formCodeList") List<String> formCodeList, @Param("entity") FlowForm entity);
+public interface FormFieldProvider {
+
+    /**
+     * @param formId 办理时保存的外部表单标识，可包含业务版本
+     * @return 字段编码到名称的映射；未找到时返回空映射，展示时回退到字段编码
+     */
+    Map<String, String> getFieldLabels(String formId);
 }

@@ -8,26 +8,26 @@
         <result property="id" column="id"/>
         <result property="type" column="type"/>
         <result property="processedBy" column="processed_by"/>
-        <result property="associated" column="associated"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-        <result property="createBy" column="create_by"/>
+        <result property="associatedId" column="associated_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="createdBy" column="created_by"/>
         <result property="tenantId" column="tenant_id"/>
-        <result property="delFlag" column="del_flag"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="deleted" column="deleted"/>
+        <result property="updatedBy" column="updated_by"/>
     </resultMap>
 
     <sql id="selectVo">
         select t.id,
                t.type,
                t.processed_by,
-               t.associated,
-               t.create_time,
-               t.update_time,
-               t.create_by,
+               t.associated_id,
+               t.created_at,
+               t.updated_at,
+               t.created_by,
                t.tenant_id,
-               t.del_flag,
-               t.update_by
+               t.deleted,
+               t.updated_by
         from flow_user t
     </sql>
 
@@ -48,13 +48,13 @@
             <if test="entity.processedBy != null  and entity.processedBy != ''">and t.processed_by =
                 #{entity.processedBy}
             </if>
-            <if test="entity.associated != null">and t.associated = #{entity.associated}</if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
-            <if test="entity.createBy != null  and entity.createBy != ''">and t.create_by = #{entity.createBy}</if>
+            <if test="entity.associatedId != null">and t.associated_id = #{entity.associatedId}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
+            <if test="entity.createdBy != null  and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
-            <if test="entity.updateBy != null  and entity.updateBy != ''">and t.update_by = #{entity.updateBy}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
+            <if test="entity.updatedBy != null  and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
         </where>
     </sql>
 
@@ -87,13 +87,13 @@
         id,
         type,
         processed_by,
-        associated,
-        create_time,
-        update_time,
-        create_by,
-        del_flag,
+        associated_id,
+        created_at,
+        updated_at,
+        created_by,
+        deleted,
         tenant_id,
-        update_by
+        updated_by
         )
         values
         <foreach collection="list" item="item" separator=",">
@@ -101,13 +101,13 @@
             #{item.id},
             #{item.type},
             #{item.processedBy},
-            #{item.associated},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.createBy},
-            #{item.delFlag},
+            #{item.associatedId},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.createdBy},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.updateBy}
+            #{item.updatedBy}
             )
         </foreach>
     </sql>
@@ -117,26 +117,26 @@
         id,
         type,
         processed_by,
-        associated,
-        create_time,
-        update_time,
-        create_by,
-        del_flag,
+        associated_id,
+        created_at,
+        updated_at,
+        created_by,
+        deleted,
         tenant_id,
-        update_by
+        updated_by
         )
         <foreach collection="list" item="item" separator=" union all">
             select
             #{item.id},
             #{item.type},
             #{item.processedBy},
-            #{item.associated},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.createBy},
-            #{item.delFlag},
+            #{item.associatedId},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.createdBy},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.updateBy}
+            #{item.updatedBy}
             from dual
         </foreach>
     </sql>
@@ -147,14 +147,14 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
     <select id="selectById" resultMap="FlowUserResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -163,15 +163,15 @@
         <include refid="select_parameter"/>
     </select>
 
-    <select id="listByAssociatedAndTypes" resultMap="FlowUserResult">
+    <select id="listByAssociatedIdsAndTypes" resultMap="FlowUserResult">
         <include refid="selectVo"/>
         <where>
-            <if test="associateds == null and entity.associated != null">
-                and t.associated = #{entity.associated}
+            <if test="associatedIds == null and entity.associatedId != null">
+                and t.associated_id = #{entity.associatedId}
             </if>
-            <if test="associateds != null and associateds.size > 0">
-                AND associated in
-                <foreach item="item" collection="associateds" open="(" separator="," close=")">
+            <if test="associatedIds != null and associatedIds.size > 0">
+                AND associated_id in
+                <foreach item="item" collection="associatedIds" open="(" separator="," close=")">
                     #{item}
                 </foreach>
             </if>
@@ -189,7 +189,7 @@
                 </foreach>
             </if>
 
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
         </where>
     </select>
@@ -197,8 +197,8 @@
     <select id="listByProcessedBys" resultMap="FlowUserResult">
         <include refid="selectVo"/>
         <where>
-            <if test="entity.associated != null">
-                and t.associated = #{entity.associated}
+            <if test="entity.associatedId != null">
+                and t.associated_id = #{entity.associatedId}
             </if>
             <if test="processedBys == null and entity.processedBy != null  and entity.processedBy != ''">
                 and t.processed_by = #{processedBy}
@@ -223,7 +223,7 @@
                 </foreach>
             </if>
 
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
         </where>
     </select>
@@ -234,25 +234,25 @@
             <if test="id != null">id,</if>
             <if test="type != null and type != ''">type,</if>
             <if test="processedBy != null and processedBy != ''">processed_by,</if>
-            <if test="associated != null">associated,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="createBy != null and createBy != ''">create_by,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="associatedId != null">associated_id,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="createdBy != null and createdBy != ''">created_by,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
-            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="type != null and type != ''">#{type},</if>
             <if test="processedBy != null and processedBy != ''">#{processedBy},</if>
-            <if test="associated != null">#{associated},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="createBy != null and createBy != ''">#{createBy},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="associatedId != null">#{associatedId},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
-            <if test="updateBy != null and updateBy != ''">#{updateBy}</if>
+            <if test="updatedBy != null and updatedBy != ''">#{updatedBy}</if>
         </trim>
     </insert>
 
@@ -261,14 +261,14 @@
         <trim prefix="SET" suffixOverrides=",">
             <if test="type != null and type != ''">type = #{type},</if>
             <if test="processedBy != null and processedBy != ''">processed_by = #{processedBy},</if>
-            <if test="associated != null">associated = #{associated},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
-            <if test="createBy != null and createBy != ''">create_by = #{createBy},</if>
-            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="associatedId != null">associated_id = #{associatedId},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by = #{updatedBy},</if>
         </trim>
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
@@ -281,10 +281,10 @@
 
     <update id="updateByIdLogic">
         update flow_user
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -298,13 +298,13 @@
 
     <update id="updateByIdsLogic">
         update flow_user
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -314,32 +314,32 @@
             <if test="id != null">and id = #{id}</if>
             <if test="type != null  and type != ''">and type = #{type}</if>
             <if test="processedBy != null  and processedBy != ''">and processed_by = #{processedBy}</if>
-            <if test="associated != null">and associated = #{associated}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
-            <if test="createBy != null  and createBy != ''">and create_by = #{createBy}</if>
+            <if test="associatedId != null">and associated_id = #{associatedId}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
+            <if test="createdBy != null  and createdBy != ''">and created_by = #{createdBy}</if>
             <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
         </where>
     </delete>
 
     <update id="updateLogic">
         update flow_user
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.type != null  and entity.type != ''">and type = #{type}</if>
             <if test="entity.processedBy != null  and entity.processedBy != ''">and processed_by = #{entity.processedBy}</if>
-            <if test="entity.associated != null">and associated = #{entity.associated}</if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
-            <if test="entity.createBy != null  and entity.createBy != ''">and create_by = #{entity.createBy}</if>
+            <if test="entity.associatedId != null">and associated_id = #{entity.associatedId}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
+            <if test="entity.createdBy != null  and entity.createdBy != ''">and created_by = #{entity.createdBy}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         </where>
     </update>
 
     <delete id="deleteByTaskIds">
-        delete from flow_user where associated in
+        delete from flow_user where associated_id in
         <foreach item="taskId" collection="taskIds" open="(" separator="," close=")">
             #{taskId}
         </foreach>
@@ -347,13 +347,13 @@
 
     <update id="updateByTaskIdsLogic">
         update flow_user
-            set del_flag = #{logicDeleteValue}
-        where associated in
+            set deleted = #{logicDeleteValue}
+        where associated_id in
         <foreach item="taskId" collection="taskIds" open="(" separator="," close=")">
             #{taskId}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 

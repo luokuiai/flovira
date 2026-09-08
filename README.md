@@ -21,7 +21,7 @@ Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 - Java 8 source compatibility, with integration support for Java 8, 17, and 21
 - Spring Boot 2.7.18, 3.5.16, and 4.0.2
 - MyBatis and MyBatis-Plus
-- MySQL, Oracle, PostgreSQL, and SQL Server
+- MySQL, Oracle, and PostgreSQL
 - Apache License 2.0
 
 ## Modules

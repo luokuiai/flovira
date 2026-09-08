@@ -28,7 +28,7 @@ import java.util.List;
  * @author warm
  * @since 2023-03-29
  */
-public interface InsService extends IFloviraService<Instance> {
+public interface InstanceService extends IFloviraService<Instance> {
 
     /**
      * 传入业务id开启流程
@@ -37,7 +37,7 @@ public interface InsService extends IFloviraService<Instance> {
      * @param flowParams: 包含流程相关参数的对象
      *                    - flowCode: 流程编码 [必传]
      *                    - handler: 当前办理人唯一标识[必传]
-     *                    - variable: 流程变量[按需传输]
+     *                    - variables: 流程变量[按需传输]
      *                    - nextHandler: 执行的下个任务的办理人[按需传输]
      *                    - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                    - flowStatus: 流程状态，自定义流程状态[按需传输]

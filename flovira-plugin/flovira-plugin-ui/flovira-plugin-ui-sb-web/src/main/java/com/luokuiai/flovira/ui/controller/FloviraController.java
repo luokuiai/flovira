@@ -140,28 +140,7 @@ public class FloviraController {
         return FloviraService.subprocessHistory(runId, childId);
     }
 
-    /**
-     * 读取表单内容
-     *
-     * @param id
-     * @return
-     */
-    @GetMapping("/form-content/{id}")
-    public ApiResult<String> getFormContent(@PathVariable("id") Long id) {
-        return FloviraService.getFormContent(id);
-    }
 
-    /**
-     * 保存表单内容,该接口不需要系统实现
-     *
-     * @param flowDto
-     * @return
-     */
-    @Transactional(rollbackFor = Exception.class)
-    @PostMapping("/form-content")
-    public ApiResult<Void> saveFormContent(@RequestBody FlowDto flowDto) {
-        return FloviraService.saveFormContent(flowDto);
-    }
 
 
     /**

@@ -85,7 +85,7 @@
           </wf-select>
           <wf-input v-model="form.nodeRatioValue" :placeholder="getNodeRatioDescription()" style="width: 74%; margin-left: 1%"/>
         </wf-form-item>
-        <wf-form-item :label="t('between.rejectToNode')" prop="formCustom">
+        <wf-form-item :label="t('between.rejectToNode')" prop="anyNodeSkip">
           <template #label>
             <span v-if="form.collaborativeWay === '2'"  class="mr5" style="color: red;">*</span>{{ t('between.rejectToNode') }}
           </template>
@@ -100,45 +100,11 @@
           <div class="placeholder mt5">{{ t('between.voteRejectRequired') }}</div>
         </wf-form-item>
 
-        <!-- 自定义表单 - 卡片式单选 -->
-        <wf-form-item :label="t('between.formCustom')" prop="formCustom">
-          <div class="radio-card-group radio-card-sm">
-            <label
-              class="radio-card-item"
-              :class="{ 'is-checked': form.formCustom === 'N' }"
-              @click="!disabled && (form.formCustom = 'N')"
-            >
-              <span class="radio-card-dot"></span>
-              <span class="radio-card-text">{{ t('common.no') }}</span>
-              <wf-tooltip effect="dark" placement="top" :content="t('between.formCustomNoTip')">
-                <wf-icon :size="13" class="radio-card-tip"><svg-icon icon-class="ep:warning-filled" /></wf-icon>
-              </wf-tooltip>
-            </label>
-            <label
-              class="radio-card-item"
-              :class="{ 'is-checked': form.formCustom === 'Y' }"
-              @click="!disabled && (form.formCustom = 'Y')"
-            >
-              <span class="radio-card-dot"></span>
-              <span class="radio-card-text">{{ t('common.yes') }}</span>
-              <wf-tooltip effect="dark" placement="top" :content="t('between.formCustomYesTip')">
-                <wf-icon :size="13" class="radio-card-tip"><svg-icon icon-class="ep:warning-filled" /></wf-icon>
-              </wf-tooltip>
-            </label>
-          </div>
-        </wf-form-item>
-
-        <wf-form-item :label="t('between.formPath')" prop="formPath" v-if="form.formCustom === 'N'">
-          <wf-input v-model="form.formPath"></wf-input>
-        </wf-form-item>
-        <wf-form-item :label="t('between.formKey')" prop="formPath" v-else-if="form.formCustom === 'Y'">
-            <wf-tree-select
-                v-model="form.formPath"
-                :data="formPathList"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
-                :placeholder="t('baseInfo.categoryPlaceholder')"
-                check-strictly/>
+        <wf-form-item :label="t('between.formId')" prop="formId">
+          <wf-tree-select v-if="formOptions.length" v-model="form.formId"
+              :data="formOptions" :props="{ value: 'id', label: 'name', children: 'children' }"
+              value-key="id" :placeholder="t('between.formIdPlaceholder')" clearable check-strictly/>
+          <wf-input v-else v-model="form.formId" :placeholder="t('between.formIdPlaceholder')" maxlength="100"/>
         </wf-form-item>
         <!-- 自定义扩展点：消费方可注入额外表单项（透出 { form, disabled }） -->
         <slot name="node-form-extra" :form="form" :disabled="disabled" />
@@ -304,7 +270,7 @@ interface BetweenProps {
   /** 画布边列表 */
   skips?: any[];
   /** 自定义表单路径树 */
-  formPathList?: any[];
+  formOptions?: any[];
 }
 const props = withDefaults(defineProps<BetweenProps>(), {
   modelValue: () => ({}),
@@ -312,7 +278,7 @@ const props = withDefaults(defineProps<BetweenProps>(), {
   showWays: true,
   nodes: () => [],
   skips: () => [],
-  formPathList: () => [],
+  formOptions: () => [],
 });
 
 const tabsValue = ref("1");

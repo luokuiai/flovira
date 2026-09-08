@@ -14,11 +14,9 @@ export const json2LogicFlowJson = (definition) => {
   // 解析definition属性
   graphData.flowCode = definition.flowCode
   graphData.flowName = definition.flowName
-  graphData.modelValue = definition.modelValue
   graphData.category = definition.category
   graphData.version = definition.version
-  graphData.formCustom = definition.formCustom
-  graphData.formPath = definition.formPath
+  graphData.formId = definition.formId
   graphData.listenerType = definition.listenerType
   graphData.listenerPath = definition.listenerPath
 
@@ -62,8 +60,7 @@ export const json2LogicFlowJson = (definition) => {
       lfNode.properties.anyNodeSkip = node.anyNodeSkip
       lfNode.properties.listenerType = node.listenerType
       lfNode.properties.listenerPath = node.listenerPath
-      lfNode.properties.formCustom = node.formCustom
-      lfNode.properties.formPath = node.formPath
+      lfNode.properties.formId = node.formId
       lfNode.properties.status = node.status
       lfNode.properties.chartStatusColor = definition.chartStatusColor
       lfNode.properties.promptContent = node.promptContent
@@ -97,8 +94,8 @@ export const json2LogicFlowJson = (definition) => {
       }
       edge.id = skipEle.id
       edge.type = 'skip'
-      edge.sourceNodeId = skipEle.nowNodeCode
-      edge.targetNodeId = skipEle.nextNodeCode
+      edge.sourceNodeId = skipEle.sourceNodeCode
+      edge.targetNodeId = skipEle.targetNodeCode
       edge.text = { value: skipEle.skipName }
       edge.properties.skipCondition = skipEle.skipCondition
       edge.properties.skipName = skipEle.skipName
@@ -193,11 +190,9 @@ export const logicFlowJsonToFlovira = (data) => {
   definition.id = data.id
   definition.flowCode = data.flowCode
   definition.flowName = data.flowName
-  definition.modelValue = data.modelValue
   definition.category = data.category
   definition.version = data.version
-  definition.formCustom = data.formCustom
-  definition.formPath = data.formPath
+  definition.formId = data.formId
   definition.listenerType = data.listenerType
   definition.listenerPath = data.listenerPath
   // 流程节点
@@ -213,9 +208,8 @@ export const logicFlowJsonToFlovira = (data) => {
     node.anyNodeSkip = anyNode.properties.anyNodeSkip
     node.listenerType = anyNode.properties.listenerType
     node.listenerPath = anyNode.properties.listenerPath
-    node.formCustom = anyNode.properties.formCustom
-    if (anyNode.properties.formPath && String(anyNode.properties.formPath).trim()) {
-      node.formPath = anyNode.properties.formPath.trim()
+    if (anyNode.properties.formId && String(anyNode.properties.formId).trim()) {
+      node.formId = anyNode.properties.formId.trim()
     }
     node.ext = [];
     for (const key in anyNode.properties.ext) {
@@ -244,10 +238,10 @@ export const logicFlowJsonToFlovira = (data) => {
         skip.skipType = anyEdge.properties.skipType
         skip.skipCondition = anyEdge.properties.skipCondition
         skip.skipName = anyEdge?.text?.value || anyEdge.properties.skipName
-        skip.nowNodeCode = anyEdge.sourceNodeId
-        skip.nowNodeType = getNodeType(skip.nowNodeCode)
-        skip.nextNodeCode = anyEdge.targetNodeId
-        skip.nextNodeType = getNodeType(skip.nextNodeCode)
+        skip.sourceNodeCode = anyEdge.sourceNodeId
+        skip.sourceNodeType = getNodeType(skip.sourceNodeCode)
+        skip.targetNodeCode = anyEdge.targetNodeId
+        skip.targetNodeType = getNodeType(skip.targetNodeCode)
         skip.coordinate = getCoordinate(anyEdge)
         node.skipList.push(skip)
       }
@@ -339,25 +333,25 @@ export const applyClassicDesignColor = (style, properties, rgb) => {
   return style;
 };
 
-export function getPreviousNodes(nodes, skips, nowNodeCode) {
-  let previousCode = getPreviousCode(skips, nowNodeCode, new Set());
+export function getPreviousNodes(nodes, skips, nodeCode) {
+  let previousCode = getPreviousCode(skips, nodeCode, new Set());
   // 使用 Set 去重后再转换为数组
   const uniquePreviousCode = [...new Set(previousCode)];
   return nodes.filter(node => uniquePreviousCode.includes(node.id)).reverse();
 }
 
-function getPreviousCode(skips, nowNodeCode, visited = new Set()) {
+function getPreviousCode(skips, nodeCode, visited = new Set()) {
   // 防止循环引用导致的无限递归
-  if (visited.has(nowNodeCode)) {
+  if (visited.has(nodeCode)) {
     return [];
   }
 
-  visited.add(nowNodeCode);
+  visited.add(nodeCode);
   let passSkip = skips.filter(skip => skip.properties.skipType === "PASS");
   const previousCode = [];
 
   for (const skip of passSkip) {
-    if (skip.targetNodeId === nowNodeCode) {
+    if (skip.targetNodeId === nodeCode) {
       previousCode.push(skip.sourceNodeId);
       // 递归获取更前面的节点
       const ancestors = getPreviousCode(passSkip, skip.sourceNodeId, visited);
@@ -371,9 +365,6 @@ function getPreviousCode(skips, nowNodeCode, visited = new Set()) {
 /**
  * 判断是否经典模式
  */
-export function isClassics(modelValue) {
-  return "CLASSICS" === modelValue
-}
 
 /**
  * 判断是否网关节点

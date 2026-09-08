@@ -29,7 +29,7 @@ import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.listener.ListenerVariable;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.utils.*;
 
 import java.util.ArrayList;
@@ -44,10 +44,10 @@ import java.util.stream.Collectors;
  * @author warm
  * @since 2023-03-29
  */
-public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>, Instance> implements InsService {
+public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>, Instance> implements InstanceService {
 
     @Override
-    public InsService setDao(FlowInstanceDao<Instance> floviraDao) {
+    public InstanceService setDao(FlowInstanceDao<Instance> floviraDao) {
         this.floviraDao = floviraDao;
         return this;
     }
@@ -99,14 +99,14 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
         flowParams.skipType(SkipType.PASS.getKey());
 
         // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(definition, null, startNode, flowParams.getVariable())
+        ListenerUtil.executeStart(new ListenerVariable(definition, null, startNode, flowParams.getVariables())
             .setFlowParams(flowParams));
 
 
         // 获取下一个节点，如果是网关节点，则重新获取后续节点
         PathWayData pathWayData = new PathWayData().setDefId(startNode.getDefinitionId()).setSkipType(flowParams.getSkipType());
         List<Node> nextNodes = FlowEngine.nodeService().getNextNodeList(startNode, null, flowParams.getSkipType(),
-            flowParams.getVariable(), pathWayData, flowCombine);
+            flowParams.getVariables(), pathWayData, flowCombine);
 
         // 设置流程实例对象
         Instance instance = setStartInstance(nextNodes.get(0), businessType, businessId, flowParams);
@@ -127,17 +127,17 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
         instance.setDefJson(FlowEngine.chartService().startMetadata(pathWayData));
 
         // 执行分派监听器
-        ListenerUtil.executeAssignment(new ListenerVariable(definition, instance, startNode, flowParams.getVariable()
+        ListenerUtil.executeAssignment(new ListenerVariable(definition, instance, startNode, flowParams.getVariables()
             , null, nextNodes, addTasks).setFlowParams(flowParams));
 
         // 开启流程，保存流程信息
         saveFlowInfo(instance, addTasks, hisTask, flowParams);
 
         // 执行完成和创建监听器
-        ListenerUtil.endCreateListener(new ListenerVariable(definition, instance, startNode, flowParams.getVariable()
+        ListenerUtil.endCreateListener(new ListenerVariable(definition, instance, startNode, flowParams.getVariables()
             , null, nextNodes, addTasks).setFlowParams(flowParams));
 
-        CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariable());
+        CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariables());
 
         return instance;
     }
@@ -243,11 +243,11 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
             .setNodeName(firstBetweenNode.getNodeName())
             .setFlowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(), FlowStatus.TOBESUBMIT.getKey()))
             .setActivityStatus(ActivityStatus.ACTIVITY.getKey())
-            .setVariable(FlowEngine.jsonConvert.objToStr(flowParams.getVariable()))
-            .setCreateTime(now)
-            .setUpdateTime(now)
-            .setCreateBy(flowParams.getHandler())
-            .setUpdateBy(flowParams.getHandler())
+            .setVariables(FlowEngine.jsonConvert.objToStr(flowParams.getVariables()))
+            .setCreatedAt(now)
+            .setUpdatedAt(now)
+            .setCreatedBy(flowParams.getHandler())
+            .setUpdatedBy(flowParams.getHandler())
             .setExt(flowParams.getExt());
         return instance;
     }
@@ -269,7 +269,7 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
 
         FlowEngine.taskService().deleteByInsIds(instanceIds);
         FlowEngine.hisTaskService().deleteByInsIds(instanceIds);
-        return FlowEngine.insService().removeByIds(instanceIds);
+        return FlowEngine.instanceService().removeByIds(instanceIds);
     }
 
     @Override
@@ -290,14 +290,14 @@ public class InsServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Instance>
 
     @Override
     public void removeVariables(Long instanceId, String... keys) {
-        Instance instance = FlowEngine.insService().getById(instanceId);
+        Instance instance = FlowEngine.instanceService().getById(instanceId);
         if (instance != null) {
             Map<String, Object> variableMap = instance.getVariableMap();
             for (String key : keys) {
                 variableMap.remove(key);
             }
-            instance.setVariable(FlowEngine.jsonConvert.objToStr(variableMap));
-            FlowEngine.insService().updateById(instance);
+            instance.setVariables(FlowEngine.jsonConvert.objToStr(variableMap));
+            FlowEngine.instanceService().updateById(instance);
         }
     }
 }

@@ -1,6 +1,8 @@
 import './styles.css'
 
 export { ReactFlowDesigner } from './ReactFlowDesigner'
+export { FlowPreview } from './FlowPreview'
+export type { FlowPreviewProps, FlowPreviewNodeContext } from './FlowPreview'
 export { defaultDesignerUi } from './ui'
 export {
   addGatewayBranch,
@@ -12,6 +14,9 @@ export {
   filterNodeTypes,
   findApproverStrategy,
   getApproverRule,
+  getNodeControlConfig,
+  setNodeControlConfig,
+  getRejectTargetCandidates,
   getCarbonCopyRule,
   getSubprocessConfig,
   getTimeoutConfig,
@@ -50,6 +55,11 @@ export type {
   DesignerFieldProps,
   DesignerInputProps,
   DesignerCapabilities,
+  DesignerConditionField,
+  DesignerConditionFieldContext,
+  DesignerConditionFieldLoader,
+  DesignerBranchCondition,
+  DesignerConditionGroup,
   DesignerRelationshipQuery,
   DesignerResourceItem,
   DesignerResourcePage,
@@ -69,6 +79,7 @@ export type {
   NodeRendererContext,
   ApproverEditorRenderContext,
   NodeTimeoutConfig,
+  NodeControlConfig,
   ReactFlowDesignerChange,
   ReactFlowDesignerProps,
   ReactFlowDesignerRef,

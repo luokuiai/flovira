@@ -137,3 +137,11 @@ main {
     padding: 0;
   }
 }
+
+.demo-tabs { display: flex; gap: 24px; margin-bottom: 24px; border-bottom: 1px solid #dbe4ef; }
+.demo-tabs [role="tab"] { padding: 10px 2px 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #64748b; cursor: pointer; font: inherit; font-size: 14px; }
+.demo-tabs [aria-selected="true"] { border-bottom-color: #2563eb; color: #2563eb; font-weight: 600; }
+.demo-tabs [role="tab"]:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+html.dark .demo-tabs, [data-color-scheme="dark"] .demo-tabs { border-bottom-color: #364152; }
+html.dark .demo-tabs [role="tab"], [data-color-scheme="dark"] .demo-tabs [role="tab"] { color: #94a3b8; }
+html.dark .demo-tabs [aria-selected="true"], [data-color-scheme="dark"] .demo-tabs [aria-selected="true"] { border-bottom-color: #60a5fa; color: #60a5fa; }

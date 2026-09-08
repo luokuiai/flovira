@@ -11,35 +11,6 @@
           <wf-input v-model="form.flowName" :placeholder="t('baseInfo.flowNamePlaceholder')" maxlength="100" @input="nameChange" />
         </wf-form-item>
 
-        <wf-form-item :label="t('baseInfo.model')" prop="modelValue">
-          <wf-radio-group v-model="form.modelValue" :disabled="!!definitionId || isMobile" @change="modelValueChange" class="radio-card-group">
-            <wf-radio label="CLASSICS" class="radio-card">
-              <div class="radio-card-content">
-                <div class="radio-card-icon">
-                  <svg-icon icon-class="classic" class="model-icon"/>
-                </div>
-                <div class="radio-card-info">
-                  <div class="radio-card-title">{{ t('baseInfo.modelClassic') }}</div>
-                  <div class="radio-card-desc">{{ t('baseInfo.modelClassicDesc') }}</div>
-                </div>
-              </div>
-            </wf-radio>
-            <wf-radio label="MIMIC" class="radio-card">
-              <div class="radio-card-content">
-                <div class="radio-card-icon">
-                  <svg-icon icon-class="mimic" class="model-icon"/>
-                </div>
-                <div class="radio-card-info">
-                  <div class="radio-card-title">{{ t('baseInfo.modelMimic') }}</div>
-                  <div class="radio-card-desc">{{ t('baseInfo.modelMimicDesc') }}</div>
-                </div>
-              </div>
-            </wf-radio>
-          </wf-radio-group>
-          <div class="radio-card-warning">{{ t('baseInfo.modelSwitchWarning') }}</div>
-          <div class="radio-card-warning radio-card-warning--mobile" v-if="isMobile">{{ t('baseInfo.modelMobileWarning') }}</div>
-        </wf-form-item>
-
         <wf-form-item :label="t('baseInfo.category')" prop="category">
           <wf-tree-select
               v-model="form.category"
@@ -50,29 +21,11 @@
               check-strictly/>
         </wf-form-item>
 
-        <wf-form-item :label="t('baseInfo.formCustom')" prop="formCustom">
-          <wf-switch
-            v-model="form.formCustom"
-            size="large"
-            active-value="Y"
-            inactive-value="N"
-            :active-text="t('common.yes')"
-            :inactive-text="t('common.no')" />
-          <span class="form-tip">{{ form.formCustom === 'Y' ? t('baseInfo.formCustomTipY') : t('baseInfo.formCustomTipN') }}</span>
-        </wf-form-item>
-
-        <wf-form-item :label="t('baseInfo.formPath')" prop="formPath" v-if="form.formCustom === 'N'">
-          <wf-input v-model="form.formPath" :placeholder="t('baseInfo.formPathPlaceholder')" maxlength="100"/>
-        </wf-form-item>
-
-        <wf-form-item :label="t('baseInfo.formKey')" prop="formPath" v-else-if="form.formCustom === 'Y'">
-            <wf-tree-select
-                v-model="form.formPath"
-                :data="formPathList"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
-                :placeholder="t('baseInfo.categoryPlaceholder')"
-                check-strictly/>
+        <wf-form-item :label="t('baseInfo.formId')" prop="formId">
+          <wf-tree-select v-if="formOptions.length" v-model="form.formId"
+              :data="formOptions" :props="{ value: 'id', label: 'name', children: 'children' }"
+              value-key="id" :placeholder="t('baseInfo.formIdPlaceholder')" clearable check-strictly/>
+          <wf-input v-else v-model="form.formId" :placeholder="t('baseInfo.formIdPlaceholder')" maxlength="100"/>
         </wf-form-item>
       </div>
 
@@ -138,7 +91,6 @@ const proxy = getCurrentInstance()!.proxy as any;
 const { t } = useI18n();
 const emit = defineEmits<{
   (e: 'update:flow-name', flowName: string): void;
-  (e: 'update:model-value'): void;
   (e: 'validate-error', fields?: Record<string, any>): void;
 }>();
 
@@ -152,10 +104,6 @@ function checkMobile() {
 onMounted(() => {
   checkMobile();
   window.addEventListener('resize', checkMobile);
-  // 移动端新增（无definitionId）时强制默认仿钉钉
-  if (isMobile.value && !props.definitionId) {
-    form.value.modelValue = 'MIMIC';
-  }
 });
 
 onUnmounted(() => {
@@ -169,7 +117,7 @@ interface BaseInfoProps {
   /** 流程类别树 */
   categoryList?: any[];
   /** 自定义表单路径树 */
-  formPathList?: any[];
+  formOptions?: any[];
   /** 流程定义 id（新建态为 null） */
   definitionId?: string | null;
 }
@@ -177,7 +125,7 @@ const props = withDefaults(defineProps<BaseInfoProps>(), {
   disabled: false,
   logicJson: () => ({}),
   categoryList: () => [],
-  formPathList: () => [],
+  formOptions: () => [],
   definitionId: null,
 });
 
@@ -185,10 +133,8 @@ const form = ref({
   id: null,
   flowCode: "",
   flowName: "",
-  modelValue: "",
   category: "",
-  formCustom: "N",
-  formPath: "",
+  formId: "",
   listenerType: "",
   listenerPath: "",
   listenerRows: []
@@ -197,16 +143,7 @@ const form = ref({
 watch(() => props.logicJson, newValue => {
   if (newValue && Object.keys(newValue).length > 0) {
     Object.assign(form.value, newValue);
-    // 自定义表单为「是/否」开关项：新建流程 definition.formCustom 为 null，会覆盖默认值导致开关失去取值，
-    // 进而触发 required 校验（点「流程设计」被拦）。此处兜底回「否」，与 propertySetting 的空值默认范式一致。
-    if (!form.value.formCustom) {
-      form.value.formCustom = "N";
-    }
     setListenerData();
-    // 移动端新增时强制默认仿钉钉（覆盖logicJson中可能为空的值）
-    if (isMobile.value && !props.definitionId) {
-      form.value.modelValue = 'MIMIC';
-    }
   }
 });
 
@@ -215,17 +152,11 @@ const ListenerVo = ref([]); // 监听器列表
 
 
 const rules = computed(() => ({
-  modelValue: [
-    { required: true, message: t('baseInfo.ruleModelRequired'), trigger: "blur" }
-  ],
   flowCode: [
     { required: true, message: t('baseInfo.ruleFlowCodeRequired'), trigger: "blur" }
   ],
   flowName: [
     { required: true, message: t('baseInfo.ruleFlowNameRequired'), trigger: "blur" }
-  ],
-  formCustom: [
-    { required: true, message: t('baseInfo.ruleFormCustomRequired'), trigger: "change" }
   ],
   listenerType: [
     { required: true, message: t('baseInfo.ruleListenerRequired'), trigger: ['change', 'blur'] }
@@ -284,10 +215,6 @@ function validate() {
 function nameChange(flowName: string) {
   // 可以在这里添加额外的逻辑，比如验证或格式化
   emit('update:flow-name', flowName); // 如果需要通知父组件
-}
-
-function modelValueChange() {
-  emit('update:model-value'); // 如果需要通知父组件
 }
 
 function getFormData() {

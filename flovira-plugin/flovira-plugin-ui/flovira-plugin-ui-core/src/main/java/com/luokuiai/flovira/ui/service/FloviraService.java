@@ -24,8 +24,6 @@ import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
-import com.luokuiai.flovira.core.enums.FormCustomEnum;
-import com.luokuiai.flovira.core.enums.ModelEnum;
 import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
@@ -136,9 +134,7 @@ public class FloviraService {
         try {
             DefJson defJson;
             if (id == null) {
-                defJson = new DefJson()
-                    .setModelValue(ModelEnum.CLASSICS.name())
-                    .setFormCustom(FormCustomEnum.N.name());
+                defJson = new DefJson();
             } else {
                 defJson = FlowEngine.defService().queryDesign(id);
             }
@@ -157,13 +153,13 @@ public class FloviraService {
      */
     public static ApiResult<DefJson> queryFlowChart(Long id) {
         try {
-            Instance instance = FlowEngine.insService().getById(id);
+            Instance instance = FlowEngine.instanceService().getById(id);
             String defJsonStr = instance.getDefJson();
             DefJson defJson = FlowEngine.jsonConvert.strToBean(defJsonStr, DefJson.class);
             defJson.setInstance(instance);
 
             // 获取流程图三原色
-            defJson.setChartStatusColor(FlowEngine.chartService().getChartRgb(defJson.getModelValue()));
+            defJson.setChartStatusColor(FlowEngine.chartService().getChartRgb());
             // 是否显示流程图顶部文字
             defJson.setTopTextShow(FlowEngine.getFlowConfig().isTopTextShow());
             List<Task> tasks = FlowEngine.taskService().getByInsId(instance.getId());
@@ -214,35 +210,11 @@ public class FloviraService {
         return FlowEngine.tenantHandler() == null ? "0" : FlowEngine.tenantHandler().getTenantId();
     }
 
-    /**
-     * 读取表单内容
-     *
-     * @param id
-     * @return
-     */
-    public static ApiResult<String> getFormContent(Long id) {
-        try {
-            return ApiResult.ok(FlowEngine.formService().getById(id).getFormContent());
-        } catch (Exception e) {
-            log.error("获取表单内容字符串", e);
-            throw new FlowException(ExceptionUtil.handleMsg("获取表单内容字符串失败", e));
-        }
-    }
 
-    /**
-     * 保存表单内容,该接口不需要系统实现
-     *
-     * @param flowDto
-     * @return
-     */
-    public static ApiResult<Void> saveFormContent(FlowDto flowDto) {
-        FlowEngine.formService().saveContent(flowDto.getId(), flowDto.getFormContent());
-        return ApiResult.ok();
-    }
 
 
     /**
-     * 根据任务id获取待办任务表单及数据
+     * 根据任务id获取待办任务业务表单标识及数据
      *
      * @param taskId 当前任务id
      * @return {@link ApiResult<FlowDto>}
@@ -256,7 +228,7 @@ public class FloviraService {
     }
 
     /**
-     * 根据任务id获取已办任务表单及数据
+     * 根据任务id获取已办任务业务表单标识及数据
      *
      * @param hisTaskId
      * @return

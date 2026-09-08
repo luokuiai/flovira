@@ -32,28 +32,28 @@ public interface User extends RootEntity {
     User setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    User setCreateTime(Date createTime);
+    User setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    User setUpdateTime(Date updateTime);
+    User setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    User setCreateBy(String createBy);
+    User setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    User setUpdateBy(String updateBy);
+    User setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -62,10 +62,10 @@ public interface User extends RootEntity {
     User setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    User setDelFlag(String delFlag);
+    User setDeleted(String deleted);
 
     /**
      * 获取人员类型
@@ -88,7 +88,7 @@ public interface User extends RootEntity {
      * 获取 任务表ID
      * @return 任务表ID
      */
-    Long getAssociated();
+    Long getAssociatedId();
 
-    User setAssociated(Long associated);
+    User setAssociatedId(Long associatedId);
 }

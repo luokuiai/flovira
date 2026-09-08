@@ -41,22 +41,22 @@ public class FlowTask implements Task {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -66,7 +66,7 @@ public class FlowTask implements Task {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
     /**
      * 对应flow_definition表的id
@@ -120,14 +120,9 @@ public class FlowTask implements Task {
     private List<User> userList;
 
     /**
-     * 审批表单是否自定义（Y=是 N=否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单
-     */
-    private String formPath;
+    private String formId;
 
     private Date timeoutAt;
 

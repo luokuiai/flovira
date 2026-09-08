@@ -78,14 +78,9 @@ public class NodeJson {
      */
     private String listenerPath;
     /**
-     * 审批表单是否自定义（Y=是 N=否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单是否自定义（Y=是 N=否）
-     */
-    private String formPath;
+    private String formId;
 
     /**
      * 节点扩展属性
@@ -117,9 +112,9 @@ public class NodeJson {
      */
     private List<SkipJson> skipList = new ArrayList<>();
 
-    private String createBy;
+    private String createdBy;
 
-    private String updateBy;
+    private String updatedBy;
 
     public Map<String, Object> getExtMap() {
         if (MapUtil.isEmpty(extMap)) {

@@ -54,7 +54,7 @@ public final class CarbonCopyUtil {
                 .handler(SYSTEM_HANDLER)
                 .message("Carbon copy completed")
                 .hisTaskExt(history(task))
-                .variable(variables);
+                .variables(variables);
             FlowEngine.taskService().skipSystemTask(flowParams, task);
         }
     }

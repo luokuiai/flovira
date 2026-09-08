@@ -72,7 +72,7 @@ public class ProgressServiceImpl implements ProgressService {
     @Override
     public ProgressResult previewByInstanceId(Long instanceId, Map<String, Object> variables) {
         AssertUtil.isNull(instanceId, ExceptionCons.NULL_INSTANCE_ID);
-        Instance instance = FlowEngine.insService().getById(instanceId);
+        Instance instance = FlowEngine.instanceService().getById(instanceId);
         AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
         Node sourceNode = FlowEngine.nodeService()
             .getByDefIdAndNodeCode(instance.getDefinitionId(), instance.getNodeCode());
@@ -82,7 +82,7 @@ public class ProgressServiceImpl implements ProgressService {
 
     private ProgressResult preview(Long definitionId, Long instanceId, Node sourceNode,
                                    Map<String, Object> baseVariables, Map<String, Object> variables) {
-        FlowParams previewParams = new FlowParams().variable(MapUtil.mergeAll(baseVariables, variables));
+        FlowParams previewParams = new FlowParams().variables(MapUtil.mergeAll(baseVariables, variables));
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(definitionId);
         List<ProgressNode> progressNodes = calculate(sourceNode, previewParams, flowCombine);
         return new ProgressResult()
@@ -118,7 +118,7 @@ public class ProgressServiceImpl implements ProgressService {
 
     private List<Node> nextNodes(Node node, FlowParams flowParams, FlowCombine flowCombine) {
         return FlowEngine.nodeService().getNextNodeList(node, null, SkipType.PASS.getKey(),
-            flowParams.getVariable(), null, flowCombine);
+            flowParams.getVariables(), null, flowCombine);
     }
 
     private ProgressNode toProgressNode(Node node, FlowParams flowParams) {

@@ -152,7 +152,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见  [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -172,7 +172,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见[按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量[按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量[按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态[按需传输]
@@ -191,7 +191,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见 [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -209,7 +209,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见 [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -227,7 +227,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见 [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -243,7 +243,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见 [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -258,7 +258,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见 [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -276,7 +276,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                      - message 审批意见 [按需传输]
      *                      - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                      实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                      - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                      - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                      - nextHandler: 执行的下个任务的办理人[按需传输]
      *                      - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                      - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -302,7 +302,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - message 审批意见 [按需传输]
      *                   - handler 当前办理人唯一标识，如用户id，用于记录历史表 [按需传输]；满足以下情况可以不传
      *                   实现了办理人权限处理器{@link PermissionHandler#getHandler()}
-     *                   - variable 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
+     *                   - variables 流程变量 [按需传输,跳转条件放入流程变量{@code 互斥网关必传}]
      *                   - nextHandler: 执行的下个任务的办理人[按需传输]
      *                   - nextHandlerAppend: 个任务处理人配置类型（true-追加，false-覆盖，默认false）[按需传输]
      *                   - flowStatus 流程状态，自定义流程状态 [按需传输]
@@ -430,7 +430,7 @@ public interface TaskService extends IFloviraService<Task> {
      *                   - addHandlers 增加办理人：加签，转办，委托[按需传输]
      *                   - reductionHandlers 减签对象：减签，委托[按需传输]
      *                   - message 审批意见[按需传输]
-     *                   - cooperateType 协作方式(2转办 3委派 6加签 7减签）[按需传输]
+     *                   - cooperationType 协作方式(2转办 3委派 6加签 7减签）[按需传输]
      *                   - ignore 转办忽略权限校验,默认忽略（true：忽略，false：不忽略）[按需传输]
      */
     boolean updateHandler(Long taskId, FlowParams flowParams);
@@ -544,7 +544,7 @@ public interface TaskService extends IFloviraService<Task> {
     void mergeVariable(Instance instance, Map<String, Object> variable);
 
     /**
-     * 获取表单及数据(使用表单场景)
+     * 获取业务表单标识及数据
      *
      * @param taskId
      * @param flowParams
@@ -553,7 +553,7 @@ public interface TaskService extends IFloviraService<Task> {
     FlowDto load(Long taskId, FlowParams flowParams);
 
     /**
-     * 获取表单及数据(使用表单场景)
+     * 获取业务表单标识及数据
      *
      * @param hisTaskId
      * @param flowParams

@@ -65,7 +65,7 @@ public class DesignerCapabilities {
             .setTimeoutNodeTypes(Arrays.asList("1", "7"))
             .setOperations(Arrays.asList("SAVE", "PUBLISH", "VALIDATE", "IMPORT", "EXPORT"))
             .setResourceTypes(Arrays.asList("USER", "ROLE", "ORGANIZATION", "SUBJECT", "CATEGORY",
-                "FORM_PATH", "FORM_FIELD", "DICTIONARY", "SUBPROCESS", "NODE_EXTENSION", "LISTENER"));
+                "FORM", "FORM_FIELD", "DICTIONARY", "SUBPROCESS", "NODE_EXTENSION", "LISTENER"));
     }
 
     private static DesignerApproverStrategy withApproverOptions(DesignerApproverStrategy strategy,

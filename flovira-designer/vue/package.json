@@ -1,7 +1,7 @@
 {
   "name": "@luokuiai/flovira-vue-designer",
   "version": "1.0.0-alpha.0",
-  "description": "Flovira 流程设计器（经典 + 仿钉钉双模式）Vue3 组件库",
+  "description": "Flovira 流程设计器 Vue 3 组件库",
   "author": "warm",
   "license": "MIT",
   "keywords": [
@@ -9,10 +9,9 @@
     "workflow",
     "flow-designer",
     "logicflow",
-    "vue3",
-    "dromara"
+    "vue3"
   ],
-  "homepage": "https://flovira.dromara.org",
+  "homepage": "https://flovira.com",
   "bugs": {
     "url": "https://github.com/luokuiai/flovira/issues"
   },

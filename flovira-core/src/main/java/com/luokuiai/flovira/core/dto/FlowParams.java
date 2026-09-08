@@ -71,7 +71,7 @@ public class FlowParams implements Serializable {
      * 流程变量
      */
     @Getter
-    private Map<String, Object> variable = new HashMap<>();
+    private Map<String, Object> variables = new HashMap<>();
 
     /**
      * 流程实例状态
@@ -95,7 +95,7 @@ public class FlowParams implements Serializable {
      * 协作方式(1审批 2转办 3委派 4会签 5票签 6加签 7减签)
      */
     @Getter
-    private Integer cooperateType;
+    private Integer cooperationType;
 
     /**
      * 扩展字段，预留给业务系统使用
@@ -154,34 +154,34 @@ public class FlowParams implements Serializable {
     public FlowParams() {
     }
 
-    public FlowParams(String skipType, String message, Map<String, Object> variable) {
+    public FlowParams(String skipType, String message, Map<String, Object> variables) {
         this.skipType = skipType;
         this.message = message;
-        this.variable = variable;
+        this.variables = variables;
     }
 
-    public FlowParams(String nodeCode, String skipType, String message, Map<String, Object> variable) {
+    public FlowParams(String nodeCode, String skipType, String message, Map<String, Object> variables) {
         this.nodeCode = nodeCode;
         this.skipType = skipType;
         this.message = message;
-        this.variable = variable;
+        this.variables = variables;
     }
 
-    public FlowParams(String skipType, String message, Map<String, Object> variable
+    public FlowParams(String skipType, String message, Map<String, Object> variables
         , String flowStatus, String hisStatus) {
         this.skipType = skipType;
         this.message = message;
-        this.variable = variable;
+        this.variables = variables;
         this.flowStatus = flowStatus;
         this.hisStatus = hisStatus;
     }
 
-    public FlowParams(String nodeCode, String skipType, String message, Map<String, Object> variable
+    public FlowParams(String nodeCode, String skipType, String message, Map<String, Object> variables
         , String flowStatus, String hisStatus) {
         this.nodeCode = nodeCode;
         this.skipType = skipType;
         this.message = message;
-        this.variable = variable;
+        this.variables = variables;
         this.flowStatus = flowStatus;
         this.hisStatus = hisStatus;
     }
@@ -215,8 +215,8 @@ public class FlowParams implements Serializable {
         return this;
     }
 
-    public FlowParams variable(Map<String, Object> variable) {
-        this.variable = variable;
+    public FlowParams variables(Map<String, Object> variables) {
+        this.variables = variables;
         return this;
     }
 
@@ -235,8 +235,8 @@ public class FlowParams implements Serializable {
         return this;
     }
 
-    public FlowParams cooperateType(Integer cooperateType) {
-        this.cooperateType = cooperateType;
+    public FlowParams cooperationType(Integer cooperationType) {
+        this.cooperationType = cooperationType;
         return this;
     }
 
@@ -259,8 +259,8 @@ public class FlowParams implements Serializable {
         return this;
     }
 
-    public String getVariableStr() {
-        return FlowEngine.jsonConvert.objToStr(variable);
+    public String getVariablesStr() {
+        return FlowEngine.jsonConvert.objToStr(variables);
     }
 
     public String getHandler() {
@@ -325,10 +325,10 @@ public class FlowParams implements Serializable {
     }
 
     public FlowParams formData(Map<String, Object> formData) {
-        if (this.variable == null) {
-            this.variable = new HashMap<>();
+        if (this.variables == null) {
+            this.variables = new HashMap<>();
         }
-        this.variable.put("formData", formData);
+        this.variables.put("formData", formData);
         return this;
     }
 

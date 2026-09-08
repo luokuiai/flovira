@@ -156,13 +156,14 @@ public class SubprocessPersistenceContractTest {
         task.setId(40L).setDefinitionId(1000L).setInstanceId(100L).setNodeCode("APPROVE")
             .setNodeName("Approve").setNodeType(1).setFlowStatus("1").setTimeoutAt(new Date(1000L))
             .setTimeoutAction("AUTO_PASS").setTimeoutConfig("{\"schemaVersion\":1}")
-            .setTimeoutStatus("PENDING");
+            .setTimeoutStatus("PENDING").setFormId("expense:v2");
         root(task);
         assertEquals(1, taskDao.save(task));
 
         List<Task> due = taskDao.listDueTimeoutTasks(new Date(2000L), new Date(0L), 10);
         assertEquals(1, due.size());
         assertEquals("AUTO_PASS", due.get(0).getTimeoutAction());
+        assertEquals("expense:v2", due.get(0).getFormId());
         assertEquals(1, taskDao.claimTimeout(40L, new Date(3000L), new Date(2500L)));
         assertEquals(0, taskDao.claimTimeout(40L, new Date(3500L), new Date(2500L)));
         assertEquals(1, taskDao.claimTimeout(40L, new Date(5000L), new Date(4000L)));
@@ -236,9 +237,9 @@ public class SubprocessPersistenceContractTest {
 
     private void root(com.luokuiai.flovira.core.entity.RootEntity entity) {
         entity.setTenantId("tenant-a");
-        entity.setDelFlag("0");
-        entity.setCreateTime(new Date());
-        entity.setUpdateTime(new Date());
+        entity.setDeleted("0");
+        entity.setCreatedAt(new Date());
+        entity.setUpdatedAt(new Date());
     }
 
     private String repeat(char value, int count) {

@@ -35,28 +35,28 @@ public interface Definition extends RootEntity {
     Definition setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Definition setCreateTime(Date createTime);
+    Definition setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Definition setUpdateTime(Date updateTime);
+    Definition setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Definition setCreateBy(String createBy);
+    Definition setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Definition setUpdateBy(String updateBy);
+    Definition setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -65,10 +65,10 @@ public interface Definition extends RootEntity {
     Definition setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Definition setDelFlag(String delFlag);
+    Definition setDeleted(String deleted);
 
     /**
      * 获取流程编码
@@ -96,15 +96,6 @@ public interface Definition extends RootEntity {
      */
     Definition setFlowName(String flowName);
 
-    /**
-     * 设计器模型（CLASSICS经典模型 MIMIC仿钉钉模型）
-     * @see com.luokuiai.flovira.core.enums.ModelEnum
-     * @return  设计器模型
-     */
-    String getModelValue();
-
-    Definition setModelValue(String modelValue);
-
     String getCategory();
 
     Definition setCategory(String category);
@@ -121,21 +112,13 @@ public interface Definition extends RootEntity {
      * 获取是否发布状态 (0未发布 1已发布 9已失效)
      * @return 发布状态
      */
-    Integer getIsPublish();
+    Integer getPublishStatus();
 
-    Definition setIsPublish(Integer isPublish);
+    Definition setPublishStatus(Integer publishStatus);
 
-    /**
-     * 审批表单是否自定义（Y=是 N=否）
-     * @return 是否自定义
-     */
-    String getFormCustom();
+    String getFormId();
 
-    Definition setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Definition setFormPath(String formPath);
+    Definition setFormId(String formId);
 
     String getExt();
 
@@ -177,19 +160,17 @@ public interface Definition extends RootEntity {
     default Definition copy() {
         return FlowEngine.newDef()
             .setTenantId(this.getTenantId())
-            .setDelFlag(this.getDelFlag())
+            .setDeleted(this.getDeleted())
             .setFlowCode(this.getFlowCode())
             .setFlowName(this.getFlowName())
-            .setModelValue(this.getModelValue())
             .setCategory(this.getCategory())
             .setVersion(this.getVersion())
-            .setFormCustom(this.getFormCustom())
-            .setFormPath(this.getFormPath())
+            .setFormId(this.getFormId())
             .setListenerType(this.getListenerType())
             .setListenerPath(this.getListenerPath())
             .setExt(this.getExt())
-            .setCreateBy(this.getCreateBy())
-            .setUpdateBy(this.getUpdateBy());
+            .setCreatedBy(this.getCreatedBy())
+            .setUpdatedBy(this.getUpdatedBy());
 
     }
 }

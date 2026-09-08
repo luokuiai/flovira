@@ -35,7 +35,7 @@ import com.luokuiai.flovira.core.orm.dao.FlowSubprocessChildDao;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessEventDao;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessRunDao;
 import com.luokuiai.flovira.core.service.DefService;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.service.NodeService;
 import com.luokuiai.flovira.core.service.TaskService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
@@ -244,18 +244,18 @@ public class SubprocessLifecycleTest {
                 .setDefinitionId(1L).setNodeCode("SUB").setExt("child");
             childDefinition = TestEntityFactory.create(Definition.class).setId(2L).setFlowCode("child")
                 .setVersion("1").setTenantId("0").setActivityStatus(ActivityStatus.ACTIVITY.getKey());
-            parent = TestEntityFactory.create(Instance.class).setId(100L).setTenantId("0").setCreateBy("starter");
+            parent = TestEntityFactory.create(Instance.class).setId(100L).setTenantId("0").setCreatedBy("starter");
             TestEntityFactory.put(parent, "VariableMap", variables());
 
             final TaskService taskService = service(TaskService.class);
             final NodeService nodeService = service(NodeService.class);
             final DefService defService = service(DefService.class);
-            final InsService insService = service(InsService.class);
+            final InstanceService instanceService = service(InstanceService.class);
             FrameInvoker.setBeanFunction(type -> {
                 if (TaskService.class.equals(type)) return taskService;
                 if (NodeService.class.equals(type)) return nodeService;
                 if (DefService.class.equals(type)) return defService;
-                if (InsService.class.equals(type)) return insService;
+                if (InstanceService.class.equals(type)) return instanceService;
                 return null;
             });
             FlowEngine.setNewSubprocessRun(() -> TestEntityFactory.create(SubprocessRun.class));
@@ -315,8 +315,8 @@ public class SubprocessLifecycleTest {
                         return Collections.singletonMap(SubprocessConfigUtil.EXT_CONFIG, node.getExt());
                     }
                     if (type == DefService.class && "getPublishByFlowCode".equals(name)) return childDefinition;
-                    if (type == InsService.class && "getById".equals(name)) return parent;
-                    if (type == InsService.class && "startByDefinitionId".equals(name)) {
+                    if (type == InstanceService.class && "getById".equals(name)) return parent;
+                    if (type == InstanceService.class && "startByDefinitionId".equals(name)) {
                         if (startedInstances.size() + 1 == failStartAt) {
                             throw new IllegalStateException("child start failed");
                         }

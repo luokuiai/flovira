@@ -48,17 +48,17 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
 
     @Override
     public int deleteByTaskIds(List<Long> taskIdList) {
-        return getMapper().delete(new LambdaQueryWrapper<FlowUser>().in(FlowUser::getAssociated, taskIdList));
+        return getMapper().delete(new LambdaQueryWrapper<FlowUser>().in(FlowUser::getAssociatedId, taskIdList));
     }
 
     @Override
-    public List<FlowUser> listByAssociatedAndTypes(List<Long> associatedList, String[] types) {
+    public List<FlowUser> listByAssociatedIdsAndTypes(List<Long> associatedIds, String[] types) {
         LambdaQueryWrapper<FlowUser> queryWrapper = new LambdaQueryWrapper<>();
-        if (CollUtil.isNotEmpty(associatedList)) {
-            if (associatedList.size() == 1) {
-                queryWrapper.eq(FlowUser::getAssociated, associatedList.get(0));
+        if (CollUtil.isNotEmpty(associatedIds)) {
+            if (associatedIds.size() == 1) {
+                queryWrapper.eq(FlowUser::getAssociatedId, associatedIds.get(0));
             } else {
-                queryWrapper.in(FlowUser::getAssociated, associatedList);
+                queryWrapper.in(FlowUser::getAssociatedId, associatedIds);
             }
         }
         queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, Arrays.asList(types));
@@ -66,9 +66,9 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
     }
 
     @Override
-    public List<FlowUser> listByProcessedBys(Long associated, List<String> processedBys, String[] types) {
+    public List<FlowUser> listByProcessedBys(Long associatedId, List<String> processedBys, String[] types) {
         LambdaQueryWrapper<FlowUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ObjectUtil.isNotNull(associated), FlowUser::getAssociated, associated);
+        queryWrapper.eq(ObjectUtil.isNotNull(associatedId), FlowUser::getAssociatedId, associatedId);
         if (CollUtil.isNotEmpty(processedBys)) {
             if (processedBys.size() == 1) {
                 queryWrapper.eq(FlowUser::getProcessedBy, processedBys.get(0));

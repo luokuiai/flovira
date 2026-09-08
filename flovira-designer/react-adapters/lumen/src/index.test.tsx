@@ -36,6 +36,21 @@ describe('lumenDesignerUi', () => {
     expect(onCheckedChange).toHaveBeenCalledWith(true)
   })
 
+  test('preserves icon buttons and their accessible labels', () => {
+    const onPress = vi.fn()
+    const AdapterButton = lumenDesignerUi.Button
+    const view = render(
+      <AdapterButton size="icon" title="删除" onPress={onPress}>
+        <svg data-testid="delete-icon" />
+      </AdapterButton>,
+    )
+
+    const button = view.getByRole('button', { name: '删除' })
+    expect(button.contains(view.getByTestId('delete-icon'))).toBe(true)
+    fireEvent.click(button)
+    expect(onPress).toHaveBeenCalledOnce()
+  })
+
   test('maps a Lumen single-select value', () => {
     const onValueChange = vi.fn()
     const AdapterSelect = lumenDesignerUi.Select

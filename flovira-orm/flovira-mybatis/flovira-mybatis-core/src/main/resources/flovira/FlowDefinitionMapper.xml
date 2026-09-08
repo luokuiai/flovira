@@ -7,43 +7,39 @@
         <result property="id" column="id"/>
         <result property="flowCode" column="flow_code"/>
         <result property="flowName" column="flow_name"/>
-        <result property="modelValue" column="model_value"/>
         <result property="category" column="category"/>
         <result property="version" column="version"/>
-        <result property="isPublish" column="is_publish"/>
-        <result property="formCustom" column="form_custom"/>
-        <result property="formPath" column="form_path"/>
+        <result property="publishStatus" column="publish_status"/>
+        <result property="formId" column="form_id"/>
         <result property="activityStatus" column="activity_status"/>
         <result property="listenerType" column="listener_type"/>
         <result property="listenerPath" column="listener_path"/>
         <result property="ext" column="ext"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-        <result property="delFlag" column="del_flag"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
         <result property="tenantId" column="tenant_id"/>
-        <result property="createBy" column="create_by"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
     </resultMap>
 
     <sql id="selectVo">
         select t.id,
                t.flow_code,
                t.flow_name,
-               t.model_value,
                t.category,
                t.version,
-               t.is_publish,
-               t.form_custom,
-               t.form_path,
+               t.publish_status,
+               t.form_id,
                t.activity_status,
                t.listener_type,
                t.listener_path,
                t.ext,
-               t.create_time,
-               t.update_time,
-               t.create_by,
-               t.update_by,
-               t.del_flag,
+               t.created_at,
+               t.updated_at,
+               t.created_by,
+               t.updated_by,
+               t.deleted,
                t.tenant_id
         from flow_definition t
     </sql>
@@ -63,22 +59,20 @@
             <if test="entity.id != null ">and t.id = #{entity.id}</if>
             <if test="entity.flowCode != null  and entity.flowCode != ''">and t.flow_code = #{entity.flowCode}</if>
             <if test="entity.flowName != null  and entity.flowName != ''">and t.flow_name = #{entity.flowName}</if>
-            <if test="entity.modelValue != null  and entity.modelValue != ''">and t.model_value = #{entity.modelValue}</if>
             <if test="entity.category != null  and entity.category != ''">and t.category = #{entity.category}</if>
             <if test="entity.version != null  and entity.version != ''">and t.version = #{entity.version}</if>
-            <if test="entity.isPublish != null ">and t.is_publish = #{entity.isPublish}</if>
-            <if test="entity.formCustom != null">and t.form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null">and t.form_path = #{entity.formPath}</if>
+            <if test="entity.publishStatus != null ">and t.publish_status = #{entity.publishStatus}</if>
+            <if test="entity.formId != null">and t.form_id = #{entity.formId}</if>
             <if test="entity.activityStatus != null">and t.activity_status = #{entity.activityStatus}</if>
             <if test="entity.listenerType != null and entity.listenerType != ''">and t.listener_type = #{entity.listenerType}</if>
             <if test="entity.listenerPath != null and entity.listenerPath != ''">and t.listener_path = #{entity.listenerPath}</if>
             <if test="entity.ext != null  and entity.ext != ''">and t.ext = #{entity.ext}</if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-            <if test="entity.updateBy != null  and entity.updateBy != ''">and t.update_by = #{entity.updateBy}</if>
-            <if test="entity.createBy != null  and entity.createBy != ''">and t.create_by = #{entity.createBy}</if>
+            <if test="entity.updatedBy != null  and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
+            <if test="entity.createdBy != null  and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
         </where>
     </sql>
 
@@ -87,22 +81,20 @@
         id,
         flow_code,
         flow_name,
-        model_value,
         category,
         version,
-        is_publish,
-        form_custom,
-        form_path,
+        publish_status,
+        form_id,
         activity_status,
         listener_type,
         listener_path,
         ext,
-        create_time,
-        update_time,
-        del_flag,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         )
         values
         <foreach collection="list" item="item" separator=",">
@@ -110,22 +102,20 @@
             #{item.id},
             #{item.flowCode},
             #{item.flowName},
-            #{item.modelValue},
             #{item.category},
             #{item.version},
-            #{item.isPublish},
-            #{item.formCustom},
-            #{item.formPath},
+            #{item.publishStatus},
+            #{item.formId},
             #{item.activityStatus},
             #{item.listenerType},
             #{item.listenerPath},
             #{item.ext},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             )
         </foreach>
     </sql>
@@ -135,44 +125,40 @@
         id,
         flow_code,
         flow_name,
-        model_value,
         category,
         version,
-        is_publish,
-        form_custom,
-        form_path,
+        publish_status,
+        form_id,
         activity_status,
         listener_type,
         listener_path,
         ext,
-        create_time,
-        update_time,
-        del_flag,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         )
         <foreach collection="list" item="item" separator=" union all">
             select
             #{item.id},
             #{item.flowCode},
             #{item.flowName},
-            #{item.modelValue},
             #{item.category},
             #{item.version},
-            #{item.isPublish},
-            #{item.formCustom},
-            #{item.formPath},
+            #{item.publishStatus},
+            #{item.formId},
             #{item.activityStatus},
             #{item.listenerType},
             #{item.listenerPath},
             #{item.ext},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             from dual
         </foreach>
     </sql>
@@ -211,7 +197,7 @@
     <select id="selectById" resultMap="FlowDefinitionResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -221,7 +207,7 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -231,7 +217,7 @@
         <foreach item="item" collection="flowCodeList" open="(" separator="," close=")">
             #{item}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -241,43 +227,39 @@
             <if test="id != null">id,</if>
             <if test="flowCode != null and flowCode != ''">flow_code,</if>
             <if test="flowName != null and flowName != ''">flow_name,</if>
-            <if test="modelValue != null and modelValue != ''">model_value,</if>
             <if test="category != null and category != ''">category,</if>
             <if test="version != null and version != ''">version,</if>
-            <if test="isPublish != null">is_publish,</if>
-            <if test="formCustom != null">form_custom,</if>
-            <if test="formPath != null">form_path,</if>
+            <if test="publishStatus != null">publish_status,</if>
+            <if test="formId != null">form_id,</if>
             <if test="activityStatus != null">activity_status,</if>
             <if test="listenerType != null and listenerType != ''">listener_type,</if>
             <if test="listenerPath != null and listenerPath != ''">listener_path,</if>
             <if test="ext != null and ext != ''">ext,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
-            <if test="updateBy != null and updateBy != ''">update_by,</if>
-            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by,</if>
+            <if test="createdBy != null and createdBy != ''">created_by,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="flowCode != null and flowCode != ''">#{flowCode},</if>
             <if test="flowName != null and flowName != ''">#{flowName},</if>
-            <if test="modelValue != null and modelValue != ''">#{modelValue},</if>
             <if test="category != null and category != ''">#{category},</if>
             <if test="version != null and version != ''">#{version},</if>
-            <if test="isPublish != null">#{isPublish},</if>
-            <if test="formCustom != null">#{formCustom},</if>
-            <if test="formPath != null">#{formPath},</if>
+            <if test="publishStatus != null">#{publishStatus},</if>
+            <if test="formId != null">#{formId},</if>
             <if test="activityStatus != null">#{activityStatus},</if>
             <if test="listenerType != null and listenerType != ''">#{listenerType},</if>
             <if test="listenerPath != null and listenerPath != ''">#{listenerPath},</if>
             <if test="ext != null and ext != ''">#{ext},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
-            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
-            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">#{updatedBy},</if>
+            <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
         </trim>
     </insert>
 
@@ -286,43 +268,41 @@
         <trim prefix="SET" suffixOverrides=",">
             <if test="flowCode != null and flowCode != ''">flow_code = #{flowCode},</if>
             <if test="flowName != null and flowName != ''">flow_name = #{flowName},</if>
-            <if test="modelValue != null and modelValue != ''">model_value = #{modelValue},</if>
             <if test="category != null and category != ''">category = #{category},</if>
             <if test="version != null and version != ''">version = #{version},</if>
-            <if test="isPublish != null">is_publish = #{isPublish},</if>
-            <if test="formCustom != null">form_custom = #{formCustom},</if>
-            <if test="formPath != null">form_path = #{formPath},</if>
+            <if test="publishStatus != null">publish_status = #{publishStatus},</if>
+            <if test="formId != null">form_id = #{formId},</if>
             <if test="activityStatus != null">activity_status = #{activityStatus},</if>
             <if test="listenerType != null">listener_type = #{listenerType},</if>
             <if test="listenerPath != null">listener_path = #{listenerPath},</if>
             <if test="ext != null and ext != ''">ext = #{ext},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
-            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
-            <if test="createBy != null and createBy != ''">create_by = #{createBy},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by = #{updatedBy},</if>
+            <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
         </trim>
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
     <update id="closeFlowByCodeList" parameterType="java.util.List">
-        update flow_definition set is_publish = 9
+        update flow_definition set publish_status = 9
         where flow_code in
         <foreach item="item" collection="flowCodeList" open="(" separator="," close=")">
             #{item}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
     <update id="updatePublishStatus" parameterType="java.util.List">
-        update flow_definition set is_publish = #{publishStatus}
+        update flow_definition set publish_status = #{publishStatus}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
@@ -335,10 +315,10 @@
 
     <update id="updateByIdLogic">
         update flow_definition
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -352,13 +332,13 @@
 
     <update id="updateByIdsLogic">
         update flow_definition
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -368,35 +348,31 @@
             <if test="id != null">and id = #{id}</if>
             <if test="flowCode != null and flowCode != ''">and flow_code = #{flowCode}</if>
             <if test="flowName != null and flowName != ''">and flow_name = #{flowName}</if>
-            <if test="modelValue != null and modelValue != ''">and model_value = #{modelValue}</if>
             <if test="category != null and category != ''">and category = #{category}</if>
             <if test="version != null and version != ''">and version = #{version}</if>
-            <if test="isPublish != null">and is_publish = #{isPublish}</if>
-            <if test="formCustom != null">and form_custom = #{formCustom}</if>
-            <if test="formPath != null">and form_path = #{formPath}</if>
+            <if test="publishStatus != null">and publish_status = #{publishStatus}</if>
+            <if test="formId != null">and form_id = #{formId}</if>
             <if test="activityStatus != null">and activity_status = #{activityStatus}</if>
             <if test="listenerType != null and listenerType != ''">and listener_type = #{listenerType}</if>
             <if test="listenerPath != null and listenerPath != ''">and listener_path = #{listenerPath}</if>
             <if test="ext != null and ext != ''">and ext = #{ext}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
         </where>
     </delete>
 
     <update id="updateLogic">
         update flow_definition
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.flowCode != null and entity.flowCode != ''">and flow_code = #{entity.flowCode}</if>
             <if test="entity.flowName != null and entity.flowName != ''">and flow_name = #{entity.flowName}</if>
-            <if test="entity.modelValue != null and entity.modelValue != ''">and model_value = #{entity.modelValue}</if>
             <if test="entity.category != null and entity.category != ''">and category = #{entity.category}</if>
             <if test="entity.version != null and entity.version != ''">and version = #{entity.version}</if>
-            <if test="entity.isPublish != null">and is_publish = #{entity.isPublish}</if>
-            <if test="entity.formCustom != null">and form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null">and form_path = #{entity.formPath}</if>
+            <if test="entity.publishStatus != null">and publish_status = #{entity.publishStatus}</if>
+            <if test="entity.formId != null">and form_id = #{entity.formId}</if>
             <if test="entity.activityStatus != null">and activity_status = #{entity.activityStatus}</if>
             <if test="entity.listenerType != null and entity.listenerType != ''">and listener_type =
                 #{entity.listenerType}
@@ -405,10 +381,10 @@
                 #{entity.listenerPath}
             </if>
             <if test="entity.ext != null and entity.ext != ''">and ext = #{entity.ext}</if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag =
+            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}
             </if>
         </where>

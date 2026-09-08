@@ -35,28 +35,28 @@ public interface Instance extends RootEntity {
     Instance setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Instance setCreateTime(Date createTime);
+    Instance setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Instance setUpdateTime(Date updateTime);
+    Instance setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Instance setCreateBy(String createBy);
+    Instance setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Instance setUpdateBy(String updateBy);
+    Instance setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -65,10 +65,10 @@ public interface Instance extends RootEntity {
     Instance setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Instance setDelFlag(String delFlag);
+    Instance setDeleted(String deleted);
 
     /**
      * flow_definition.id
@@ -126,12 +126,12 @@ public interface Instance extends RootEntity {
      * 流程变量
      * @return 流程变量
      */
-    String getVariable();
+    String getVariables();
 
-    Instance setVariable(String variable);
+    Instance setVariables(String variables);
 
     default Map<String, Object> getVariableMap() {
-        return FlowEngine.jsonConvert.strToMap(getVariable());
+        return FlowEngine.jsonConvert.strToMap(getVariables());
     }
 
     /**
@@ -142,17 +142,9 @@ public interface Instance extends RootEntity {
 
     Instance setFlowStatus(String flowStatus);
 
-    /**
-     * 审批表单是否自定义（Y是 N否）
-     * @return  （Y是 N否）
-     */
-    String getFormCustom();
+    String getFormId();
 
-    Instance setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Instance setFormPath(String formPath);
+    Instance setFormId(String formId);
 
     String getDefJson();
 

@@ -30,10 +30,10 @@ import java.util.Date;
 @Data @Accessors(chain = true) @TableName("flow_subprocess_run")
 public class FlowSubprocessRun implements SubprocessRun {
     @TableId private Long id;
-    @TableField(fill = FieldFill.INSERT) private Date createTime;
-    @TableField(fill = FieldFill.INSERT_UPDATE) private Date updateTime;
-    private String createBy; private String updateBy; private String tenantId;
-    @TableLogic(value = "0", delval = "1") private String delFlag;
+    @TableField(fill = FieldFill.INSERT) private Date createdAt;
+    @TableField(fill = FieldFill.INSERT_UPDATE) private Date updatedAt;
+    private String createdBy; private String updatedBy; private String tenantId;
+    @TableLogic(value = "0", delval = "1") private String deleted;
     private Long parentInstanceId; private Long parentTaskId; private Long parentDefinitionId;
     private String parentNodeCode; private String childFlowCode; private Long childDefinitionId;
     private String childDefinitionVersion; private String completionPolicy; private String collectionFingerprint;

@@ -60,8 +60,8 @@ public class FlowNodeDaoImpl extends FloviraDaoImpl<FlowNode> implements FlowNod
     @Override
     public int deleteNodeByDefIds(Collection<? extends Serializable> defIds) {
         FlowNode entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateNodeByDefIdsLogic(defIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateNodeByDefIdsLogic(defIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().deleteNodeByDefIds(defIds, entity);
     }

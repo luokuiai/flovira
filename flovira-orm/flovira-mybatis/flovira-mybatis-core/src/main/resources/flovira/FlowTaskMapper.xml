@@ -12,16 +12,15 @@
         <result property="flowStatus" column="flow_status"/>
         <result property="definitionId" column="definition_id"/>
         <result property="instanceId" column="instance_id"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
         <result property="tenantId" column="tenant_id"/>
         <result property="businessId" column="business_id"/>
         <result property="flowName" column="flow_name"/>
-        <result property="formCustom" column="form_custom"/>
-        <result property="formPath" column="form_path"/>
-        <result property="delFlag" column="del_flag"/>
-        <result property="createBy" column="create_by"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="formId" column="form_id"/>
+        <result property="deleted" column="deleted"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
         <result property="timeoutAt" column="timeout_at"/>
         <result property="timeoutAction" column="timeout_action"/>
         <result property="timeoutConfig" column="timeout_config"/>
@@ -38,14 +37,13 @@
                t.flow_status,
                t.definition_id,
                t.instance_id,
-               t.form_custom,
-               t.form_path,
-               t.create_time,
-               t.update_time,
-               t.del_flag,
+               t.form_id,
+               t.created_at,
+               t.updated_at,
+               t.deleted,
                t.tenant_id,
-               t.create_by,
-               t.update_by,
+               t.created_by,
+               t.updated_by,
                t.timeout_at,
                t.timeout_action,
                t.timeout_config,
@@ -73,14 +71,13 @@
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and t.flow_status = #{entity.flowStatus}</if>
             <if test="entity.definitionId != null ">and t.definition_id = #{entity.definitionId}</if>
             <if test="entity.instanceId != null ">and t.instance_id = #{entity.instanceId}</if>
-            <if test="entity.formCustom != null  and entity.formCustom != ''">and t.form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null  and entity.formPath != ''">and t.form_path = #{entity.formPath}</if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
+            <if test="entity.formId != null  and entity.formId != ''">and t.form_id = #{entity.formId}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
-            <if test="entity.createBy != null  and entity.createBy != ''">and t.create_by = #{entity.createBy}</if>
-            <if test="entity.updateBy != null  and entity.updateBy != ''">and t.update_by = #{entity.updateBy}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
+            <if test="entity.createdBy != null  and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
+            <if test="entity.updatedBy != null  and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
         </where>
     </sql>
 
@@ -93,14 +90,13 @@
         flow_status,
         definition_id,
         instance_id,
-        form_custom,
-        form_path,
-        create_time,
-        update_time,
-        del_flag,
+        form_id,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         ,timeout_at
         ,timeout_action
         ,timeout_config
@@ -117,14 +113,13 @@
             #{item.flowStatus},
             #{item.definitionId},
             #{item.instanceId},
-            #{item.formCustom},
-            #{item.formPath},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.formId},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             ,#{item.timeoutAt}
             ,#{item.timeoutAction}
             ,#{item.timeoutConfig}
@@ -143,14 +138,13 @@
         flow_status,
         definition_id,
         instance_id,
-        form_custom,
-        form_path,
-        create_time,
-        update_time,
-        del_flag,
+        form_id,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         ,timeout_at
         ,timeout_action
         ,timeout_config
@@ -166,14 +160,13 @@
             #{item.flowStatus},
             #{item.definitionId},
             #{item.instanceId},
-            #{item.formCustom},
-            #{item.formPath},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.formId},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             ,#{item.timeoutAt}
             ,#{item.timeoutAction}
             ,#{item.timeoutConfig}
@@ -218,14 +211,14 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
     <select id="selectById" resultMap="FlowTaskResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -236,7 +229,7 @@
         <foreach item="nodeCode" collection="nodeCodes" open="(" separator="," close=")">
             #{nodeCode}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -244,7 +237,7 @@
         <include refid="selectVo"/>
         where t.instance_id = #{instanceId}
         and t.node_type = #{nodeType}
-        <if test="entity.delFlag != null and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -254,7 +247,7 @@
         <foreach item="instanceId" collection="instanceIds" open="(" separator="," close=")">
             #{instanceId}
         </foreach>
-        <if test="entity.delFlag != null and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -263,7 +256,7 @@
         where t.timeout_at &lt;= #{dueBefore}
         and (t.timeout_status = 'PENDING'
             or (t.timeout_status = 'RUNNING' and t.timeout_claimed_at &lt;= #{staleBefore}))
-        <if test="entity.delFlag != null and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
         order by t.timeout_at asc, t.id asc
     </select>
@@ -278,14 +271,13 @@
             <if test="flowStatus != null and flowStatus != ''">flow_status,</if>
             <if test="definitionId != null">definition_id,</if>
             <if test="instanceId != null">instance_id,</if>
-            <if test="formCustom != null and formCustom != ''">form_custom,</if>
-            <if test="formPath != null and formPath != ''">form_path,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="formId != null and formId != ''">form_id,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
-            <if test="createBy != null and createBy != ''">create_by,</if>
-            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="createdBy != null and createdBy != ''">created_by,</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by,</if>
             <if test="timeoutAt != null">timeout_at,</if>
             <if test="timeoutAction != null and timeoutAction != ''">timeout_action,</if>
             <if test="timeoutConfig != null and timeoutConfig != ''">timeout_config,</if>
@@ -300,14 +292,13 @@
             <if test="flowStatus != null and flowStatus != ''">#{flowStatus},</if>
             <if test="definitionId != null">#{definitionId},</if>
             <if test="instanceId != null">#{instanceId},</if>
-            <if test="formCustom != null and formCustom != ''">#{formCustom},</if>
-            <if test="formPath != null and formPath != ''">#{formPath},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="formId != null and formId != ''">#{formId},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
-            <if test="createBy != null and createBy != ''">#{createBy},</if>
-            <if test="updateBy != null and updateBy != ''">#{updateBy},</if>
+            <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">#{updatedBy},</if>
             <if test="timeoutAt != null">#{timeoutAt},</if>
             <if test="timeoutAction != null and timeoutAction != ''">#{timeoutAction},</if>
             <if test="timeoutConfig != null and timeoutConfig != ''">#{timeoutConfig},</if>
@@ -325,12 +316,11 @@
             <if test="flowStatus != null and flowStatus != ''">#{flowStatus},</if>
             <if test="definitionId != null">definition_id = #{definitionId},</if>
             <if test="instanceId != null">instance_id = #{instanceId},</if>
-            <if test="formCustom != null and formCustom != ''">form_custom = #{formCustom},</if>
-            <if test="formPath != null and formPath != ''">form_path = #{formPath},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
-            <if test="createBy != null and createBy != ''">create_by = #{createBy},</if>
-            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="formId != null and formId != ''">form_id = #{formId},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by = #{updatedBy},</if>
             <if test="timeoutAt != null">timeout_at = #{timeoutAt},</if>
             <if test="timeoutAction != null and timeoutAction != ''">timeout_action = #{timeoutAction},</if>
             <if test="timeoutConfig != null and timeoutConfig != ''">timeout_config = #{timeoutConfig},</if>
@@ -338,21 +328,21 @@
             <if test="timeoutClaimedAt != null">timeout_claimed_at = #{timeoutClaimedAt},</if>
         </trim>
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
     <update id="claimPendingTimeout">
         update flow_task set timeout_status = 'RUNNING', timeout_claimed_at = #{claimedAt}
         where id = #{taskId} and timeout_status = 'PENDING'
-        <if test="entity.delFlag != null and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
     <update id="claimStaleTimeout">
         update flow_task set timeout_status = 'RUNNING', timeout_claimed_at = #{claimedAt}
         where id = #{taskId} and timeout_status = 'RUNNING' and timeout_claimed_at &lt;= #{staleBefore}
-        <if test="entity.delFlag != null and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
@@ -360,14 +350,14 @@
         update flow_task set timeout_status = 'RUNNING', timeout_claimed_at = #{claimedAt}
         where id = #{taskId} and node_type = 7
         and (timeout_status is null or timeout_status = 'PENDING')
-        <if test="entity.delFlag != null and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
     <update id="releaseTimeout">
         update flow_task set timeout_status = 'PENDING', timeout_claimed_at = null
         where id = #{taskId} and timeout_status = 'RUNNING'
-        <if test="entity.delFlag != null and entity.delFlag != ''">and del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
     </update>
 
@@ -380,10 +370,10 @@
 
     <update id="updateByIdLogic">
         update flow_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -397,13 +387,13 @@
 
     <update id="updateByInsIdsLogic">
         update flow_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where instance_id in
         <foreach item="instanceId" collection="instanceIds" open="(" separator="," close=")">
             #{instanceId}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -417,13 +407,13 @@
 
     <update id="updateByIdsLogic">
         update flow_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -437,17 +427,16 @@
             <if test="flowStatus != null and flowStatus != ''">and flow_status = #{flowStatus}</if>
             <if test="definitionId != null">and definition_id = #{definitionId}</if>
             <if test="instanceId != null">and instance_id = #{instanceId}</if>
-            <if test="formCustom != null and formCustom != ''">and form_custom = #{formCustom}</if>
-            <if test="formPath != null and formPath != ''">and form_path = #{formPath}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
+            <if test="formId != null and formId != ''">and form_id = #{formId}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
         </where>
     </delete>
 
     <update id="updateLogic">
         update flow_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.nodeCode != null and entity.nodeCode != ''">and node_code = #{entity.nodeCode}</if>
@@ -456,12 +445,11 @@
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and flow_status = #{entity.flowStatus}</if>
             <if test="entity.definitionId != null">and definition_id = #{entity.definitionId}</if>
             <if test="entity.instanceId != null">and instance_id = #{entity.instanceId}</if>
-            <if test="entity.formCustom != null and entity.formCustom != ''">and form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null and entity.formPath != ''">and form_path = #{entity.formPath}</if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
+            <if test="entity.formId != null and entity.formId != ''">and form_id = #{entity.formId}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag =
+            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}
             </if>
         </where>

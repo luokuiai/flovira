@@ -1,6 +1,21 @@
 import { describe, expect, test } from 'bun:test'
 import { json2LogicFlowJson, logicFlowJsonToFlovira } from './tool'
 
+test('preserves external form IDs and supports clearing node overrides', () => {
+  const logic = json2LogicFlowJson({ formId: 'expense:v2', nodeList: [{
+    nodeType: '1', nodeCode: 'approval', nodeName: '审批', nodeRatio: '0', formId: 'finance:v1', skipList: [],
+  }] })
+  let saved = JSON.parse(logicFlowJsonToFlovira(logic))
+  expect(saved.formId).toBe('expense:v2')
+  expect(saved.nodeList[0].formId).toBe('finance:v1')
+  expect(saved).not.toHaveProperty('formCustom')
+  expect(saved.nodeList[0]).not.toHaveProperty('formPath')
+  logic.nodes[0].properties.formId = ''
+  saved = JSON.parse(logicFlowJsonToFlovira(logic))
+  expect(saved.nodeList[0].formId).toBeUndefined()
+  expect(saved.formId).toBe('expense:v2')
+})
+
 describe('wait and timeout definition conversion', () => {
   test('preserves versioned wait and timeout JSON during round trip', () => {
     const waitConfig = JSON.stringify({ schemaVersion: 1, waitKey: 'order.paid' })
@@ -14,7 +29,6 @@ describe('wait and timeout definition conversion', () => {
     const logic = json2LogicFlowJson({
       flowCode: 'wait-flow',
       flowName: 'Wait flow',
-      modelValue: 'CLASSICS',
       version: '1',
       nodeList: [{
         nodeType: 7,
@@ -55,7 +69,6 @@ describe('approver rule definition conversion', () => {
     const logic = json2LogicFlowJson({
       flowCode: 'approval-flow',
       flowName: 'Approval flow',
-      modelValue: 'CLASSICS',
       version: '1',
       nodeList: [{
         nodeType: 1,
@@ -83,7 +96,6 @@ describe('approver rule definition conversion', () => {
     const logic = json2LogicFlowJson({
       flowCode: 'carbon-copy-flow',
       flowName: 'Carbon copy flow',
-      modelValue: 'CLASSICS',
       version: '1',
       nodeList: [{
         nodeType: 8,
@@ -102,4 +114,12 @@ describe('approver rule definition conversion', () => {
     expect(exported.nodeList[0].nodeType).toBe('8')
     expect(ext.find((item) => item.code === 'carbonCopyRule').value).toBe(carbonCopyRule)
   })
+})
+
+
+test('converts legacy definitions without a designer mode field', () => {
+  const graph = json2LogicFlowJson({ flowCode: 'single', flowName: '统一流程', modelValue: 'CLASSICS', nodeList: [] })
+  expect(graph).not.toHaveProperty('modelValue')
+  const saved = JSON.parse(logicFlowJsonToFlovira(graph))
+  expect(saved).not.toHaveProperty('modelValue')
 })
