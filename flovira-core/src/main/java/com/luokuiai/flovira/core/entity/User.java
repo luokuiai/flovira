@@ -88,7 +88,7 @@ public interface User extends RootEntity {
      * 获取 任务表ID
      * @return 任务表ID
      */
-    Long getAssociatedId();
+    Long getTaskId();
 
-    User setAssociatedId(Long associatedId);
+    User setTaskId(Long taskId);
 }

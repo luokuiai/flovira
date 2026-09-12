@@ -73,91 +73,91 @@ public class UserServiceImpl extends FloviraServiceImpl<FlowUserDao<User>, User>
     }
 
     @Override
-    public List<String> getPermission(Long associatedId, String... types) {
+    public List<String> getPermission(Long taskId, String... types) {
         if (ArrayUtil.isEmpty(types)) {
-            return StreamUtils.toList(list(FlowEngine.newUser().setAssociatedId(associatedId)), User::getProcessedBy);
+            return StreamUtils.toList(list(FlowEngine.newUser().setTaskId(taskId)), User::getProcessedBy);
         }
         if (types.length == 1) {
-            return StreamUtils.toList(list(FlowEngine.newUser().setAssociatedId(associatedId).setType(types[0]))
+            return StreamUtils.toList(list(FlowEngine.newUser().setTaskId(taskId).setType(types[0]))
                 , User::getProcessedBy);
         }
-        return StreamUtils.toList(getDao().listByAssociatedIdsAndTypes(Collections.singletonList(associatedId), types)
+        return StreamUtils.toList(getDao().listByTaskIdsAndTypes(Collections.singletonList(taskId), types)
             , User::getProcessedBy);
     }
 
     @Override
-    public List<User> listByAssociatedIdAndTypes(Long associatedId, String... types) {
+    public List<User> listByTaskIdAndTypes(Long taskId, String... types) {
         if (ArrayUtil.isEmpty(types)) {
-            return list(FlowEngine.newUser().setAssociatedId(associatedId));
+            return list(FlowEngine.newUser().setTaskId(taskId));
         }
         if (types.length == 1) {
-            return list(FlowEngine.newUser().setAssociatedId(associatedId).setType(types[0]));
+            return list(FlowEngine.newUser().setTaskId(taskId).setType(types[0]));
         }
-        return getDao().listByAssociatedIdsAndTypes(Collections.singletonList(associatedId), types);
+        return getDao().listByTaskIdsAndTypes(Collections.singletonList(taskId), types);
     }
 
     @Override
-    public List<User> getByAssociatedIds(List<Long> associatedIds, String... types) {
-        if (CollUtil.isNotEmpty(associatedIds) && associatedIds.size() == 1) {
-            return listByAssociatedIdAndTypes(associatedIds.get(0), types);
+    public List<User> getByTaskIds(List<Long> taskIds, String... types) {
+        if (CollUtil.isNotEmpty(taskIds) && taskIds.size() == 1) {
+            return listByTaskIdAndTypes(taskIds.get(0), types);
         }
-        return getDao().listByAssociatedIdsAndTypes(associatedIds, types);
+        return getDao().listByTaskIdsAndTypes(taskIds, types);
     }
 
     @Override
-    public List<User> listByProcessedBys(Long associatedId, String processedBy, String... types) {
+    public List<User> listByProcessedBys(Long taskId, String processedBy, String... types) {
         if (ArrayUtil.isEmpty(types)) {
-            return list(FlowEngine.newUser().setAssociatedId(associatedId).setProcessedBy(processedBy));
+            return list(FlowEngine.newUser().setTaskId(taskId).setProcessedBy(processedBy));
         }
         if (types.length == 1) {
-            return list(FlowEngine.newUser().setAssociatedId(associatedId).setProcessedBy(processedBy).setType(types[0]));
+            return list(FlowEngine.newUser().setTaskId(taskId).setProcessedBy(processedBy).setType(types[0]));
         }
-        return getDao().listByProcessedBys(associatedId, Collections.singletonList(processedBy), types);
+        return getDao().listByProcessedBys(taskId, Collections.singletonList(processedBy), types);
     }
 
     @Override
-    public List<User> getByProcessedBys(Long associatedId, List<String> processedBys, String... types) {
+    public List<User> getByProcessedBys(Long taskId, List<String> processedBys, String... types) {
         if (CollUtil.isNotEmpty(processedBys) && processedBys.size() == 1) {
-            return listByProcessedBys(associatedId, processedBys.get(0), types);
+            return listByProcessedBys(taskId, processedBys.get(0), types);
         }
-        return getDao().listByProcessedBys(associatedId, processedBys, types);
+        return getDao().listByProcessedBys(taskId, processedBys, types);
     }
 
 
     @Override
-    public boolean updatePermission(Long associatedId, List<String> permissions, String type, boolean clear,
+    public boolean updatePermission(Long taskId, List<String> permissions, String type, boolean clear,
                                     String handler) {
-        // 判断是否clear，如果是true，则先删除当前关联id用户数据
+        // 判断是否clear，如果是true，则先删除当前任务的用户数据
         if (clear) {
-            getDao().delete(FlowEngine.newUser().setAssociatedId(associatedId).setCreatedBy(handler));
+            getDao().delete(FlowEngine.newUser().setTaskId(taskId).setCreatedBy(handler));
         }
         // 再新增权限人
-        saveBatch(StreamUtils.toList(permissions, permission -> structureUser(associatedId, permission, type, handler)));
+        saveBatch(StreamUtils.toList(permissions, permission -> structureUser(taskId, permission, type, handler)));
         return true;
     }
 
     @Override
-    public List<User> structureUser(Long associatedId, List<String> permissionList, String type) {
-        return StreamUtils.toList(permissionList, permission -> structureUser(associatedId, permission, type, null));
+    public List<User> structureUser(Long taskId, List<String> permissionList, String type) {
+        return StreamUtils.toList(permissionList, permission -> structureUser(taskId, permission, type, null));
     }
 
     @Override
-    public User structureUser(Long associatedId, String permission, String type) {
-        return structureUser(associatedId, permission, type, null);
+    public User structureUser(Long taskId, String permission, String type) {
+        return structureUser(taskId, permission, type, null);
     }
 
     @Override
-    public List<User> structureUser(Long associatedId, List<String> permissionList, String type, String handler) {
-        return StreamUtils.toList(permissionList, permission -> structureUser(associatedId, permission, type, handler));
+    public List<User> structureUser(Long taskId, List<String> permissionList, String type, String handler) {
+        return StreamUtils.toList(permissionList, permission -> structureUser(taskId, permission, type, handler));
     }
 
     @Override
-    public User structureUser(Long associatedId, String permission, String type, String handler) {
+    public User structureUser(Long taskId, String permission, String type, String handler) {
         Date now = new Date();
         User user = FlowEngine.newUser()
             .setType(type)
             .setProcessedBy(permission)
-            .setAssociatedId(associatedId)
+            .setTaskId(taskId)
             .setCreatedBy(handler);
         FlowEngine.dataFillHandler().idFill(user);
         return user;

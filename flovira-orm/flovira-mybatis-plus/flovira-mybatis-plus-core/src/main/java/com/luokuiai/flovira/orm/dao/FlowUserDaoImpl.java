@@ -48,17 +48,17 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
 
     @Override
     public int deleteByTaskIds(List<Long> taskIdList) {
-        return getMapper().delete(new LambdaQueryWrapper<FlowUser>().in(FlowUser::getAssociatedId, taskIdList));
+        return getMapper().delete(new LambdaQueryWrapper<FlowUser>().in(FlowUser::getTaskId, taskIdList));
     }
 
     @Override
-    public List<FlowUser> listByAssociatedIdsAndTypes(List<Long> associatedIds, String[] types) {
+    public List<FlowUser> listByTaskIdsAndTypes(List<Long> taskIds, String[] types) {
         LambdaQueryWrapper<FlowUser> queryWrapper = new LambdaQueryWrapper<>();
-        if (CollUtil.isNotEmpty(associatedIds)) {
-            if (associatedIds.size() == 1) {
-                queryWrapper.eq(FlowUser::getAssociatedId, associatedIds.get(0));
+        if (CollUtil.isNotEmpty(taskIds)) {
+            if (taskIds.size() == 1) {
+                queryWrapper.eq(FlowUser::getTaskId, taskIds.get(0));
             } else {
-                queryWrapper.in(FlowUser::getAssociatedId, associatedIds);
+                queryWrapper.in(FlowUser::getTaskId, taskIds);
             }
         }
         queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, Arrays.asList(types));
@@ -66,9 +66,9 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
     }
 
     @Override
-    public List<FlowUser> listByProcessedBys(Long associatedId, List<String> processedBys, String[] types) {
+    public List<FlowUser> listByProcessedBys(Long taskId, List<String> processedBys, String[] types) {
         LambdaQueryWrapper<FlowUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ObjectUtil.isNotNull(associatedId), FlowUser::getAssociatedId, associatedId);
+        queryWrapper.eq(ObjectUtil.isNotNull(taskId), FlowUser::getTaskId, taskId);
         if (CollUtil.isNotEmpty(processedBys)) {
             if (processedBys.size() == 1) {
                 queryWrapper.eq(FlowUser::getProcessedBy, processedBys.get(0));

@@ -55,24 +55,24 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
     }
 
     @Override
-    public List<FlowUser> listByAssociatedIdsAndTypes(List<Long> associatedIds, String[] types) {
+    public List<FlowUser> listByTaskIdsAndTypes(List<Long> taskIds, String[] types) {
         String dataSourceType = FlowEngine.dataSourceType();
-        if (CollUtil.isNotEmpty(associatedIds) && associatedIds.size() == 1) {
-            return getMapper().listByAssociatedIdsAndTypes(types, null
-                , TenantDeleteUtil.getEntity(newEntity()).setAssociatedId(associatedIds.get(0)), dataSourceType);
+        if (CollUtil.isNotEmpty(taskIds) && taskIds.size() == 1) {
+            return getMapper().listByTaskIdsAndTypes(types, null
+                , TenantDeleteUtil.getEntity(newEntity()).setTaskId(taskIds.get(0)), dataSourceType);
         }
-        return getMapper().listByAssociatedIdsAndTypes(types, associatedIds
+        return getMapper().listByTaskIdsAndTypes(types, taskIds
             , TenantDeleteUtil.getEntity(newEntity()), dataSourceType);
     }
 
     @Override
-    public List<FlowUser> listByProcessedBys(Long associatedId, List<String> processedBys, String[] types) {
+    public List<FlowUser> listByProcessedBys(Long taskId, List<String> processedBys, String[] types) {
         String dataSourceType = FlowEngine.dataSourceType();
         if (CollUtil.isNotEmpty(processedBys) && processedBys.size() == 1) {
             return getMapper().listByProcessedBys(types, null, TenantDeleteUtil
-                .getEntity(newEntity()).setAssociatedId(associatedId).setProcessedBy(processedBys.get(0)), dataSourceType);
+                .getEntity(newEntity()).setTaskId(taskId).setProcessedBy(processedBys.get(0)), dataSourceType);
         }
         return getMapper().listByProcessedBys(types, processedBys
-            , TenantDeleteUtil.getEntity(newEntity()).setAssociatedId(associatedId), dataSourceType);
+            , TenantDeleteUtil.getEntity(newEntity()).setTaskId(taskId), dataSourceType);
     }
 }

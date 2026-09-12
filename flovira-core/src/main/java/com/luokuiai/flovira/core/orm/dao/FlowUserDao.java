@@ -38,21 +38,21 @@ public interface FlowUserDao<T extends User> extends FloviraDao<T> {
     int deleteByTaskIds(List<Long> taskIdList);
 
     /**
-     * 根据(待办任务，实例，历史表，节点等)id查询权限人或者处理人
+     * 根据待办任务id查询权限人或者处理人
      *
-     * @param associatedIds (待办任务，实例，历史表，节点等)id集合
+     * @param taskIds 待办任务id集合
      * @param types       用户表类型
      * @return 查询结果
      */
-    List<T> listByAssociatedIdsAndTypes(List<Long> associatedIds, String[] types);
+    List<T> listByTaskIdsAndTypes(List<Long> taskIds, String[] types);
 
     /**
      * 根据办理人查询
      *
-     * @param associatedId   待办任务id
+     * @param taskId   待办任务id
      * @param processedBys 办理人id集合
      * @param types        用户表类型
      * @return 查询结果
      */
-    List<T> listByProcessedBys(Long associatedId, List<String> processedBys, String[] types);
+    List<T> listByProcessedBys(Long taskId, List<String> processedBys, String[] types);
 }

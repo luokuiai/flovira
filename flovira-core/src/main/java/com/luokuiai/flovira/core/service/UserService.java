@@ -60,57 +60,57 @@ public interface UserService extends IFloviraService<User> {
     void deleteByTaskIds(List<Long> ids);
 
     /**
-     * 根据(待办任务，实例，历史表，节点等)id查询权限人或者处理人
+     * 根据待办任务id查询权限人或者处理人
      *
-     * @param associatedId 待办任务id集合
+     * @param taskId 待办任务id集合
      * @param type       用户表类型
      * @author xiarg
      * @since 2024/5/120 13:59
      */
-    List<String> getPermission(Long associatedId, String... type);
+    List<String> getPermission(Long taskId, String... type);
 
     /**
-     * 根据(待办任务，实例，历史表，节点等)id查询权限人或者处理人
+     * 根据待办任务id查询权限人或者处理人
      *
-     * @param associatedId 待办任务id
+     * @param taskId 待办任务id
      * @param types      用户表类型
      * @return {@code List<User>}
      */
-    List<User> listByAssociatedIdAndTypes(Long associatedId, String... types);
+    List<User> listByTaskIdAndTypes(Long taskId, String... types);
 
     /**
-     * 根据(待办任务，实例，历史表，节点等)id查询权限人或者处理人
+     * 根据待办任务id查询权限人或者处理人
      *
-     * @param associatedIds (待办任务，实例，历史表，节点等)id集合
+     * @param taskIds 待办任务id集合
      * @param types       用户表类型
      * @return {@code List<User>}
      */
-    List<User> getByAssociatedIds(List<Long> associatedIds, String... types);
+    List<User> getByTaskIds(List<Long> taskIds, String... types);
 
     /**
      * 根据办理人查询, 返回集合
      *
-     * @param associatedId  待办任务id
+     * @param taskId  待办任务id
      * @param processedBy 办理人
      * @param types       用户表类型
      * @return {@code List<User>}
      */
-    List<User> listByProcessedBys(Long associatedId, String processedBy, String... types);
+    List<User> listByProcessedBys(Long taskId, String processedBy, String... types);
 
     /**
      * 根据办理人查询
      *
-     * @param associatedId   待办任务id
+     * @param taskId   待办任务id
      * @param processedBys 办理人id集合
      * @param types        用户表类型
      * @return {@code List<User>}
      */
-    List<User> getByProcessedBys(Long associatedId, List<String> processedBys, String... types);
+    List<User> getByProcessedBys(Long taskId, List<String> processedBys, String... types);
 
     /**
-     * 根据关联id更新权限人
+     * 根据待办任务id更新权限人
      *
-     * @param associatedId  关联人id
+     * @param taskId      待办任务id
      * @param permissions 权限人
      * @param type        权限人类型
      * @param clear       是否清空待办任务的计划审批人
@@ -119,48 +119,48 @@ public interface UserService extends IFloviraService<User> {
      * @author xiarg
      * @since 2024/5/10 11:19
      */
-    boolean updatePermission(Long associatedId, List<String> permissions, String type, boolean clear, String handler);
+    boolean updatePermission(Long taskId, List<String> permissions, String type, boolean clear, String handler);
 
     /**
      * 构造用户比表信息
      *
-     * @param associatedId     关联id
+     * @param taskId        待办任务id
      * @param permissionList 权限标识集合
      * @param type           用户类型
      * @return 结果
      */
-    List<User> structureUser(Long associatedId, List<String> permissionList, String type);
+    List<User> structureUser(Long taskId, List<String> permissionList, String type);
 
     /**
      * 构造用户比表信息
      *
-     * @param associatedId 关联id
+     * @param taskId     待办任务id
      * @param permission 权限标识
      * @param type       用户类型
      * @return 结果
      */
-    User structureUser(Long associatedId, String permission, String type);
+    User structureUser(Long taskId, String permission, String type);
 
     /**
      * 构造用户比表信息
      *
-     * @param associatedId     关联id
+     * @param taskId        待办任务id
      * @param permissionList 权限标识集合
      * @param type           用户类型
      * @param handler        办理人（记录委派人）
      * @return 结果
      */
-    List<User> structureUser(Long associatedId, List<String> permissionList, String type, String handler);
+    List<User> structureUser(Long taskId, List<String> permissionList, String type, String handler);
 
     /**
      * 构造用户比表信息
      *
-     * @param associatedId 关联id
+     * @param taskId     待办任务id
      * @param permission 权限标识
      * @param type       用户类型
      * @param handler    办理人（记录委派人）
      * @return 结果
      */
-    User structureUser(Long associatedId, String permission, String type, String handler);
+    User structureUser(Long taskId, String permission, String type, String handler);
 
 }

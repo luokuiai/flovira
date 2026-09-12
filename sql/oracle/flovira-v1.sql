@@ -8,7 +8,7 @@ create table FLOW_DEFINITION
     VERSION         VARCHAR2(20)          not null,
     PUBLISH_STATUS      NUMBER(1)   default 0 not null,
     FORM_ID       VARCHAR2(100),
-    ACTIVITY_STATUS NUMBER(1)   default 1,
+    ACTIVITY_STATUS NUMBER(1)   default 1 not null,
     LISTENER_TYPE   VARCHAR2(100),
     LISTENER_PATH   VARCHAR2(500),
     EXT             VARCHAR2(500),
@@ -16,7 +16,7 @@ create table FLOW_DEFINITION
     CREATED_BY       VARCHAR2(64) default '',
     UPDATED_AT     DATE,
     UPDATED_BY       VARCHAR2(64) default '',
-    DELETED        VARCHAR2(1) default '0',
+    DELETED        VARCHAR2(1) default '0' not null,
     TENANT_ID       VARCHAR2(40)
 );
 
@@ -41,13 +41,14 @@ comment on column FLOW_DEFINITION.UPDATED_AT is '更新时间';
 comment on column FLOW_DEFINITION.UPDATED_BY is '更新人';
 comment on column FLOW_DEFINITION.DELETED is '删除标志';
 comment on column FLOW_DEFINITION.TENANT_ID is '租户id';
+create index IDX_FLOW_DEFINITION_LOOKUP on FLOW_DEFINITION (TENANT_ID, FLOW_CODE, DELETED, PUBLISH_STATUS);
 
 create table FLOW_NODE
 (
     ID              NUMBER(20)    not null,
     NODE_TYPE       NUMBER(1)     not null,
     DEFINITION_ID   NUMBER(20)    not null,
-    NODE_CODE       VARCHAR2(100) not null,
+    NODE_CODE       VARCHAR2(96)  not null,
     NODE_NAME       VARCHAR2(100),
     PERMISSION_FLAG VARCHAR2(200),
     NODE_RATIO      VARCHAR2(200),
@@ -56,13 +57,13 @@ create table FLOW_NODE
     LISTENER_TYPE   VARCHAR2(100),
     LISTENER_PATH   VARCHAR2(500),
     FORM_ID       VARCHAR2(100),
-    VERSION         VARCHAR2(20),
+    VERSION         VARCHAR2(20) not null,
     CREATED_AT     DATE,
     CREATED_BY       VARCHAR2(64) default '',
     UPDATED_AT     DATE,
     UPDATED_BY       VARCHAR2(64) default '',
     EXT        CLOB,
-    DELETED        VARCHAR2(1)   default '0',
+    DELETED        VARCHAR2(1)   default '0' not null,
     TENANT_ID       VARCHAR2(40)
 );
 
@@ -90,14 +91,15 @@ comment on column FLOW_NODE.EXT is '节点扩展属性';
 comment on column FLOW_NODE.DELETED is '删除标志';
 comment on column FLOW_NODE.TENANT_ID is '租户id';
 comment on column FLOW_NODE.PERMISSION_FLAG is '权限标识（权限类型:权限标识，可以多个，用@@隔开)';
+create index IDX_FLOW_NODE_DEFINITION on FLOW_NODE (TENANT_ID, DEFINITION_ID, DELETED, NODE_CODE);
 
 create table FLOW_SKIP
 (
     ID             NUMBER(20)    not null,
     DEFINITION_ID  NUMBER(20)    not null,
-    SOURCE_NODE_CODE  VARCHAR2(100) not null,
+    SOURCE_NODE_CODE  VARCHAR2(96) not null,
     SOURCE_NODE_TYPE  NUMBER(1),
-    TARGET_NODE_CODE VARCHAR2(100) not null,
+    TARGET_NODE_CODE VARCHAR2(96) not null,
     TARGET_NODE_TYPE NUMBER(1),
     SKIP_NAME      VARCHAR2(100),
     SKIP_TYPE      VARCHAR2(40),
@@ -107,7 +109,7 @@ create table FLOW_SKIP
     CREATED_BY      VARCHAR2(64) default '',
     UPDATED_AT    DATE,
     UPDATED_BY      VARCHAR2(64) default '',
-    DELETED       VARCHAR2(1) default '0',
+    DELETED       VARCHAR2(1) default '0' not null,
     TENANT_ID      VARCHAR2(40)
 );
 
@@ -131,6 +133,7 @@ comment on column FLOW_SKIP.UPDATED_AT is '更新时间';
 comment on column FLOW_SKIP.UPDATED_BY is '更新人';
 comment on column FLOW_SKIP.DELETED is '删除标志';
 comment on column FLOW_SKIP.TENANT_ID is '租户id';
+create index IDX_FLOW_SKIP_DEFINITION on FLOW_SKIP (TENANT_ID, DEFINITION_ID, DELETED, SOURCE_NODE_CODE);
 
 create table FLOW_INSTANCE
 (
@@ -138,19 +141,19 @@ create table FLOW_INSTANCE
     DEFINITION_ID   NUMBER       not null,
     BUSINESS_TYPE   VARCHAR2(64) not null,
     BUSINESS_ID     VARCHAR2(40) not null,
-    NODE_TYPE       NUMBER(1),
-    NODE_CODE       VARCHAR2(100),
+    NODE_TYPE       NUMBER(1)    not null,
+    NODE_CODE       VARCHAR2(96) not null,
     NODE_NAME       VARCHAR2(100),
-    variables        CLOB,
-    FLOW_STATUS     VARCHAR2(20),
-    ACTIVITY_STATUS NUMBER(1)    default 1,
+    VARIABLES        CLOB,
+    FLOW_STATUS     VARCHAR2(20) not null,
+    ACTIVITY_STATUS NUMBER(1)    default 1 not null,
     DEF_JSON        CLOB,
     CREATED_AT     DATE,
     CREATED_BY       VARCHAR2(64) default '',
     UPDATED_AT     DATE,
     UPDATED_BY       VARCHAR2(64) default '',
     EXT             VARCHAR2(500),
-    DELETED        VARCHAR2(1)  default '0',
+    DELETED        VARCHAR2(1)  default '0' not null,
     TENANT_ID       VARCHAR2(40)
 );
 
@@ -165,7 +168,7 @@ comment on column FLOW_INSTANCE.BUSINESS_ID is '业务id';
 comment on column FLOW_INSTANCE.NODE_TYPE is '开始节点类型 (0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待)';
 comment on column FLOW_INSTANCE.NODE_CODE is '开始节点编码';
 comment on column FLOW_INSTANCE.NODE_NAME is '开始节点名称';
-comment on column FLOW_INSTANCE.variables is '任务变量';
+comment on column FLOW_INSTANCE.VARIABLES is '任务变量';
 comment on column FLOW_INSTANCE.FLOW_STATUS is '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
 comment on column FLOW_INSTANCE.ACTIVITY_STATUS is '流程激活状态（0挂起 1激活）';
 comment on column FLOW_INSTANCE.DEF_JSON is '流程定义json';
@@ -176,23 +179,24 @@ comment on column FLOW_INSTANCE.UPDATED_BY is '更新人';
 comment on column FLOW_INSTANCE.EXT is '扩展字段，预留给业务系统使用';
 comment on column FLOW_INSTANCE.DELETED is '删除标志';
 comment on column FLOW_INSTANCE.TENANT_ID is '租户id';
-create index IDX_FLOW_INSTANCE_BUSINESS on FLOW_INSTANCE (TENANT_ID, BUSINESS_TYPE, BUSINESS_ID);
+create index IDX_FLOW_INSTANCE_BUSINESS on FLOW_INSTANCE (TENANT_ID, BUSINESS_TYPE, BUSINESS_ID, DELETED);
+create index IDX_FLOW_INSTANCE_DEFINITION on FLOW_INSTANCE (TENANT_ID, DEFINITION_ID, DELETED);
 
 create table FLOW_TASK
 (
     ID            NUMBER(20) not null,
     DEFINITION_ID NUMBER(20) not null,
     INSTANCE_ID   NUMBER(20) not null,
-    NODE_CODE     VARCHAR2(100),
+    NODE_CODE     VARCHAR2(96) not null,
     NODE_NAME     VARCHAR2(100),
-    NODE_TYPE     NUMBER(1),
-    FLOW_STATUS   VARCHAR2(20),
+    NODE_TYPE     NUMBER(1) not null,
+    FLOW_STATUS   VARCHAR2(20) not null,
     FORM_ID     VARCHAR2(100),
     CREATED_AT   DATE,
     CREATED_BY     VARCHAR2(64) default '',
     UPDATED_AT   DATE,
     UPDATED_BY     VARCHAR2(64) default '',
-    DELETED      VARCHAR2(1) default '0',
+    DELETED      VARCHAR2(1) default '0' not null,
     TENANT_ID     VARCHAR2(40),
     TIMEOUT_AT    DATE,
     TIMEOUT_ACTION VARCHAR2(32),
@@ -216,8 +220,8 @@ comment on column FLOW_TASK.TIMEOUT_ACTION is '节点超时动作';
 comment on column FLOW_TASK.TIMEOUT_CONFIG is '节点超时配置快照';
 comment on column FLOW_TASK.TIMEOUT_STATUS is '节点超时状态';
 comment on column FLOW_TASK.TIMEOUT_CLAIMED_AT is '节点超时领取时间';
-create index IDX_FLOW_TASK_TIMEOUT_DUE on FLOW_TASK (TIMEOUT_STATUS, TIMEOUT_AT, TIMEOUT_CLAIMED_AT);
-create index IDX_FLOW_TASK_INSTANCE_NODE on FLOW_TASK (TENANT_ID, INSTANCE_ID, NODE_TYPE);
+create index IDX_FLOW_TASK_TIMEOUT_DUE on FLOW_TASK (TIMEOUT_STATUS, DELETED, TIMEOUT_AT, TIMEOUT_CLAIMED_AT);
+create index IDX_FLOW_TASK_INSTANCE_NODE on FLOW_TASK (TENANT_ID, INSTANCE_ID, DELETED, NODE_TYPE, NODE_CODE);
 comment on column FLOW_TASK.FLOW_STATUS is '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
 comment on column FLOW_TASK.FORM_ID is '外部业务表单标识';
 comment on column FLOW_TASK.CREATED_AT is '创建时间';
@@ -233,23 +237,23 @@ create table FLOW_HIS_TASK
     DEFINITION_ID    NUMBER(20) not null,
     INSTANCE_ID      NUMBER(20) not null,
     TASK_ID          NUMBER(20) not null,
-    NODE_CODE        VARCHAR2(100),
+    NODE_CODE        VARCHAR2(96),
     NODE_NAME        VARCHAR2(100),
     NODE_TYPE        NUMBER(1),
-    TARGET_NODE_CODE VARCHAR2(200),
+    TARGET_NODE_CODE VARCHAR2(96),
     TARGET_NODE_NAME VARCHAR2(200),
     APPROVER         VARCHAR2(40),
-    COOPERATION_TYPE   NUMBER(1)   default 0,
+    COOPERATION_TYPE   NUMBER(1)   default 0 not null,
     COLLABORATOR     VARCHAR2(500),
-    SKIP_TYPE        VARCHAR2(10),
-    FLOW_STATUS      VARCHAR2(20),
+    SKIP_TYPE        VARCHAR2(10) not null,
+    FLOW_STATUS      VARCHAR2(20) not null,
     FORM_ID        VARCHAR2(100),
     MESSAGE          VARCHAR2(500),
-    variables         CLOB,
+    VARIABLES         CLOB,
     EXT              CLOB,
     CREATED_AT      DATE,
     UPDATED_AT      DATE,
-    DELETED         VARCHAR2(1) default '0',
+    DELETED         VARCHAR2(1) default '0' not null,
     TENANT_ID        VARCHAR2(40)
 
 );
@@ -271,7 +275,7 @@ comment on column FLOW_HIS_TASK.SKIP_TYPE is '流转类型（PASS通过 REJECT�
 comment on column FLOW_HIS_TASK.FLOW_STATUS is '流程状态（0待提交 1审批中 2审批通过 4终止 5作废 6撤销 8已完成 9已退回 10失效 11拿回）';
 comment on column FLOW_HIS_TASK.FORM_ID is '外部业务表单标识';
 comment on column FLOW_HIS_TASK.MESSAGE is '审批意见';
-comment on column FLOW_HIS_TASK.variables is '任务变量';
+comment on column FLOW_HIS_TASK.VARIABLES is '任务变量';
 comment on column FLOW_HIS_TASK.EXT is '扩展字段，预留给业务系统使用';
 comment on column FLOW_HIS_TASK.CREATED_AT is '任务开始时间';
 comment on column FLOW_HIS_TASK.UPDATED_AT is '审批完成时间';
@@ -280,30 +284,31 @@ comment on column FLOW_HIS_TASK.TENANT_ID is '租户id';
 comment on column FLOW_HIS_TASK.APPROVER is '审批者';
 comment on column FLOW_HIS_TASK.COOPERATION_TYPE is '协作方式(1审批 2转办 3委派 4会签 5票签 6加签 7减签)';
 comment on column FLOW_HIS_TASK.COLLABORATOR is '协作人';
-create index IDX_FLOW_HIS_TASK_INSTANCE_TIME on FLOW_HIS_TASK (TENANT_ID, INSTANCE_ID, CREATED_AT);
+create index IDX_FLOW_HIS_TASK_INSTANCE_TIME on FLOW_HIS_TASK (TENANT_ID, INSTANCE_ID, DELETED, CREATED_AT);
+create index IDX_FLOW_HIS_TASK_TASK on FLOW_HIS_TASK (TENANT_ID, TASK_ID, DELETED, COOPERATION_TYPE);
 
 create table FLOW_USER
 (
     ID           NUMBER(20)  not null,
     TYPE         VARCHAR2(1) not null,
     PROCESSED_BY VARCHAR2(80),
-    associated_id   NUMBER(20)  not null,
+    TASK_ID      NUMBER(20)  not null,
     CREATED_AT  DATE,
     CREATED_BY    VARCHAR2(64) default '',
     UPDATED_AT  DATE,
     UPDATED_BY    VARCHAR2(64) default '',
-    DELETED     VARCHAR2(1) default '0',
+    DELETED     VARCHAR2(1) default '0' not null,
     TENANT_ID    VARCHAR2(40)
 );
 
 alter table FLOW_USER
     add constraint PK_FLOW_USER primary key (ID);
 
-comment on table FLOW_USER is '待办任务表';
+comment on table FLOW_USER is '流程用户表';
 comment on column FLOW_USER.ID is '主键id';
 comment on column FLOW_USER.TYPE is '人员类型（1待办任务的审批人权限 2待办任务的转办人权限 3待办任务的委托人权限）';
-comment on column FLOW_USER.PROCESSED_BY is '权限人)';
-comment on column FLOW_USER.associated_id is '任务表id';
+comment on column FLOW_USER.PROCESSED_BY is '权限人';
+comment on column FLOW_USER.TASK_ID is '任务表id';
 comment on column FLOW_USER.CREATED_AT is '创建时间';
 comment on column FLOW_USER.CREATED_BY is '创建人';
 comment on column FLOW_USER.UPDATED_AT is '更新时间';
@@ -311,11 +316,11 @@ comment on column FLOW_USER.UPDATED_BY is '更新人';
 comment on column FLOW_USER.DELETED is '删除标志';
 comment on column FLOW_USER.TENANT_ID is '租户id';
 
-create index USER_PROCESSED_TYPE on FLOW_USER (PROCESSED_BY, TYPE);
-create index USER_ASSOCIATED_IDX on FLOW_USER (associated_id);
+create index IDX_FLOW_USER_PROCESSED on FLOW_USER (TENANT_ID, PROCESSED_BY, DELETED, TYPE, TASK_ID);
+create index IDX_FLOW_USER_TASK on FLOW_USER (TENANT_ID, TASK_ID, DELETED, TYPE, PROCESSED_BY);
 CREATE TABLE flow_subprocess_run (
     id NUMBER(19) PRIMARY KEY, parent_instance_id NUMBER(19) NOT NULL, parent_task_id NUMBER(19) NOT NULL,
-    parent_definition_id NUMBER(19) NOT NULL, parent_node_code VARCHAR2(100) NOT NULL,
+    parent_definition_id NUMBER(19) NOT NULL, parent_node_code VARCHAR2(96) NOT NULL,
     child_flow_code VARCHAR2(100) NOT NULL, child_definition_id NUMBER(19) NOT NULL,
     child_definition_version VARCHAR2(20) NOT NULL, completion_policy VARCHAR2(20) DEFAULT 'ALL' NOT NULL,
     collection_fingerprint CHAR(64) NOT NULL, expected_count NUMBER(10) DEFAULT 0 NOT NULL,
@@ -327,8 +332,9 @@ CREATE TABLE flow_subprocess_run (
     updated_at TIMESTAMP, updated_by VARCHAR2(64) DEFAULT '', deleted CHAR(1) DEFAULT '0' NOT NULL,
     tenant_id VARCHAR2(40) DEFAULT '0' NOT NULL, CONSTRAINT uk_subprocess_run_parent_task UNIQUE (tenant_id,parent_task_id)
 );
-CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run (tenant_id,parent_instance_id,parent_node_code);
-CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (run_status,updated_at);
+CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run
+    (tenant_id,parent_instance_id,deleted,run_status,parent_node_code,id);
+CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (deleted,run_status,id);
 
 CREATE TABLE flow_subprocess_child (
     id NUMBER(19) PRIMARY KEY, run_id NUMBER(19) NOT NULL, item_key VARCHAR2(200) NOT NULL,
@@ -341,15 +347,15 @@ CREATE TABLE flow_subprocess_child (
     CONSTRAINT uk_subprocess_child_item UNIQUE (tenant_id,run_id,item_key),
     CONSTRAINT uk_subprocess_child_instance UNIQUE (tenant_id,child_instance_id)
 );
-CREATE INDEX idx_subprocess_child_page ON flow_subprocess_child (tenant_id,run_id,id);
+CREATE INDEX idx_subprocess_child_page ON flow_subprocess_child (tenant_id,run_id,deleted,id);
 
 CREATE TABLE flow_subprocess_event (
     id NUMBER(19) PRIMARY KEY, run_id NUMBER(19) NOT NULL, child_id NUMBER(19),
-    parent_instance_id NUMBER(19) NOT NULL, child_instance_id NUMBER(19), parent_node_code VARCHAR2(100) NOT NULL,
+    parent_instance_id NUMBER(19) NOT NULL, child_instance_id NUMBER(19), parent_node_code VARCHAR2(96) NOT NULL,
     event_type VARCHAR2(50) NOT NULL, event_result VARCHAR2(30) NOT NULL, reason VARCHAR2(500),
     occurred_at TIMESTAMP NOT NULL, created_at TIMESTAMP, created_by VARCHAR2(64) DEFAULT '',
     updated_at TIMESTAMP, updated_by VARCHAR2(64) DEFAULT '', deleted CHAR(1) DEFAULT '0' NOT NULL,
     tenant_id VARCHAR2(40) DEFAULT '0' NOT NULL
 );
-CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,occurred_at,id);
-CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id);
+CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,deleted,occurred_at,id);
+CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id,deleted,id);
