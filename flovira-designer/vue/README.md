@@ -109,7 +109,7 @@ import { FlowDesigner } from '@luokuiai/flovira-vue-designer'
 | logo | - | 画布水印 |
 | node-form-extra | `{ form, disabled }` | 节点属性抽屉扩展点，可向任意节点注入自定义配置项 |
 
-业务表单使用字符串 `formId` 引用，表单结构和页面由接入方维护。基础信息设置流程表单，节点可覆盖，留空则继承。数据提供者的资源查询通过 `resourceType: 'FORM'` 返回 `{ id, name }` 选项；没有选项时可填写业务表单标识。旧 `formCustom` / `formPath` 和内置表单管理已移除。
+业务表单使用字符串 `formId` 引用，可选择 Flovira 管理的版本化表单，也可由接入方提供。基础信息设置流程表单，节点可覆盖，留空则继承。数据提供者的资源查询通过 `resourceType: 'FORM'` 返回 `{ id, name }` 选项；没有选项时可填写业务表单标识。旧 `formCustom` 与模式切换逻辑不再使用。
 | header-center | `{ activeStep, steps, goToStep }` | 替换顶部中间的步骤切换区；`goToStep(index)` 跳转步骤 |
 | loading | - | 初始流程定义加载中的覆盖层（默认「加载中…」） |
 | empty | - | 加载完成但无可用定义（如 definitionId 失效）的覆盖层（默认「暂无流程定义」） |

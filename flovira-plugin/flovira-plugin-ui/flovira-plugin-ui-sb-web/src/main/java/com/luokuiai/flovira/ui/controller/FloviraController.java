@@ -28,6 +28,7 @@ import com.luokuiai.flovira.core.utils.page.Page;
 import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
 import com.luokuiai.flovira.core.dto.BusinessSubject;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
+import com.luokuiai.flovira.ui.dto.FormContentRequest;
 import com.luokuiai.flovira.ui.service.FloviraService;
 import com.luokuiai.flovira.ui.vo.*;
 import org.springframework.transaction.annotation.Transactional;
@@ -138,6 +139,19 @@ public class FloviraController {
     public ApiResult<List<SubprocessHistoryEntry>> subprocessHistory(@PathVariable("runId") Long runId,
         @RequestParam(value = "childId", required = false) Long childId) {
         return FloviraService.subprocessHistory(runId, childId);
+    }
+
+    /** 读取 Flovira 管理的表单内容。 */
+    @GetMapping("/form-content/{id}")
+    public ApiResult<String> getFormContent(@PathVariable("id") Long id) {
+        return FloviraService.getFormContent(id);
+    }
+
+    /** 保存 Flovira 管理的表单内容。 */
+    @Transactional(rollbackFor = Exception.class)
+    @PostMapping("/form-content")
+    public ApiResult<Void> saveFormContent(@RequestBody FormContentRequest request) {
+        return FloviraService.saveFormContent(request);
     }
 
 

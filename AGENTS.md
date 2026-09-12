@@ -14,7 +14,7 @@ Core constraints: Java 8 source compatibility, framework / ORM / JSON independen
 - `flovira-designer`: Bun workspace with independent Vue / React packages, optional React UI adapters and consuming examples.
 - `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
 - Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
-- Form definitions, versions, rendering and page addresses belong to the host application. The engine stores string `formId` references and approval data snapshots, with external callbacks for form choices and field labels. Do not reintroduce built-in form management or designer mode switching.
+- Flovira may manage versioned form metadata and content in `flow_form`; host applications may also supply forms. Workflow definitions, nodes, tasks and history store opaque string `formId` references and approval data snapshots. Keep host page routing outside `flow_form`; do not restore `form_custom`, `form_type`, `form_path`, numeric-only form references, bundled rendering pages or designer mode switching.
 
 ## Instruction hierarchy and maintenance
 

@@ -21,6 +21,7 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.*;
 import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.entity.Form;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
@@ -31,6 +32,7 @@ import com.luokuiai.flovira.core.utils.ExceptionUtil;
 import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.core.utils.page.Page;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
+import com.luokuiai.flovira.ui.dto.FormContentRequest;
 import com.luokuiai.flovira.ui.vo.*;
 
 import java.util.*;
@@ -85,11 +87,29 @@ public class FloviraService {
      */
     public static ApiResult<DesignerResourcePage> queryResources(DesignerResourceQuery query) {
         DesignerDataProvider provider = FrameInvoker.getBean(DesignerDataProvider.class);
-        if (provider == null) {
-            return ApiResult.ok(new DesignerResourcePage());
+        DesignerResourcePage page = provider == null ? null : provider.queryResources(query);
+        if (page == null && query != null && "FORM".equals(query.getResourceType())) {
+            page = managedFormResources(query);
         }
-        DesignerResourcePage page = provider.queryResources(query);
         return ApiResult.ok(page == null ? new DesignerResourcePage() : page);
+    }
+
+    private static DesignerResourcePage managedFormResources(DesignerResourceQuery query) {
+        Page<Form> forms = FlowEngine.formService().publishedPage(query.getKeyword(),
+            query.getPageNum(), query.getPageSize());
+        List<DesignerResourceItem> items = new ArrayList<DesignerResourceItem>();
+        if (forms.getList() != null) {
+            for (Form form : forms.getList()) {
+                DesignerResourceItem item = new DesignerResourceItem()
+                    .setId(String.valueOf(form.getId()))
+                    .setCode(form.getFormCode())
+                    .setName(form.getFormName())
+                    .setResourceType("FORM");
+                item.getMetadata().put("version", form.getVersion());
+                items.add(item);
+            }
+        }
+        return new DesignerResourcePage().setItems(items).setTotal(forms.getTotal());
     }
 
     /**
@@ -208,6 +228,26 @@ public class FloviraService {
 
     private static String currentTenantId() {
         return FlowEngine.tenantHandler() == null ? "0" : FlowEngine.tenantHandler().getTenantId();
+    }
+
+    /** 读取 Flovira 管理的表单内容。 */
+    public static ApiResult<String> getFormContent(Long id) {
+        try {
+            Form form = FlowEngine.formService().getById(id);
+            if (form == null) {
+                throw new FlowException(com.luokuiai.flovira.core.constant.ExceptionCons.NOT_FOUND_FORM);
+            }
+            return ApiResult.ok(form.getFormContent());
+        } catch (Exception e) {
+            log.error("获取表单内容失败 - id: {}", id, e);
+            throw new FlowException(ExceptionUtil.handleMsg("获取表单内容失败", e));
+        }
+    }
+
+    /** 保存 Flovira 管理的表单内容。 */
+    public static ApiResult<Void> saveFormContent(FormContentRequest request) {
+        FlowEngine.formService().saveContent(request.getId(), request.getFormContent());
+        return ApiResult.ok();
     }
 
 

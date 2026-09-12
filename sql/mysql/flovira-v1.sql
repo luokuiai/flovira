@@ -24,6 +24,26 @@ CREATE TABLE `flow_definition`
     KEY `idx_flow_definition_lookup` (`tenant_id`, `flow_code`, `deleted`, `publish_status`)
 ) ENGINE = InnoDB COMMENT ='流程定义表';
 
+CREATE TABLE `flow_form`
+(
+    `id`             bigint       NOT NULL COMMENT '主键id',
+    `form_code`      varchar(40)  NOT NULL COMMENT '表单编码',
+    `form_name`      varchar(100) NOT NULL COMMENT '表单名称',
+    `version`        varchar(20)  NOT NULL COMMENT '表单版本',
+    `publish_status` tinyint(1)   NOT NULL DEFAULT '0' COMMENT '是否发布（0未发布 1已发布 9失效）',
+    `form_content`   longtext              DEFAULT NULL COMMENT '表单定义内容',
+    `ext`            varchar(500)          DEFAULT NULL COMMENT '扩展字段',
+    `created_at`     datetime              DEFAULT NULL COMMENT '创建时间',
+    `created_by`     varchar(64)           DEFAULT '' COMMENT '创建人',
+    `updated_at`     datetime              DEFAULT NULL COMMENT '更新时间',
+    `updated_by`     varchar(64)           DEFAULT '' COMMENT '更新人',
+    `deleted`        char(1)      NOT NULL DEFAULT '0' COMMENT '删除标志',
+    `tenant_id`      varchar(40)           DEFAULT NULL COMMENT '租户id',
+    PRIMARY KEY (`id`) USING BTREE,
+    KEY `idx_flow_form_code` (`tenant_id`, `form_code`, `deleted`, `publish_status`, `version`),
+    KEY `idx_flow_form_published` (`tenant_id`, `publish_status`, `deleted`, `form_name`)
+) ENGINE = InnoDB COMMENT ='流程表单表';
+
 CREATE TABLE `flow_node`
 (
     `id`              bigint        NOT NULL COMMENT '主键id',

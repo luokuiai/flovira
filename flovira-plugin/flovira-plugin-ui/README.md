@@ -28,7 +28,7 @@ public class WorkflowCapabilities implements DesignerCapabilityProvider {
 public class WorkflowBusinessData implements DesignerDataProvider {
     @Override
     public DesignerResourcePage queryResources(DesignerResourceQuery query) {
-        // 按 resourceType 查询 USER / ROLE / ORGANIZATION / FORM_FIELD /
+        // 按 resourceType 查询 USER / ROLE / ORGANIZATION / FORM / FORM_FIELD /
         // DICTIONARY / SUBPROCESS，并转换为稳定字符串 ID。
         return new DesignerResourcePage();
     }
@@ -68,7 +68,7 @@ Flovira 对 `USER`、`ROLE`、`ORGANIZATION` 和 `EXPRESSION` 的默认解析逻
 
 业务 Provider 只返回能力和数据。节点校验、定义序列化、审批人策略执行、结果去重、空审批人处理、任务创建、会签计算、超时及状态流转仍由 Flovira 负责。关系 Provider 缺失、返回非法主体或最终没有办理人时，任务创建会明确失败。
 
-1.0.0 只提供上述统一契约，不包含旧的办理人、字典、分类、节点扩展或监听器 Service。未注册 `DesignerDataProvider` 时，资源查询返回空结果。
+1.0.0 只提供上述统一契约，不包含旧的办理人、字典、分类、节点扩展或监听器 Service。未注册 `DesignerDataProvider` 时，`FORM` 查询返回 Flovira 管理的已发布表单，其它资源查询返回空结果。宿主 Provider 返回非空分页结果时由宿主管理该类资源。
 
 ## Spring Web
 
@@ -77,6 +77,8 @@ Flovira 对 `USER`、`ROLE`、`ORGANIZATION` 和 `EXPRESSION` 的默认解析逻
 - `GET /flovira/integration/capabilities`
 - `GET /flovira/integration/resources`
 - `POST /flovira/integration/relationships/resolve`
+- `GET /flovira/form-content/{id}`
+- `POST /flovira/form-content`
 
 业务系统可配置自己的前缀：
 

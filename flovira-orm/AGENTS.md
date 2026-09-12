@@ -16,7 +16,7 @@ Read the affected core entity, DAO / query / service contracts, ORM implementati
 - Changes to ID generation, datasource types and pagination need dialect checks.
 - Preserve both engine-managed and ORM-managed tenant / deletion paths.
 - Synchronize schema changes across MySQL, PostgreSQL and Oracle V1 scripts. Keep shared ORM contract-test schemas aligned too.
-- External `formId` columns are strings. Do not reintroduce an engine-owned form table or mapper.
+- Workflow `formId` columns remain opaque strings and may reference a Flovira-managed `flow_form` row or a host form. Keep the managed form table and both ORM implementations aligned; do not restore `form_custom`, `form_type`, `form_path` or numeric-only workflow references.
 
 ## Verification
 

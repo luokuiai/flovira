@@ -32,7 +32,7 @@ After library changes, build it and at least one consuming example. Check affect
 
 - Read backend DTO / VO contracts before changing definition JSON, node properties, approvers, conditions or listeners.
 - Components use `@/api`, which delegates to `getDataProvider()`. Consumers may inject `setDataProvider(...)`; do not hardcode business endpoints in components.
-- External business forms use `formId` and `FORM` resource options. Form structure and rendering belong to the host. Do not restore form-create dependencies or built-in form-content management APIs.
+- Business forms use opaque `formId` and `FORM` resource options backed by Flovira-managed forms or host resources. Keep rendering host-integrated; do not restore `form_custom`, form-create dependencies or designer mode switching.
 - Imperative messages, notifications, dialogs, loading and click-outside behavior go through `getUiAdapter()`.
 - The main designer entry registers neutral `wf-*` components and icons only. No static UI framework imports or default adapter registration. Consumers must call `setUiAdapter(...)` before rendering.
 - Element Plus, Ant Design Vue and Naive UI adapters are separate `/element-plus`, `/antdv`, `/naive` exports, built with their own Vite configs. Each externalizes Vue and its framework peer.

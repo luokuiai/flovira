@@ -15,7 +15,7 @@ Read the corresponding core condition, strategy, listener or JSON interface. Pre
 - Match SPI registration files to implementation classes and preserve provider selection behavior.
 - Shared modes / UI behavior must work with supported Spring Boot generations; respect each module's Java convention.
 - Keep backend and Vue / React data contracts aligned. Preserve configured API prefixes and inspect controller mappings for actual routes; do not assume a hardcoded prefix.
-- Form choices and condition fields come from host providers. Removed form-content management endpoints must not be restored.
+- Form choices may come from Flovira-managed forms or host providers; condition fields may use the existing host callback. Preserve managed form-content endpoints, opaque `formId` values and tenant isolation; do not restore `form_custom`.
 - Check date, null, generic and polymorphic serialization behavior across JSON providers when changing contracts.
 
 ## Verification

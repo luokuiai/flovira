@@ -43,6 +43,43 @@ comment on column FLOW_DEFINITION.DELETED is '删除标志';
 comment on column FLOW_DEFINITION.TENANT_ID is '租户id';
 create index IDX_FLOW_DEFINITION_LOOKUP on FLOW_DEFINITION (TENANT_ID, FLOW_CODE, DELETED, PUBLISH_STATUS);
 
+create table FLOW_FORM
+(
+    ID             NUMBER(20)    not null,
+    FORM_CODE      VARCHAR2(40)  not null,
+    FORM_NAME      VARCHAR2(100) not null,
+    VERSION        VARCHAR2(20)  not null,
+    PUBLISH_STATUS NUMBER(1) default 0 not null,
+    FORM_CONTENT   CLOB,
+    EXT            VARCHAR2(500),
+    CREATED_AT     DATE,
+    CREATED_BY     VARCHAR2(64) default '',
+    UPDATED_AT     DATE,
+    UPDATED_BY     VARCHAR2(64) default '',
+    DELETED        VARCHAR2(1) default '0' not null,
+    TENANT_ID      VARCHAR2(40)
+);
+
+alter table FLOW_FORM
+    add constraint PK_FLOW_FORM primary key (ID);
+
+comment on table FLOW_FORM is '流程表单表';
+comment on column FLOW_FORM.ID is '主键id';
+comment on column FLOW_FORM.FORM_CODE is '表单编码';
+comment on column FLOW_FORM.FORM_NAME is '表单名称';
+comment on column FLOW_FORM.VERSION is '表单版本';
+comment on column FLOW_FORM.PUBLISH_STATUS is '是否发布（0未发布 1已发布 9失效）';
+comment on column FLOW_FORM.FORM_CONTENT is '表单定义内容';
+comment on column FLOW_FORM.EXT is '扩展字段';
+comment on column FLOW_FORM.CREATED_AT is '创建时间';
+comment on column FLOW_FORM.CREATED_BY is '创建人';
+comment on column FLOW_FORM.UPDATED_AT is '更新时间';
+comment on column FLOW_FORM.UPDATED_BY is '更新人';
+comment on column FLOW_FORM.DELETED is '删除标志';
+comment on column FLOW_FORM.TENANT_ID is '租户id';
+create index IDX_FLOW_FORM_CODE on FLOW_FORM (TENANT_ID, FORM_CODE, DELETED, PUBLISH_STATUS, VERSION);
+create index IDX_FLOW_FORM_PUBLISHED on FLOW_FORM (TENANT_ID, PUBLISH_STATUS, DELETED, FORM_NAME);
+
 create table FLOW_NODE
 (
     ID              NUMBER(20)    not null,

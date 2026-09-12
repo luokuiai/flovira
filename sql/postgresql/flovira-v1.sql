@@ -43,6 +43,40 @@ COMMENT ON COLUMN flow_definition.deleted IS '删除标志';
 COMMENT ON COLUMN flow_definition.tenant_id IS '租户id';
 CREATE INDEX idx_flow_definition_lookup ON flow_definition (tenant_id, flow_code, deleted, publish_status);
 
+CREATE TABLE flow_form
+(
+    id             int8         NOT NULL,
+    form_code      varchar(40)  NOT NULL,
+    form_name      varchar(100) NOT NULL,
+    "version"      varchar(20)  NOT NULL,
+    publish_status int2         NOT NULL DEFAULT 0,
+    form_content   text         NULL,
+    ext            varchar(500) NULL,
+    created_at     timestamp    NULL,
+    created_by     varchar(64)  NULL DEFAULT '':: character varying,
+    updated_at     timestamp    NULL,
+    updated_by     varchar(64)  NULL DEFAULT '':: character varying,
+    deleted        bpchar(1)    NOT NULL DEFAULT '0':: character varying,
+    tenant_id      varchar(40)  NULL,
+    CONSTRAINT flow_form_pkey PRIMARY KEY (id)
+);
+COMMENT ON TABLE flow_form IS '流程表单表';
+COMMENT ON COLUMN flow_form.id IS '主键id';
+COMMENT ON COLUMN flow_form.form_code IS '表单编码';
+COMMENT ON COLUMN flow_form.form_name IS '表单名称';
+COMMENT ON COLUMN flow_form."version" IS '表单版本';
+COMMENT ON COLUMN flow_form.publish_status IS '是否发布（0未发布 1已发布 9失效）';
+COMMENT ON COLUMN flow_form.form_content IS '表单定义内容';
+COMMENT ON COLUMN flow_form.ext IS '扩展字段';
+COMMENT ON COLUMN flow_form.created_at IS '创建时间';
+COMMENT ON COLUMN flow_form.created_by IS '创建人';
+COMMENT ON COLUMN flow_form.updated_at IS '更新时间';
+COMMENT ON COLUMN flow_form.updated_by IS '更新人';
+COMMENT ON COLUMN flow_form.deleted IS '删除标志';
+COMMENT ON COLUMN flow_form.tenant_id IS '租户id';
+CREATE INDEX idx_flow_form_code ON flow_form (tenant_id, form_code, deleted, publish_status, "version");
+CREATE INDEX idx_flow_form_published ON flow_form (tenant_id, publish_status, deleted, form_name);
+
 CREATE TABLE flow_node
 (
     id              int8          NOT NULL,
