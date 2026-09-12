@@ -9,6 +9,7 @@ plugins {
 dependencies {
     api project(':flovira-core')
     compileOnly libs.org.projectlombok.lombok
+    testImplementation libs.junit.junit
 }
 
 description = 'flovira-plugin-ui-core'

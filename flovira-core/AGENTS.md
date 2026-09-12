@@ -19,7 +19,7 @@ Read relevant service implementations, strategies, handlers, listeners and enums
 
 Keep Java 8 source compatibility and zero concrete framework / ORM dependencies. Preserve `FlowEngine` factories and existing extension points. Synchronize entity changes across DTOs, both ORMs, serialization and all three SQL schemas.
 
-Form definitions belong to the host application. `formId` is an external string; do not parse it as an engine-owned numeric key. Preserve task and history reference snapshots. `FormFieldProvider` is optional and framework-independent.
+Flovira-managed form metadata and content use the core `Form` / `FormService` contracts; hosts may also supply forms. Keep `formId` an opaque string rather than a numeric-only key, preserve task and history reference snapshots, and do not restore `form_custom`, `form_type` or `form_path`. `FormFieldProvider` remains optional and framework-independent.
 
 ## Verification
 

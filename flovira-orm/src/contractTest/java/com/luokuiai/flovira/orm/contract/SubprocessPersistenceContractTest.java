@@ -21,12 +21,17 @@ import com.luokuiai.flovira.core.entity.SubprocessChild;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.SubprocessRun;
 import com.luokuiai.flovira.core.entity.Task;
+import com.luokuiai.flovira.core.entity.Form;
+import com.luokuiai.flovira.core.enums.PublishStatus;
 import com.luokuiai.flovira.core.enums.SubprocessChildStatus;
 import com.luokuiai.flovira.core.enums.SubprocessRunStatus;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessChildDao;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessEventDao;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessRunDao;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
+import com.luokuiai.flovira.core.orm.dao.FlowFormDao;
+import com.luokuiai.flovira.core.handler.TenantHandler;
+import com.luokuiai.flovira.core.service.FormService;
 import com.luokuiai.flovira.core.utils.page.Page;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -50,6 +55,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * 三种 ORM 共用的子流程持久化契约测试
@@ -68,6 +74,8 @@ public class SubprocessPersistenceContractTest {
     private FlowSubprocessChildDao<SubprocessChild> childDao;
     private FlowSubprocessEventDao<SubprocessEvent> eventDao;
     private FlowTaskDao<Task> taskDao;
+    private FlowFormDao<Form> formDao;
+    private FormService formService;
     private JdbcTemplate jdbcTemplate;
     private TransactionTemplate transactionTemplate;
 
@@ -84,6 +92,8 @@ public class SubprocessPersistenceContractTest {
             "--spring.sql.init.mode=always",
             "--spring.sql.init.schema-locations=classpath:subprocess-contract-schema.sql",
             "--flovira.banner=false",
+            "--flovira.logic-delete=true",
+            "--flovira.tenant-handler-path=" + ContractTenantHandler.class.getName(),
             "--flovira.data-source-type=postgresql"
         );
     }
@@ -100,12 +110,15 @@ public class SubprocessPersistenceContractTest {
         childDao = (FlowSubprocessChildDao<SubprocessChild>) context.getBean(FlowSubprocessChildDao.class);
         eventDao = (FlowSubprocessEventDao<SubprocessEvent>) context.getBean(FlowSubprocessEventDao.class);
         taskDao = (FlowTaskDao<Task>) context.getBean(FlowTaskDao.class);
+        formDao = (FlowFormDao<Form>) context.getBean(FlowFormDao.class);
+        formService = context.getBean(FormService.class);
         jdbcTemplate = context.getBean(JdbcTemplate.class);
         transactionTemplate = new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
         jdbcTemplate.update("delete from flow_subprocess_event");
         jdbcTemplate.update("delete from flow_subprocess_child");
         jdbcTemplate.update("delete from flow_subprocess_run");
         jdbcTemplate.update("delete from flow_task");
+        jdbcTemplate.update("delete from flow_form");
     }
 
     @Test
@@ -182,6 +195,35 @@ public class SubprocessPersistenceContractTest {
         assertEquals(0, taskDao.claimWait(41L, new Date(7000L)));
     }
 
+    @Test
+    public void shouldManageFormsAndIsolateThemByTenant() {
+        Form form = FlowEngine.newForm();
+        form.setId(50L).setFormCode("expense").setFormName("Expense")
+            .setPublishStatus(PublishStatus.UNPUBLISHED.getKey())
+            .setFormContent("{\"schemaVersion\":\"1\"}");
+        assertTrue(formService.save(form));
+        assertEquals("1", form.getVersion());
+        assertEquals("tenant-a", form.getTenantId());
+
+        assertTrue(formService.saveContent(50L, "{\"fields\":[]}"));
+        assertEquals("{\"fields\":[]}", formService.getByCode("expense", "1").getFormContent());
+        assertTrue(formService.publish(50L));
+        assertEquals(1L, formService.publishedPage("Expense", 1, 20).getTotal());
+        assertTrue(formService.copyForm(50L));
+        Form copy = formService.getByCode("expense", "2");
+        assertEquals(PublishStatus.UNPUBLISHED.getKey(),
+            copy.getPublishStatus());
+        assertTrue(formService.removeById(copy.getId()));
+        assertNull(formService.getById(copy.getId()));
+
+        jdbcTemplate.update("insert into flow_form "
+                + "(id, form_code, form_name, version, publish_status, deleted, tenant_id) "
+                + "values (?, ?, ?, ?, ?, ?, ?)",
+            51L, "expense", "Other tenant", "1", 1, "0", "tenant-b");
+        assertNull(formService.getById(51L));
+        assertEquals(1, formDao.queryByCodeList(java.util.Collections.singletonList("expense")).size());
+    }
+
     private SubprocessRun run(Long id, Long taskId, String status) {
         SubprocessRun run = FlowEngine.newSubprocessRun();
         run.setId(id);
@@ -251,5 +293,12 @@ public class SubprocessPersistenceContractTest {
     @SpringBootApplication
     @EnableAutoConfiguration
     public static class TestApplication {
+    }
+
+    public static class ContractTenantHandler implements TenantHandler {
+        @Override
+        public String getTenantId() {
+            return "tenant-a";
+        }
     }
 }

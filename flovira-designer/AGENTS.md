@@ -18,7 +18,7 @@ Vue and React share a workspace, not framework dependencies or a combined packag
 - Shared workflow JSON, node properties and API paths must match core and UI backend contracts.
 - Public exports, props, events, styles and package names are contracts. Follow root compatibility rules and current user authorization.
 - Use Bun and the workspace lockfile. Do not add independent child lockfiles.
-- Forms are external business references (`formId`). Resource callbacks provide choices and condition fields; do not add a built-in form designer or form-content store.
+- Forms use opaque string `formId` references and may come from Flovira-managed forms or host resource callbacks. Keep form rendering host-integrated and do not restore `form_custom` or designer mode switching.
 
 ## Verification and publishing
 
