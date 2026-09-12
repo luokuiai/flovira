@@ -34,6 +34,7 @@ Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 | `flovira-designer/vue` | Vue 3 designer package (`@luokuiai/flovira-vue-designer`) |
 | `flovira-designer/react` | React designer package (`@luokuiai/flovira-react-designer`) |
 | `flovira-designer/examples` | Vue and React integration examples |
+| `flovira-example` | Composable PostgreSQL/MySQL backends and React/Vue full-stack examples |
 
 ## Build
 
@@ -46,6 +47,10 @@ cd flovira-designer
 bun install
 bun run build
 ```
+
+For a runnable end-to-end matrix that combines either PostgreSQL or MySQL
+with React + Lumen, React + Ant Design, or Vue + Ant Design Vue, see
+[`flovira-example`](flovira-example/README.md).
 
 ## Maven Coordinates
 

@@ -64,3 +64,6 @@ org-springframework-spring-jdbc = { module = "org.springframework:spring-jdbc", 
 org-springframework-spring-tx = { module = "org.springframework:spring-tx", version.ref = "org-springframework-spring-tx" }
 org-springframework-spring-webmvc = { module = "org.springframework:spring-webmvc", version.ref = "org-springframework-spring-webmvc" }
 tools-jackson-core-jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "tools-jackson-core-jackson-databind" }
+
+[plugins]
+org-springframework-boot = { id = "org.springframework.boot", version.ref = "org-springframework-boot-spring-boot-dependencies-x2" }

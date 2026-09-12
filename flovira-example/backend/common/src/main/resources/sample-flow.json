@@ -1,0 +1,47 @@
+{
+  "flowCode": "example_purchase_approval",
+  "flowName": "Example purchase approval",
+  "category": "examples",
+  "publishStatus": 0,
+  "formId": "purchase-request-v1",
+  "nodeList": [
+    {
+      "nodeType": 0,
+      "nodeCode": "start",
+      "nodeName": "Submit request",
+      "nodeRatio": "0",
+      "skipList": [
+        { "sourceNodeCode": "start", "targetNodeCode": "manager", "skipType": "PASS" }
+      ]
+    },
+    {
+      "nodeType": 1,
+      "nodeCode": "manager",
+      "nodeName": "Manager approval",
+      "permissionFlag": "manager",
+      "nodeRatio": "0",
+      "skipList": [
+        { "sourceNodeCode": "manager", "targetNodeCode": "finance", "skipType": "PASS" },
+        { "sourceNodeCode": "manager", "targetNodeCode": "end", "skipName": "Reject request", "skipType": "REJECT" }
+      ]
+    },
+    {
+      "nodeType": 1,
+      "nodeCode": "finance",
+      "nodeName": "Finance approval",
+      "permissionFlag": "finance",
+      "nodeRatio": "0",
+      "skipList": [
+        { "sourceNodeCode": "finance", "targetNodeCode": "end", "skipType": "PASS" },
+        { "sourceNodeCode": "finance", "targetNodeCode": "manager", "skipName": "Return to manager", "skipType": "REJECT" }
+      ]
+    },
+    {
+      "nodeType": 2,
+      "nodeCode": "end",
+      "nodeName": "Completed",
+      "nodeRatio": "0",
+      "skipList": []
+    }
+  ]
+}

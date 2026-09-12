@@ -1,0 +1,23 @@
+{
+  "name": "flovira-example-frontend",
+  "private": true,
+  "packageManager": "bun@1.3.4",
+  "workspaces": [
+    "common",
+    "react-common",
+    "react-lumen",
+    "react-antd",
+    "vue-antd",
+    "../../flovira-designer/react",
+    "../../flovira-designer/react-adapters/lumen",
+    "../../flovira-designer/react-adapters/antd",
+    "../../flovira-designer/vue"
+  ],
+  "scripts": {
+    "test": "bun test common/src react-common/src",
+    "build": "bun run --cwd react-lumen build && bun run --cwd react-antd build && bun run --cwd vue-antd build",
+    "dev:react-lumen": "bun run --cwd react-lumen dev",
+    "dev:react-antd": "bun run --cwd react-antd dev",
+    "dev:vue-antd": "bun run --cwd vue-antd dev"
+  }
+}

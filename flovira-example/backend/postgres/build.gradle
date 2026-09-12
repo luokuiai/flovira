@@ -1,0 +1,33 @@
+plugins {
+    alias(libs.plugins.org.springframework.boot)
+    id 'java'
+}
+
+group = 'com.luokuiai'
+version = findProperty('releaseVersion') ?: '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':flovira-example-backend-common')
+    runtimeOnly libs.org.postgresql.postgresql
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+description = 'PostgreSQL runtime for the composable Flovira examples'
