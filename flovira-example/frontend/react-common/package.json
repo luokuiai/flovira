@@ -1,0 +1,21 @@
+{
+  "name": "@flovira-example/react-common",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./style.css": "./src/style.css"
+  },
+  "dependencies": {
+    "@flovira-example/common": "workspace:*",
+    "@luokuiai/flovira-react-designer": "workspace:*",
+    "react": "^19.2.4"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14"
+  }
+}

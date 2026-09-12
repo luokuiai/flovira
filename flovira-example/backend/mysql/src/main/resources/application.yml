@@ -1,0 +1,19 @@
+server:
+  port: ${EXAMPLE_SERVER_PORT:8082}
+
+spring:
+  application:
+    name: flovira-example-mysql
+  datasource:
+    url: ${EXAMPLE_DATABASE_URL:jdbc:mysql://localhost:3307/flovira_example?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${EXAMPLE_DATABASE_USERNAME:flovira}
+    password: ${EXAMPLE_DATABASE_PASSWORD:flovira}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+flovira:
+  banner: true
+  data-source-type: mysql
+  permission-handler-path: com.luokuiai.flovira.example.common.security.DemoPermissionHandler
+  token-name: X-Demo-User
+  ui: true
+  ui-api-prefix: /flovira
