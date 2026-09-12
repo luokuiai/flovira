@@ -31,8 +31,6 @@ public class FlowCons {
     public static final String SPLIT_VERTICAL = "\\|";
     public static final String DEFAULT = "default";
     public static final String SPEL = "spel";
-    public static final String SNEL = "snel";
-
     public static final Pattern LISTENER_PATTERN = Pattern.compile("^([^()]*)(.*)$");
 
     /**

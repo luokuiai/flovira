@@ -93,11 +93,8 @@ const zh: WfMessageTree = {
     defaultFormat: '默认表达式必须以${开头，以}结尾',
     spelRequired: '请输入spel表达式',
     spelFormat: 'spel表达式必须以#{开头，以}结尾',
-    snelRequired: '请输入snel表达式',
-    snelFormat: 'snel表达式必须以#{开头，以}结尾',
     descDefault: '请输入默认表达式,格式如: ${flag == 5 && flag > 4}',
-    descSpel: '请输入spel表达式，格式如: #{@user.eval(#flag)}',
-    descSnel: '请输入snel表达式，格式如: #{@user.eval(flag)}'
+    descSpel: '请输入spel表达式，格式如: #{@user.eval(#flag)}'
   },
   sidebar: {
     baseNodes: '基础节点',
@@ -198,7 +195,6 @@ const zh: WfMessageTree = {
     ratioRejectCount: '固定驳回人数',
     ratioDefaultExpr: '默认表达式',
     ratioSpelExpr: 'spel表达式',
-    ratioSnelExpr: 'snel表达式',
     rejectToNode: '驳回到指定节点',
     voteRejectRequired: '【票签】必须选择驳到指定节点！',
     formId: '业务表单：',
@@ -339,11 +335,8 @@ const en: WfMessageTree = {
     defaultFormat: 'Default expression must start with ${ and end with }',
     spelRequired: 'Please enter a SpEL expression',
     spelFormat: 'SpEL expression must start with #{ and end with }',
-    snelRequired: 'Please enter a SNEL expression',
-    snelFormat: 'SNEL expression must start with #{ and end with }',
     descDefault: 'Enter a default expression, e.g.: ${flag == 5 && flag > 4}',
-    descSpel: 'Enter a SpEL expression, e.g.: #{@user.eval(#flag)}',
-    descSnel: 'Enter a SNEL expression, e.g.: #{@user.eval(flag)}'
+    descSpel: 'Enter a SpEL expression, e.g.: #{@user.eval(#flag)}'
   },
   sidebar: {
     baseNodes: 'Basic Nodes',
@@ -444,7 +437,6 @@ const en: WfMessageTree = {
     ratioRejectCount: 'Fixed reject count',
     ratioDefaultExpr: 'Default expression',
     ratioSpelExpr: 'SpEL expression',
-    ratioSnelExpr: 'SNEL expression',
     rejectToNode: 'Reject to node',
     voteRejectRequired: '[Vote] You must select a reject-to node!',
     formId: 'Business Form:',

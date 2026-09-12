@@ -8,4 +8,4 @@ alwaysApply: true
 
 Read [AGENTS.md](mdc:AGENTS.md) and applicable module instructions before editing. They are the primary source for architecture, Java compatibility, contracts, migrations, verification, licensing and git authorization. This summary adds no independent rules.
 
-Flovira uses Gradle for backend modules and Bun for separate Vue / React designer packages. Core remains framework-, ORM- and JSON-independent. Supported database baselines are MySQL, PostgreSQL and Oracle. Forms belong to the host application and are referenced by string `formId`.
+Flovira uses Gradle for backend modules and Bun for separate Vue / React designer packages. Core remains framework-, ORM- and JSON-independent. Supported database baselines are MySQL, PostgreSQL and Oracle. Schemas do not use foreign keys; every table defines non-null `deleted` with default `0`, and indexes follow tenant and logical-deletion query predicates. Forms belong to the host application and are referenced by string `formId`.

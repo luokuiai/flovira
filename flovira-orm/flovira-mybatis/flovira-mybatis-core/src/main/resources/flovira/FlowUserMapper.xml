@@ -8,7 +8,7 @@
         <result property="id" column="id"/>
         <result property="type" column="type"/>
         <result property="processedBy" column="processed_by"/>
-        <result property="associatedId" column="associated_id"/>
+        <result property="taskId" column="task_id"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
         <result property="createdBy" column="created_by"/>
@@ -21,7 +21,7 @@
         select t.id,
                t.type,
                t.processed_by,
-               t.associated_id,
+               t.task_id,
                t.created_at,
                t.updated_at,
                t.created_by,
@@ -48,7 +48,7 @@
             <if test="entity.processedBy != null  and entity.processedBy != ''">and t.processed_by =
                 #{entity.processedBy}
             </if>
-            <if test="entity.associatedId != null">and t.associated_id = #{entity.associatedId}</if>
+            <if test="entity.taskId != null">and t.task_id = #{entity.taskId}</if>
             <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
             <if test="entity.createdBy != null  and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
@@ -87,7 +87,7 @@
         id,
         type,
         processed_by,
-        associated_id,
+        task_id,
         created_at,
         updated_at,
         created_by,
@@ -101,7 +101,7 @@
             #{item.id},
             #{item.type},
             #{item.processedBy},
-            #{item.associatedId},
+            #{item.taskId},
             #{item.createdAt},
             #{item.updatedAt},
             #{item.createdBy},
@@ -117,7 +117,7 @@
         id,
         type,
         processed_by,
-        associated_id,
+        task_id,
         created_at,
         updated_at,
         created_by,
@@ -130,7 +130,7 @@
             #{item.id},
             #{item.type},
             #{item.processedBy},
-            #{item.associatedId},
+            #{item.taskId},
             #{item.createdAt},
             #{item.updatedAt},
             #{item.createdBy},
@@ -163,15 +163,15 @@
         <include refid="select_parameter"/>
     </select>
 
-    <select id="listByAssociatedIdsAndTypes" resultMap="FlowUserResult">
+    <select id="listByTaskIdsAndTypes" resultMap="FlowUserResult">
         <include refid="selectVo"/>
         <where>
-            <if test="associatedIds == null and entity.associatedId != null">
-                and t.associated_id = #{entity.associatedId}
+            <if test="taskIds == null and entity.taskId != null">
+                and t.task_id = #{entity.taskId}
             </if>
-            <if test="associatedIds != null and associatedIds.size > 0">
-                AND associated_id in
-                <foreach item="item" collection="associatedIds" open="(" separator="," close=")">
+            <if test="taskIds != null and taskIds.size > 0">
+                AND task_id in
+                <foreach item="item" collection="taskIds" open="(" separator="," close=")">
                     #{item}
                 </foreach>
             </if>
@@ -197,8 +197,8 @@
     <select id="listByProcessedBys" resultMap="FlowUserResult">
         <include refid="selectVo"/>
         <where>
-            <if test="entity.associatedId != null">
-                and t.associated_id = #{entity.associatedId}
+            <if test="entity.taskId != null">
+                and t.task_id = #{entity.taskId}
             </if>
             <if test="processedBys == null and entity.processedBy != null  and entity.processedBy != ''">
                 and t.processed_by = #{processedBy}
@@ -234,7 +234,7 @@
             <if test="id != null">id,</if>
             <if test="type != null and type != ''">type,</if>
             <if test="processedBy != null and processedBy != ''">processed_by,</if>
-            <if test="associatedId != null">associated_id,</if>
+            <if test="taskId != null">task_id,</if>
             <if test="createdAt != null">created_at,</if>
             <if test="updatedAt != null">updated_at,</if>
             <if test="createdBy != null and createdBy != ''">created_by,</if>
@@ -246,7 +246,7 @@
             <if test="id != null">#{id},</if>
             <if test="type != null and type != ''">#{type},</if>
             <if test="processedBy != null and processedBy != ''">#{processedBy},</if>
-            <if test="associatedId != null">#{associatedId},</if>
+            <if test="taskId != null">#{taskId},</if>
             <if test="createdAt != null">#{createdAt},</if>
             <if test="updatedAt != null">#{updatedAt},</if>
             <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
@@ -261,7 +261,7 @@
         <trim prefix="SET" suffixOverrides=",">
             <if test="type != null and type != ''">type = #{type},</if>
             <if test="processedBy != null and processedBy != ''">processed_by = #{processedBy},</if>
-            <if test="associatedId != null">associated_id = #{associatedId},</if>
+            <if test="taskId != null">task_id = #{taskId},</if>
             <if test="createdAt != null">created_at = #{createdAt},</if>
             <if test="updatedAt != null">updated_at = #{updatedAt},</if>
             <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
@@ -314,7 +314,7 @@
             <if test="id != null">and id = #{id}</if>
             <if test="type != null  and type != ''">and type = #{type}</if>
             <if test="processedBy != null  and processedBy != ''">and processed_by = #{processedBy}</if>
-            <if test="associatedId != null">and associated_id = #{associatedId}</if>
+            <if test="taskId != null">and task_id = #{taskId}</if>
             <if test="createdAt != null">and created_at = #{createdAt}</if>
             <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="createdBy != null  and createdBy != ''">and created_by = #{createdBy}</if>
@@ -329,7 +329,7 @@
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.type != null  and entity.type != ''">and type = #{type}</if>
             <if test="entity.processedBy != null  and entity.processedBy != ''">and processed_by = #{entity.processedBy}</if>
-            <if test="entity.associatedId != null">and associated_id = #{entity.associatedId}</if>
+            <if test="entity.taskId != null">and task_id = #{entity.taskId}</if>
             <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.createdBy != null  and entity.createdBy != ''">and created_by = #{entity.createdBy}</if>
@@ -339,7 +339,7 @@
     </update>
 
     <delete id="deleteByTaskIds">
-        delete from flow_user where associated_id in
+        delete from flow_user where task_id in
         <foreach item="taskId" collection="taskIds" open="(" separator="," close=")">
             #{taskId}
         </foreach>
@@ -348,7 +348,7 @@
     <update id="updateByTaskIdsLogic">
         update flow_user
             set deleted = #{logicDeleteValue}
-        where associated_id in
+        where task_id in
         <foreach item="taskId" collection="taskIds" open="(" separator="," close=")">
             #{taskId}
         </foreach>

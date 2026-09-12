@@ -173,7 +173,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         if (!NodeType.isStart(task.getNodeType())) {
             AssertUtil.isFalse(StringUtils.isNotEmpty(flowParams.getSkipType()), ExceptionCons.NULL_CONDITION_VALUE);
         }
-        task.setUserList(FlowEngine.userService().listByAssociatedIdAndTypes(task.getId()));
+        task.setUserList(FlowEngine.userService().listByTaskIdAndTypes(task.getId()));
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(r.definition.getId());
 
         // 执行开始监听器
@@ -359,7 +359,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             , task).setFlowParams(flowParams));
 
         // 判断当前处理人是否有权限处理
-        task.setUserList(FlowEngine.userService().listByAssociatedIdAndTypes(task.getId()));
+        task.setUserList(FlowEngine.userService().listByTaskIdAndTypes(task.getId()));
         checkAuth(task, flowParams);
 
         if (definitionHasSubprocess(r.definition.getId())) {
@@ -458,7 +458,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         AssertUtil.isNull(taskId, ExceptionCons.NULL_TASK_ID);
         AssertUtil.isNull(flowParams.getHandler(), ExceptionCons.HANDLER_NOT_EMPTY);
         AssertUtil.isNull(flowParams.getReductionHandlers(), ExceptionCons.NULL_REDUCTION_SIGNATURE_HANDLER);
-        List<User> users = FlowEngine.userService().listByAssociatedIdAndTypes(taskId
+        List<User> users = FlowEngine.userService().listByTaskIdAndTypes(taskId
             , UserType.APPROVAL.getKey(), UserType.TRANSFER.getKey());
         AssertUtil.isTrue(CollUtil.isEmpty(users) || users.size() == 1, ExceptionCons.REDUCTION_SIGN_ONE_ERROR);
         flowParams.cooperationType(CooperationType.REDUCTION_SIGNATURE.getKey());
@@ -490,7 +490,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 删除对应的操作人
         if (CollUtil.isNotEmpty(flowParams.getReductionHandlers())) {
             for (String reductionHandler : flowParams.getReductionHandlers()) {
-                FlowEngine.userService().remove(FlowEngine.newUser().setAssociatedId(taskId)
+                FlowEngine.userService().remove(FlowEngine.newUser().setTaskId(taskId)
                     .setProcessedBy(reductionHandler));
             }
             hisTask = FlowEngine.hisTaskService().setCooperateHis(r.task, flowParams, flowParams.getReductionHandlers());
@@ -785,10 +785,10 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         FlowEngine.userService().removeById(entrustedUser.getId());
 
         // 查询委托人，如果在flow_user不存在，则给委托人新增待办记录
-        User deputeUser = FlowEngine.userService().getOne(FlowEngine.newUser().setAssociatedId(task.getId())
+        User deputeUser = FlowEngine.userService().getOne(FlowEngine.newUser().setTaskId(task.getId())
             .setProcessedBy(entrustedUser.getCreatedBy()).setType(UserType.APPROVAL.getKey()));
         if (ObjectUtil.isNull(deputeUser)) {
-            User newUser = FlowEngine.userService().structureUser(entrustedUser.getAssociatedId()
+            User newUser = FlowEngine.userService().structureUser(entrustedUser.getTaskId()
                 , entrustedUser.getCreatedBy()
                 , UserType.APPROVAL.getKey(), entrustedUser.getProcessedBy());
             FlowEngine.userService().save(newUser);
@@ -816,7 +816,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         }
 
         // 办理人和转办人列表
-        List<User> todoList = FlowEngine.userService().listByAssociatedIdAndTypes(task.getId()
+        List<User> todoList = FlowEngine.userService().listByTaskIdAndTypes(task.getId()
             , UserType.APPROVAL.getKey(), UserType.TRANSFER.getKey(), UserType.DEPUTE.getKey());
 
         // 判断办理人是否有办理权限

@@ -26,7 +26,6 @@
                 <wf-option :label="t('skip.opNotLike')" value="notLike"/>
                 <wf-option :label="t('skip.opDefault')" value="default" v-if="framework ==='SPRING_BOOT'"/>
                 <wf-option label="spel" value="spel" v-if="framework ==='SPRING_BOOT'"/>
-                <wf-option label="snel" value="snel" v-if="framework ==='SOLON'"/>
             </wf-select>
             <wf-input v-model="form.conditionValue" :placeholder="getConditionDescription()" :style="{ width: expressFlag? '80%' : '43%', 'margin-left': '1%' }"/>
           </wf-form-item>
@@ -81,11 +80,6 @@ const rules = reactive({
                 {required: true, message: t('common.pleaseInput'), trigger: "change"},
                 {validator: validateSpel, trigger: ["change", "blur"]}
             ];
-        } else if (type === 'snel') {
-            return [
-                {required: true, message: t('common.pleaseInput'), trigger: "change"},
-                {validator: validateSnel, trigger: ["change", "blur"]}
-            ];
         }
         // 其他类型不作限制
         return [{required: false, message: t('common.pleaseInput'), trigger: "change"}];
@@ -96,7 +90,7 @@ watch(form, n => {
   if (n.conditionType) {
     let skipCondition;
     skipCondition = n.conditionType + "@@";
-    if (!/^spel/.test(n.conditionType) && !/^default/.test(n.conditionType) && !/^snel/.test(n.conditionType)) {
+    if (!/^spel/.test(n.conditionType) && !/^default/.test(n.conditionType)) {
       skipCondition = skipCondition + (n.condition ? n.condition : '') + "|";
     }
     n.skipCondition = skipCondition + (n.conditionValue ? n.conditionValue : '')
@@ -105,7 +99,7 @@ watch(form, n => {
 }, {deep: true});
 
 function changeOper(obj: string) {
-  expressFlag.value = (['spel', 'default', 'snel'].includes(obj));
+  expressFlag.value = (['spel', 'default'].includes(obj));
 }
 
 function handleClear() {
@@ -118,7 +112,7 @@ function handleClear() {
     form.value.skipCondition = '';
 }
 
-if (['spel', 'default', 'snel'].includes(props.modelValue?.conditionType)) {
+if (['spel', 'default'].includes(props.modelValue?.conditionType)) {
   expressFlag.value = true;
 }
 
@@ -144,17 +138,6 @@ function validateSpel(rule: any, value: any, callback: (error?: Error) => void) 
     }
 }
 
-function validateSnel(rule: any, value: any, callback: (error?: Error) => void) {
-    value = value.replace('snel@@', '').replace('=', '').trim();
-    if (value === '' || value === undefined || value === null) {
-        callback(new Error(t('skip.snelRequired')));
-    } else if (!/^\#\{.*\}$/.test(value)) {
-        callback(new Error(t('skip.snelFormat')));
-    } else {
-        callback();
-    }
-}
-
 function getConditionDescription() {
     const type = form.value.conditionType;
     switch (type) {
@@ -162,8 +145,6 @@ function getConditionDescription() {
             return t('skip.descDefault');
         case 'spel':
             return t('skip.descSpel');
-        case 'snel':
-            return t('skip.descSnel');
         default:
             return t('common.pleaseInput');
     }

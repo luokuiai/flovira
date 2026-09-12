@@ -86,6 +86,6 @@ public class FlowUser implements User {
     /**
      * 任务表id
      */
-    private Long associatedId;
+    private Long taskId;
 
 }

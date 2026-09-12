@@ -81,7 +81,6 @@
               <wf-option :label="t('between.ratioRejectCount')" value="rejectCount"/>
               <wf-option :label="t('between.ratioDefaultExpr')" value="default" v-if="framework ==='SPRING_BOOT'"/>
               <wf-option :label="t('between.ratioSpelExpr')" value="spel" v-if="framework ==='SPRING_BOOT'"/>
-              <wf-option :label="t('between.ratioSnelExpr')" value="snel" v-if="framework ==='SOLON'"/>
           </wf-select>
           <wf-input v-model="form.nodeRatioValue" :placeholder="getNodeRatioDescription()" style="width: 74%; margin-left: 1%"/>
         </wf-form-item>
@@ -336,11 +335,6 @@ const rules = reactive({
                 {required: true, message: t('common.pleaseInput'), trigger: "change"},
                 {validator: validateSpel, trigger: ["change", "blur"]}
             ];
-        }  else if (type === 'snel') {
-            return [
-                {required: true, message: t('common.pleaseInput'), trigger: "change"},
-                {validator: validateSnel, trigger: ["change", "blur"]}
-            ];
         }
         // 其他类型不作限制
         return [];
@@ -357,7 +351,7 @@ watch(() => form.value, n => {
       let nodeRatio = '';
       if (/^passCount|rejectCount/.test(n.nodeRatioType)) {
           nodeRatio = n.nodeRatioType + "=";
-      } else if (/^spel|default|snel/.test(n.nodeRatioType)) {
+      } else if (/^spel|default/.test(n.nodeRatioType)) {
           nodeRatio = n.nodeRatioType + "@@";
       }
       n.nodeRatio = nodeRatio + (n.nodeRatioValue ? n.nodeRatioValue : '')
@@ -417,17 +411,6 @@ function validateSpel(rule: any, value: any, callback: (error?: Error) => void) 
     }
 }
 
-function validateSnel(rule: any, value: any, callback: (error?: Error) => void) {
-    value = value.replace('snel@@', '').replace('=', '').trim();
-    if (value === '' || value === undefined || value === null) {
-        callback(new Error(t('skip.snelRequired')));
-    } else if (!/^\#\{.*\}$/.test(value)) {
-        callback(new Error(t('skip.snelFormat')));
-    } else {
-        callback();
-    }
-}
-
 function getNodeRatioDescription() {
     const type = form.value.nodeRatioType;
     switch (type) {
@@ -441,8 +424,6 @@ function getNodeRatioDescription() {
             return t('between.descDefault');
         case 'spel':
             return t('skip.descSpel');
-        case 'snel':
-            return t('skip.descSnel');
         default:
             return t('common.pleaseInput');
     }

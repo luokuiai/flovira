@@ -164,7 +164,7 @@ watch(() => props.node, n => {
       let condition, conditionType, conditionValue = ''
       if (skipCondition) {
         let conditionSpl = skipCondition.split('@@')
-        if (skipCondition && (/^spel/.test(skipCondition) || /^default/.test(skipCondition)) || /^snel/.test(skipCondition)) {
+        if (skipCondition && (/^spel/.test(skipCondition) || /^default/.test(skipCondition))) {
           conditionType = conditionSpl && conditionSpl.length > 0 ? conditionSpl[0] : ''
           conditionValue = conditionSpl && conditionSpl.length > 1 ? conditionSpl[1] : ''
         } else if (skipCondition) {
@@ -198,7 +198,7 @@ watch(() => props.node, n => {
               const [type, value] = nodeRatio.split('=');
               nodeRatioType = type;
               nodeRatioValue = value;
-          } else if (/^spel|default|snel/.test(nodeRatio)) {
+          } else if (/^spel|default/.test(nodeRatio)) {
               const [type, value] = nodeRatio.split('@@');
               nodeRatioType = type;
               nodeRatioValue = value;

@@ -4,7 +4,7 @@ Follow [root AGENTS.md](../AGENTS.md). This file contains only plugin-specific r
 
 ## Scope
 
-- `flovira-plugin-modes`: Spring integration and SpEL / SnEL expression implementations.
+- `flovira-plugin-modes`: Spring integration and SpEL expression implementations.
 - `flovira-plugin-json`: independent Jackson, Jackson 3 and Gson providers, each with its own SPI registration. Consumers choose one.
 - `flovira-plugin-ui`: designer backend services / DTOs and Spring controllers. Do not restore bundled frontend assets or WebJar packaging.
 

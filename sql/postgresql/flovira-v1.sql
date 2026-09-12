@@ -18,7 +18,7 @@ CREATE TABLE flow_definition
     created_by       varchar(64)  NULL     DEFAULT '':: character varying,
     updated_at     timestamp    NULL,
     updated_by       varchar(64)  NULL     DEFAULT '':: character varying,
-    deleted        bpchar(1)    NULL     DEFAULT '0':: character varying,
+    deleted        bpchar(1)    NOT NULL DEFAULT '0':: character varying,
     tenant_id       varchar(40)  NULL,
     CONSTRAINT flow_definition_pkey PRIMARY KEY (id)
 );
@@ -41,13 +41,14 @@ COMMENT ON COLUMN flow_definition.updated_at IS '更新时间';
 COMMENT ON COLUMN flow_definition.updated_by IS '更新人';
 COMMENT ON COLUMN flow_definition.deleted IS '删除标志';
 COMMENT ON COLUMN flow_definition.tenant_id IS '租户id';
+CREATE INDEX idx_flow_definition_lookup ON flow_definition (tenant_id, flow_code, deleted, publish_status);
 
 CREATE TABLE flow_node
 (
     id              int8          NOT NULL,
     node_type       int2          NOT NULL,
     definition_id   int8          NOT NULL,
-    node_code       varchar(100)  NOT NULL,
+    node_code       varchar(96)   NOT NULL,
     node_name       varchar(100)  NULL,
     permission_flag varchar(200)  NULL,
     node_ratio      varchar(200) NULL,
@@ -62,7 +63,7 @@ CREATE TABLE flow_node
     updated_at     timestamp     NULL,
     updated_by       varchar(64)   NULL     DEFAULT '':: character varying,
     ext             text          NULL,
-    deleted        bpchar(1)     NULL DEFAULT '0':: character varying,
+    deleted        bpchar(1)     NOT NULL DEFAULT '0':: character varying,
     tenant_id       varchar(40)   NULL,
     CONSTRAINT flow_node_pkey PRIMARY KEY (id)
 );
@@ -88,15 +89,16 @@ COMMENT ON COLUMN flow_node.updated_by IS '更新人';
 COMMENT ON COLUMN flow_node.ext IS '节点扩展属性';
 COMMENT ON COLUMN flow_node.deleted IS '删除标志';
 COMMENT ON COLUMN flow_node.tenant_id IS '租户id';
+CREATE INDEX idx_flow_node_definition ON flow_node (tenant_id, definition_id, deleted, node_code);
 
 
 CREATE TABLE flow_skip
 (
     id             int8         NOT NULL,
     definition_id  int8         NOT NULL,
-    source_node_code  varchar(100) NOT NULL,
+    source_node_code  varchar(96) NOT NULL,
     source_node_type  int2         NULL,
-    target_node_code varchar(100) NOT NULL,
+    target_node_code varchar(96) NOT NULL,
     target_node_type int2         NULL,
     skip_name      varchar(100) NULL,
     skip_type      varchar(40)  NULL,
@@ -106,7 +108,7 @@ CREATE TABLE flow_skip
     created_by      varchar(64)  NULL     DEFAULT '':: character varying,
     updated_at    timestamp    NULL,
     updated_by      varchar(64)  NULL     DEFAULT '':: character varying,
-    deleted       bpchar(1)    NULL DEFAULT '0':: character varying,
+    deleted       bpchar(1)    NOT NULL DEFAULT '0':: character varying,
     tenant_id      varchar(40)  NULL,
     CONSTRAINT flow_skip_pkey PRIMARY KEY (id)
 );
@@ -128,6 +130,7 @@ COMMENT ON COLUMN flow_skip.updated_at IS '更新时间';
 COMMENT ON COLUMN flow_skip.updated_by IS '更新人';
 COMMENT ON COLUMN flow_skip.deleted IS '删除标志';
 COMMENT ON COLUMN flow_skip.tenant_id IS '租户id';
+CREATE INDEX idx_flow_skip_definition ON flow_skip (tenant_id, definition_id, deleted, source_node_code);
 
 CREATE TABLE flow_instance
 (
@@ -136,7 +139,7 @@ CREATE TABLE flow_instance
     business_type   varchar(64)  NOT NULL,
     business_id     varchar(40)  NOT NULL,
     node_type       int2         NOT NULL,
-    node_code       varchar(40)  NOT NULL,
+    node_code       varchar(96)  NOT NULL,
     node_name       varchar(100) NULL,
     variables        text         NULL,
     flow_status     varchar(20)  NOT NULL,
@@ -147,7 +150,7 @@ CREATE TABLE flow_instance
     updated_at     timestamp    NULL,
     updated_by       varchar(64)  NULL     DEFAULT '':: character varying,
     ext             varchar(500) NULL,
-    deleted        bpchar(1)    NULL     DEFAULT '0':: character varying,
+    deleted        bpchar(1)    NOT NULL DEFAULT '0':: character varying,
     tenant_id       varchar(40)  NULL,
     CONSTRAINT flow_instance_pkey PRIMARY KEY (id)
 );
@@ -171,14 +174,15 @@ COMMENT ON COLUMN flow_instance.updated_by IS '更新人';
 COMMENT ON COLUMN flow_instance.ext IS '扩展字段，预留给业务系统使用';
 COMMENT ON COLUMN flow_instance.deleted IS '删除标志';
 COMMENT ON COLUMN flow_instance.tenant_id IS '租户id';
-CREATE INDEX idx_flow_instance_business ON flow_instance (tenant_id, business_type, business_id);
+CREATE INDEX idx_flow_instance_business ON flow_instance (tenant_id, business_type, business_id, deleted);
+CREATE INDEX idx_flow_instance_definition ON flow_instance (tenant_id, definition_id, deleted);
 
 CREATE TABLE flow_task
 (
     id            int8         NOT NULL,
     definition_id int8         NOT NULL,
     instance_id   int8         NOT NULL,
-    node_code     varchar(100) NOT NULL,
+    node_code     varchar(96) NOT NULL,
     node_name     varchar(100) NULL,
     node_type     int2         NOT NULL,
     flow_status      varchar(20)  NOT NULL,
@@ -187,7 +191,7 @@ CREATE TABLE flow_task
     created_by     varchar(64)  NULL     DEFAULT '':: character varying,
     updated_at   timestamp    NULL,
     updated_by     varchar(64)  NULL     DEFAULT '':: character varying,
-    deleted      bpchar(1)    NULL DEFAULT '0':: character varying,
+    deleted      bpchar(1)    NOT NULL DEFAULT '0':: character varying,
     tenant_id     varchar(40)  NULL,
     timeout_at    timestamp    NULL,
     timeout_action varchar(32) NULL,
@@ -217,8 +221,8 @@ COMMENT ON COLUMN flow_task.timeout_action IS '节点超时动作';
 COMMENT ON COLUMN flow_task.timeout_config IS '节点超时配置快照';
 COMMENT ON COLUMN flow_task.timeout_status IS '节点超时状态';
 COMMENT ON COLUMN flow_task.timeout_claimed_at IS '节点超时领取时间';
-CREATE INDEX idx_flow_task_timeout_due ON flow_task (timeout_status, timeout_at, timeout_claimed_at);
-CREATE INDEX idx_flow_task_instance_node ON flow_task (tenant_id, instance_id, node_type);
+CREATE INDEX idx_flow_task_timeout_due ON flow_task (timeout_status, deleted, timeout_at, timeout_claimed_at);
+CREATE INDEX idx_flow_task_instance_node ON flow_task (tenant_id, instance_id, deleted, node_type, node_code);
 
 CREATE TABLE flow_his_task
 (
@@ -226,15 +230,15 @@ CREATE TABLE flow_his_task
     definition_id    int8         NOT NULL,
     instance_id      int8         NOT NULL,
     task_id          int8         NOT NULL,
-    node_code        varchar(100) NULL,
+    node_code        varchar(96) NULL,
     node_name        varchar(100) NULL,
     node_type        int2         NULL,
-    target_node_code varchar(200) NULL,
+    target_node_code varchar(96) NULL,
     target_node_name varchar(200) NULL,
     approver         varchar(40)  NULL,
     cooperation_type   int2         NOT NULL DEFAULT 0,
     collaborator     varchar(500)  NULL,
-    skip_type        varchar(10)  NULL,
+    skip_type        varchar(10)  NOT NULL,
     flow_status      varchar(20)  NOT NULL,
     form_id        varchar(100) NULL,
     ext              text         NULL,
@@ -242,7 +246,7 @@ CREATE TABLE flow_his_task
     variables         text         NULL,
     created_at      timestamp    NULL,
     updated_at      timestamp    NULL,
-    deleted         bpchar(1)    NULL     DEFAULT '0':: character varying,
+    deleted         bpchar(1)    NOT NULL DEFAULT '0':: character varying,
     tenant_id        varchar(40)  NULL,
     CONSTRAINT flow_his_task_pkey PRIMARY KEY (id)
 );
@@ -270,30 +274,31 @@ COMMENT ON COLUMN flow_his_task.created_at IS '任务开始时间';
 COMMENT ON COLUMN flow_his_task.updated_at IS '审批完成时间';
 COMMENT ON COLUMN flow_his_task.deleted IS '删除标志';
 COMMENT ON COLUMN flow_his_task.tenant_id IS '租户id';
-CREATE INDEX idx_flow_his_task_instance_time ON flow_his_task (tenant_id, instance_id, created_at);
+CREATE INDEX idx_flow_his_task_instance_time ON flow_his_task (tenant_id, instance_id, deleted, created_at);
+CREATE INDEX idx_flow_his_task_task ON flow_his_task (tenant_id, task_id, deleted, cooperation_type);
 
 CREATE TABLE flow_user
 (
     id           int8        NOT NULL,
     "type"       bpchar(1)   NOT NULL,
     processed_by varchar(80) NULL,
-    associated_id   int8        NOT NULL,
+    task_id   int8        NOT NULL,
     created_at  timestamp    NULL,
     created_by    varchar(64)  NULL     DEFAULT '':: character varying,
     updated_at  timestamp    NULL,
     updated_by    varchar(64)  NULL     DEFAULT '':: character varying,
-    deleted     bpchar(1)   NULL DEFAULT '0':: character varying,
+    deleted     bpchar(1)   NOT NULL DEFAULT '0':: character varying,
     tenant_id    varchar(40) NULL,
     CONSTRAINT flow_user_pk PRIMARY KEY (id)
 );
-CREATE INDEX user_processed_type ON flow_user USING btree (processed_by, type);
-CREATE INDEX user_associated_idx ON FLOW_USER USING btree (associated_id);
+CREATE INDEX idx_flow_user_processed ON flow_user (tenant_id, processed_by, deleted, type, task_id);
+CREATE INDEX idx_flow_user_task ON flow_user (tenant_id, task_id, deleted, type, processed_by);
 COMMENT ON TABLE flow_user IS '流程用户表';
 
 COMMENT ON COLUMN flow_user.id IS '主键id';
 COMMENT ON COLUMN flow_user."type" IS '人员类型（1待办任务的审批人权限 2待办任务的转办人权限 3待办任务的委托人权限）';
 COMMENT ON COLUMN flow_user.processed_by IS '权限人';
-COMMENT ON COLUMN flow_user.associated_id IS '任务表id';
+COMMENT ON COLUMN flow_user.task_id IS '任务表id';
 COMMENT ON COLUMN flow_user.created_at IS '创建时间';
 COMMENT ON COLUMN flow_user.created_by IS '创建人';
 COMMENT ON COLUMN flow_user.updated_at IS '更新时间';
@@ -302,7 +307,7 @@ COMMENT ON COLUMN flow_user.deleted IS '删除标志';
 COMMENT ON COLUMN flow_user.tenant_id IS '租户id';
 CREATE TABLE flow_subprocess_run (
     id bigint PRIMARY KEY, parent_instance_id bigint NOT NULL, parent_task_id bigint NOT NULL,
-    parent_definition_id bigint NOT NULL, parent_node_code varchar(100) NOT NULL,
+    parent_definition_id bigint NOT NULL, parent_node_code varchar(96) NOT NULL,
     child_flow_code varchar(100) NOT NULL, child_definition_id bigint NOT NULL,
     child_definition_version varchar(20) NOT NULL, completion_policy varchar(20) NOT NULL DEFAULT 'ALL',
     collection_fingerprint char(64) NOT NULL, expected_count integer NOT NULL DEFAULT 0,
@@ -314,8 +319,9 @@ CREATE TABLE flow_subprocess_run (
     updated_at timestamp, updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0',
     tenant_id varchar(40) NOT NULL DEFAULT '0', CONSTRAINT uk_subprocess_run_parent_task UNIQUE (tenant_id,parent_task_id)
 );
-CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run (tenant_id,parent_instance_id,parent_node_code);
-CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (run_status,updated_at);
+CREATE INDEX idx_subprocess_run_parent ON flow_subprocess_run
+    (tenant_id,parent_instance_id,deleted,run_status,parent_node_code,id);
+CREATE INDEX idx_subprocess_run_reconcile ON flow_subprocess_run (deleted,run_status,id);
 
 CREATE TABLE flow_subprocess_child (
     id bigint PRIMARY KEY, run_id bigint NOT NULL, item_key varchar(200) NOT NULL, item_label varchar(200),
@@ -327,14 +333,14 @@ CREATE TABLE flow_subprocess_child (
     tenant_id varchar(40) NOT NULL DEFAULT '0', CONSTRAINT uk_subprocess_child_item UNIQUE (tenant_id,run_id,item_key),
     CONSTRAINT uk_subprocess_child_instance UNIQUE (tenant_id,child_instance_id)
 );
-CREATE INDEX idx_subprocess_child_page ON flow_subprocess_child (tenant_id,run_id,id);
+CREATE INDEX idx_subprocess_child_page ON flow_subprocess_child (tenant_id,run_id,deleted,id);
 
 CREATE TABLE flow_subprocess_event (
     id bigint PRIMARY KEY, run_id bigint NOT NULL, child_id bigint, parent_instance_id bigint NOT NULL,
-    child_instance_id bigint, parent_node_code varchar(100) NOT NULL, event_type varchar(50) NOT NULL,
+    child_instance_id bigint, parent_node_code varchar(96) NOT NULL, event_type varchar(50) NOT NULL,
     event_result varchar(30) NOT NULL, reason varchar(500), occurred_at timestamp NOT NULL,
     created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp, updated_by varchar(64) DEFAULT '',
     deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40) NOT NULL DEFAULT '0'
 );
-CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,occurred_at,id);
-CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id);
+CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,deleted,occurred_at,id);
+CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id,deleted,id);

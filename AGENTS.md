@@ -87,6 +87,8 @@ Read root and applicable module instructions before editing. Module files contai
 ## SQL and migration
 
 - Synchronize all three schemas: `sql/mysql/flovira-v1.sql`, `sql/postgresql/flovira-v1.sql`, `sql/oracle/flovira-v1.sql`.
+- Do not define foreign keys in Flovira schemas. Protect internal relationships through engine transactions and verification; use indexes and unique constraints where appropriate.
+- Every Flovira table must define `deleted` as `NOT NULL DEFAULT '0'`. Align indexes with tenant isolation, logical-deletion filters and actual DAO query predicates.
 - Maintain complete V1 fresh-install baselines during 1.0.0 development; do not restore an inherited historical upgrade chain.
 - Respect dialect differences in types, sequences / identity, pagination, case and reserved words. Check column comments and indexes against actual columns.
 - Document migration purpose, affected contracts, data mapping, database differences and rollback. Never execute destructive database changes without explicit authorization.
