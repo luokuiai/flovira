@@ -72,6 +72,7 @@ export default defineConfig(() => {
       // beforeWriteFile 修复 @/ 别名派生 import 的「偏移一级」缺陷（见 fixAliasDtsImports）。
       // ep / antdv 子构建不再各自产 dts，统一由本构建产出，避免 entryRoot 导致的 dist-lib/ui/src/ui/** 嵌套错乱。
       dts({
+        entryRoot: '.',
         include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue', 'src/**/*.d.ts'],
         exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
         outDir: 'dist-lib',

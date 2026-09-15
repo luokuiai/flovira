@@ -10,6 +10,13 @@ import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } f
 afterEach(cleanup)
 
 describe('ReactFlowDesigner', () => {
+  test('leaves package import and export actions to the host', () => {
+    const view = render(<ReactFlowDesigner defaultValue={createInitialDefinition()} />)
+    expect(view.queryByRole('button', { name: '导入 JSON' })).toBeNull()
+    expect(view.queryByRole('button', { name: '导出 JSON' })).toBeNull()
+    expect(view.container.querySelector('input[type="file"]')).toBeNull()
+  })
+
   test('shows multi approval only for multiple distinct specified people', () => {
     for (const ids of [[], ['a'], ['a', 'b']]) {
       const definition = createInitialDefinition()

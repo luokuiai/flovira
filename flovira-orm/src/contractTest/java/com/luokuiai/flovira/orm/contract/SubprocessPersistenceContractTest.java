@@ -18,6 +18,9 @@ package com.luokuiai.flovira.orm.contract;
 
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.dto.DefJson;
+import com.luokuiai.flovira.core.dto.WorkflowPackage;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
+import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
@@ -61,6 +64,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 /**
  * 三种 ORM 共用的子流程持久化契约测试
@@ -128,6 +133,112 @@ public class SubprocessPersistenceContractTest {
         jdbcTemplate.update("delete from flow_form");
         jdbcTemplate.update("delete from flow_definition");
         jdbcTemplate.update("delete from flow_instance");
+        jdbcTemplate.update("delete from flow_skip");
+        jdbcTemplate.update("delete from flow_node");
+    }
+
+    @Test
+    public void shouldRoundTripWorkflowPackageWithFormsAndSubprocesses() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        WorkflowImportResult imported = FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+        assertEquals(2, imported.getDefinitionIds().size());
+        assertEquals(1, imported.getFormReferences().size());
+        assertNotEquals(Long.valueOf(999999L), imported.getRootDefinitionId());
+        String newFormId = imported.getFormReferences().get("source-form-1");
+        assertNotEquals("source-form-1", newFormId);
+        Definition parent = FlowEngine.defService().getAllDataDefinition(imported.getRootDefinitionId());
+        assertEquals(newFormId, parent.getFormId());
+        assertEquals(newFormId, parent.getNodeList().stream().filter(n -> "sub".equals(n.getNodeCode()))
+            .findFirst().get().getFormId());
+        assertEquals(Integer.valueOf(0), parent.getPublishStatus());
+        assertEquals("1", parent.getVersion());
+        assertEquals("tenant-a", parent.getTenantId());
+        assertEquals("source-form-1", input.getDefinitions().get(1).getFormId());
+        assertEquals(Long.valueOf(999999L), input.getDefinitions().get(1).getId());
+        Form form = FlowEngine.formService().getById(Long.valueOf(newFormId));
+        assertEquals(input.getForms().get(0).getFormContent(), form.getFormContent());
+        assertEquals(Integer.valueOf(0), form.getPublishStatus());
+
+        // 固定子流程按已发布版本解析，先发布依赖，再导出父流程。
+        assertTrue(FlowEngine.defService().publish(imported.getDefinitionIds().get("package_child")));
+        WorkflowPackage exported = FlowEngine.defService().exportPackage(imported.getRootDefinitionId());
+        assertEquals(2, exported.getDefinitions().size());
+        assertEquals(1, exported.getForms().size());
+        assertTrue(exported.getExternalFormIds().isEmpty());
+        assertNull(exported.getDefinitions().get(1).getId());
+        assertEquals("1", exported.getForms().get(0).getVersion());
+        assertEquals(form.getFormContent(), exported.getForms().get(0).getFormContent());
+        WorkflowPackage decoded = FlowEngine.jsonConvert.strToBean(
+            FlowEngine.jsonConvert.objToStr(exported), WorkflowPackage.class);
+        WorkflowImportResult second = FlowEngine.defService().importPackage(decoded, java.util.Collections.emptyMap());
+        assertNotEquals(imported.getRootDefinitionId(), second.getRootDefinitionId());
+        assertEquals("2", FlowEngine.defService().getById(second.getRootDefinitionId()).getVersion());
+        assertNotEquals(newFormId, second.getFormReferences().get(newFormId));
+    }
+
+    @Test
+    public void shouldRequireExplicitExternalFormMappings() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        input.getDefinitions().get(1).setFormId("host:purchase");
+        input.getExternalFormIds().add("host:purchase");
+        try {
+            FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+            fail("Missing external mapping must fail");
+        } catch (FlowException expected) {
+            assertTrue(expected.getMessage().contains("外部表单映射"));
+        }
+        assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+        WorkflowImportResult result = FlowEngine.defService().importPackage(input,
+            java.util.Collections.singletonMap("host:purchase", "target:purchase"));
+        assertEquals("target:purchase", FlowEngine.defService().getById(result.getRootDefinitionId()).getFormId());
+    }
+
+    @Test
+    public void shouldRollbackFormsAndDefinitionsWhenNodePersistenceFails() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        input.getDefinitions().get(1).getNodeList().get(0).setNodeName(repeat('x', 101));
+        try {
+            FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+            fail("Oversized node name must fail in database");
+        } catch (org.springframework.dao.DataIntegrityViolationException expected) {
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_definition", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_node", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_skip", Integer.class));
+        }
+    }
+
+    @Test
+    public void shouldRejectIncompletePackageBeforeWriting() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        input.getDefinitions().remove(0);
+        try {
+            FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+            fail("Missing subprocess must fail");
+        } catch (FlowException expected) {
+            assertTrue(expected.getMessage().contains("子流程"));
+        }
+        assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+    }
+
+    @Test
+    public void shouldNotExportAnotherTenantsDefinition() throws Exception {
+        WorkflowImportResult result = FlowEngine.defService().importPackage(workflowPackage(), java.util.Collections.emptyMap());
+        jdbcTemplate.update("update flow_definition set tenant_id = 'tenant-b' where id = ?", result.getRootDefinitionId());
+        try {
+            FlowEngine.defService().exportPackage(result.getRootDefinitionId());
+            fail("Other tenant definition must be hidden");
+        } catch (FlowException expected) {
+            assertTrue(expected.getMessage().contains("不存在"));
+        }
+    }
+
+    private WorkflowPackage workflowPackage() throws Exception {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
+            getClass().getResourceAsStream("/workflow-package.json"), java.nio.charset.StandardCharsets.UTF_8))) {
+            return FlowEngine.jsonConvert.strToBean(reader.lines().collect(java.util.stream.Collectors.joining("\n")),
+                WorkflowPackage.class);
+        }
     }
 
     @Test

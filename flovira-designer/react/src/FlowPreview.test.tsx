@@ -3,6 +3,8 @@
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, test } from 'vitest'
 import { FlowPreview } from './FlowPreview'
+import { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from './workflowPackage'
+import packageFixture from '../../../flovira-orm/src/contractTest/resources/workflow-package.json'
 import { layoutPreview, PREVIEW_NODE_HEIGHT } from './previewLayout'
 import type { FloviraDefinition, FloviraNode, FloviraNodeType } from './types'
 
@@ -28,6 +30,18 @@ const parallel: FloviraDefinition = {
 }
 
 describe('FlowPreview', () => {
+  test('displays root and child designs from a package before backend import', () => {
+    const bundle = parseWorkflowPackage(packageFixture)
+    const form = getPackageForm(bundle, 'source-form-1')!
+    const view = render(<><FlowPreview value={getPackageDefinition(bundle)} />
+      <pre>{JSON.stringify(parsePackageFormContent(form))}</pre></>)
+    expect(view.container.querySelectorAll('[data-node-code]')).toHaveLength(3)
+    expect(view.getByText(/Amount/)).toBeTruthy()
+    view.rerender(<FlowPreview value={getPackageDefinition(bundle, 'package_child')} />)
+    expect(view.container.querySelectorAll('[data-node-code]')).toHaveLength(2)
+    expect(view.getAllByLabelText('child_start')).toHaveLength(1)
+  })
+
   test('distinguishes pending, current and completed nodes using explicit instance state', () => {
     const view = render(<FlowPreview value={parallel} currentNodeCodes={['财务审批']}
       completedNodeCodes={['开始', '并行审批', '主管审批', '财务审批']} />)

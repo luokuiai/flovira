@@ -8,12 +8,10 @@ import {
   useMemo,
   useRef,
   useState,
-  type ChangeEvent,
   type PointerEvent,
   type ReactNode,
 } from 'react'
 import {
-  Download,
   LocateFixed,
   Network,
   Plus,
@@ -22,7 +20,6 @@ import {
   Settings2,
   Timer,
   Undo2,
-  Upload,
   X,
   ZoomIn,
   ZoomOut,
@@ -252,7 +249,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
     const [participantRuleDraft, setParticipantRuleDraft] = useState<ApproverRule | null>(null)
     const canvasRef = useRef<HTMLDivElement>(null)
-    const importRef = useRef<HTMLInputElement>(null)
     const lastEmittedJsonRef = useRef<string | null>(null)
 
     useEffect(() => {
@@ -459,28 +455,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           participantRuleDraft.expression || '', selectedApproverStrategy.relationType,
           selectedApproverStrategy.selectionType, participantRuleDraft.config)))
       setParticipantPickerOpen(false)
-    }
-
-    const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      if (!file) return
-      try {
-        const next = normalizeDefinition(await file.text())
-        commit(next)
-        setSelectedCode('')
-      } finally {
-        event.target.value = ''
-      }
-    }
-
-    const exportJson = () => {
-      const blob = new Blob([serializeDefinition(definition)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `${definition.flowCode || 'flovira-flow'}.json`
-      anchor.click()
-      URL.revokeObjectURL(url)
     }
 
     const NodeCard = ({ node }: { node: FloviraNode }) => {
@@ -736,9 +710,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
             <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="撤销" disabled={!past.length || disabled} onPress={undo}><Undo2 size={16} /></ToolbarButton>
             <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="重做" disabled={!future.length || disabled} onPress={redo}><Redo2 size={16} /></ToolbarButton>
             <span className="frd-toolbar__divider" />
-            <input ref={importRef} className="frd-visually-hidden" type="file" accept="application/json,.json" onChange={handleFile} />
-            <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="导入 JSON" disabled={disabled} onPress={() => importRef.current?.click()}><Upload size={16} /></ToolbarButton>
-            <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="导出 JSON" onPress={exportJson}><Download size={16} /></ToolbarButton>
             {onSave && (
               <UiButton
                 variant="primary"

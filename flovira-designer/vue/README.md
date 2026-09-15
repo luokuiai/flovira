@@ -127,6 +127,11 @@ const { designerRef, isReady, save, getFlowJson, getLogicFlow, zoom, undo, redo,
 
 可用方法：`save / validate / getGraphData / getFlowJson / getFlowName / getLogicFlow / zoom / zoomIn / zoomOut / fitView / resetZoom / undo / redo / clear / downloadImage / downloadJson / isDirty / resetDirty / validateStructure`。
 
+完整迁移由后端流程包方法负责，设计器不内置 JSON 导入/导出按钮；已有命令式 JSON 方法仅用于设计数据。
+前端可使用 `parseWorkflowPackage` 解析包 JSON，用 `getPackageDefinition` 取得根流程或子流程，
+作为 `FlowDesigner` 的 `initialJson` 展示；`getPackageForm` 和 `parsePackageFormContent`
+提供表单元数据及内容给宿主渲染器。详见[流程包接入说明](../../docs/workflow-packages.md)。
+
 > `validateStructure()` 返回 `{ valid: boolean, errors: string[] }`：内置校验 ≥1 开始节点 / ≥1 结束节点 / 无孤立节点，并追加 `props.structureValidator` 的输出。不自动拦截保存，可在 `before-save` 里据 `valid` 决定是否 `preventDefault()`。
 
 #### useFlowJson（流程 JSON 响应式只读视图）

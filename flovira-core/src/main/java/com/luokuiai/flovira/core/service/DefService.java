@@ -18,6 +18,8 @@ package com.luokuiai.flovira.core.service;
 
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowCombine;
+import com.luokuiai.flovira.core.dto.WorkflowPackage;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Skip;
@@ -25,6 +27,7 @@ import com.luokuiai.flovira.core.orm.service.IFloviraService;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 流程定义Service接口
@@ -35,7 +38,22 @@ import java.util.List;
 public interface DefService extends IFloviraService<Definition> {
 
     /**
-     * 导入流程定义、流程节点和流程跳转数据
+     * 导出当前租户的完整流程包，包含固定子流程和所引用的托管表单版本。
+     * @param definitionId 根流程定义 ID
+     * @return 不含运行实例的可迁移流程包
+     */
+    WorkflowPackage exportPackage(Long definitionId);
+
+    /**
+     * 在事务中导入流程包，创建新 ID 和未发布版本，失败整体回滚。
+     * @param workflowPackage 流程包
+     * @param externalFormReferences 外部表单的源引用到目标引用映射，无外部表单时传空 Map
+     * @return 新定义 ID 和表单引用映射
+     */
+    WorkflowImportResult importPackage(WorkflowPackage workflowPackage, Map<String, String> externalFormReferences);
+
+    /**
+     * 导入单份设计数据，不包含表单；跨环境迁移请使用 importPackage。
      *
      * @param is 流程定义的输入流
      */
@@ -83,7 +101,7 @@ public interface DefService extends IFloviraService<Definition> {
     void saveDef(DefJson defJson, boolean onlyNodeSkip) throws Exception;
 
     /**
-     * 导出流程定义(流程定义、流程节点和流程跳转数据)的json字符串
+     * 导出单份设计 JSON，不包含表单；跨环境迁移请使用 exportPackage。
      *
      * @param id 流程定义id
      * @return json字符串

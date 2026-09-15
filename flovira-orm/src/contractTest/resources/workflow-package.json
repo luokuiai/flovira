@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "rootFlowCode": "package_parent",
+  "definitions": [
+    {
+      "flowCode": "package_child",
+      "flowName": "Child",
+      "businessType": "PURCHASE_ORDER",
+      "version": "3",
+      "formId": "source-form-1",
+      "nodeList": [
+        {
+          "nodeType": 0,
+          "nodeCode": "child_start",
+          "nodeName": "child_start",
+          "nodeRatio": "0",
+          "skipList": [
+            {
+              "sourceNodeCode": "child_start",
+              "targetNodeCode": "child_end",
+              "skipType": "PASS"
+            }
+          ]
+        },
+        {
+          "nodeType": 2,
+          "nodeCode": "child_end",
+          "nodeName": "child_end",
+          "nodeRatio": "0",
+          "skipList": []
+        }
+      ]
+    },
+    {
+      "id": 999999,
+      "flowCode": "package_parent",
+      "flowName": "Parent",
+      "businessType": "PURCHASE_ORDER",
+      "version": "7",
+      "formId": "source-form-1",
+      "nodeList": [
+        {
+          "nodeType": 0,
+          "nodeCode": "start",
+          "nodeName": "start",
+          "nodeRatio": "0",
+          "skipList": [
+            {
+              "sourceNodeCode": "start",
+              "targetNodeCode": "sub",
+              "skipType": "PASS"
+            }
+          ]
+        },
+        {
+          "nodeType": 6,
+          "nodeCode": "sub",
+          "nodeName": "sub",
+          "nodeRatio": "0",
+          "skipList": [
+            {
+              "sourceNodeCode": "sub",
+              "targetNodeCode": "end",
+              "skipType": "PASS"
+            }
+          ],
+          "formId": "source-form-1",
+          "ext": "[{\"code\":\"subprocessConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"fixedChildFlowCode\\\":\\\"package_child\\\",\\\"completionPolicy\\\":\\\"ALL\\\",\\\"allowEmpty\\\":false}\"}]"
+        },
+        {
+          "nodeType": 2,
+          "nodeCode": "end",
+          "nodeName": "end",
+          "nodeRatio": "0",
+          "skipList": []
+        }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "reference": "source-form-1",
+      "formCode": "package_form",
+      "formName": "Purchase form",
+      "version": "4",
+      "formContent": "{\"schemaVersion\":1,\"fields\":[{\"key\":\"amount\",\"label\":\"Amount\",\"type\":\"number\"}]}",
+      "ext": "{}"
+    }
+  ],
+  "externalFormIds": []
+}
