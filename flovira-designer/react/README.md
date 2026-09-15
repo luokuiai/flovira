@@ -56,6 +56,9 @@ export function ProcessEditor({
 - ref: `getDefinition`、`getFlowJson`、`importJson`、`validate`、`undo`、`redo`、缩放和定位命令。
 
 完整迁移由后端流程包方法负责，设计器不内置 JSON 导入/导出按钮。
+子流程候选项仅在点击“选择流程”后查询，每页 20 条，支持关键词搜索和“加载更多”。
+宿主 `queryResources` 须处理 `keyword`、`pageNum`、`pageSize` 并返回匹配总数 `total`；
+未加载到的已选流程仍按编码回显，不会因分页、搜索或请求失败丢失。
 前端可使用 `parseWorkflowPackage` 解析包 JSON，用 `getPackageDefinition` 取得根流程或子流程，
 直接传给 `FlowPreview` / `ReactFlowDesigner`；`getPackageForm` 和 `parsePackageFormContent`
 提供表单元数据及内容给宿主渲染器。详见[流程包接入说明](../../docs/workflow-packages.md)。

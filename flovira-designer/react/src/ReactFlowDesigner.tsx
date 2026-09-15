@@ -48,6 +48,7 @@ import {
   updateNode,
   validateDefinition,
 } from './model'
+import { SubprocessField } from './SubprocessField'
 import { defaultDesignerUi } from './ui'
 import { NODE_META } from './nodeMeta'
 import { NodeHeader } from './NodeHeader'
@@ -67,7 +68,6 @@ import type {
   ReactFlowDesignerRef,
   DesignerResourcePage,
   DesignerResourceItem,
-  SubprocessDefinition,
 } from './types'
 
 
@@ -103,18 +103,6 @@ const INSERT_TYPES: FloviraNodeType[] = ['1', '8', '7', '6', '3', '4', '5']
 
 
 
-const extractSubprocesses = (
-  value: DesignerResourcePage | { data?: DesignerResourcePage },
-): SubprocessDefinition[] => {
-  const envelope = value as { data?: DesignerResourcePage }
-  const page = envelope.data || value as DesignerResourcePage
-  return (page?.items || []).map((item) => ({
-    ...item.metadata,
-    flowCode: item.code || item.id,
-    flowName: item.name,
-  }))
-}
-
 const extractResourcePage = (
   value: DesignerResourcePage | { data?: DesignerResourcePage },
 ): DesignerResourcePage => {
@@ -122,12 +110,12 @@ const extractResourcePage = (
   return envelope.data || value as DesignerResourcePage || { items: [], total: 0 }
 }
 
-const summaryFor = (node: FloviraNode, subprocesses: SubprocessDefinition[]): string => {
+const summaryFor = (node: FloviraNode): string => {
   if (node.nodeType === '0') return '流程由此发起'
   if (node.nodeType === '2') return '流程在此完成'
   if (node.nodeType === '6') {
     const code = String(getSubprocessConfig(node).fixedChildFlowCode || '')
-    return subprocesses.find((flow) => flow.flowCode === code)?.flowName || code || '未选择固定子流程'
+    return code || '未选择固定子流程'
   }
   if (node.nodeType === '7') return String(getWaitConfig(node).waitKey || '未配置等待标识')
   if (['3', '4', '5'].includes(node.nodeType)) return `${node.skipList.length} 条分支`
@@ -238,8 +226,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     }
     const [dirty, setDirty] = useState(false)
-    const [subprocesses, setSubprocesses] = useState<SubprocessDefinition[]>([])
-    const [subprocessState, setSubprocessState] = useState<'idle' | 'loading' | 'error'>('idle')
     const capabilities = configuredCapabilities || DEFAULT_DESIGNER_CAPABILITIES
     const [approverKeyword, setApproverKeyword] = useState('')
     const [approverPage, setApproverPage] = useState(1)
@@ -264,25 +250,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       setFuture([])
       setDirty(false)
     }, [value])
-
-    useEffect(() => {
-      if (!queryResources) {
-        setSubprocessState('idle')
-        return
-      }
-      let active = true
-      setSubprocessState('loading')
-      queryResources({ resourceType: 'SUBPROCESS', pageNum: 1, pageSize: 1000 })
-        .then((response) => {
-          if (!active) return
-          setSubprocesses(extractSubprocesses(response))
-          setSubprocessState('idle')
-        })
-        .catch(() => {
-          if (active) setSubprocessState('error')
-        })
-      return () => { active = false }
-    }, [queryResources])
 
     const emit = useCallback((next: FloviraDefinition, isDirty = true) => {
       const json = serializeDefinition(next)
@@ -459,7 +426,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
 
     const NodeCard = ({ node }: { node: FloviraNode }) => {
       const meta = NODE_META[node.nodeType] || NODE_META['1']
-      const summary = summaryFor(node, subprocesses)
+      const summary = summaryFor(node)
       const selected = selectedCode === node.nodeCode
       const deletable = !disabled && !['0', '2'].includes(node.nodeType)
       if (renderNode) {
@@ -937,17 +904,10 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 </div>
               )}
               {selectedNode.nodeType === '6' && (
-                <UiField label="固定子流程" hint={subprocessState === 'error' ? '子流程列表加载失败，原值仍会保留' : undefined}>
-                  <UiSelect
-                    value={String(getSubprocessConfig(selectedNode).fixedChildFlowCode || '')}
-                    disabled={disabled || subprocessState === 'loading'}
-                    options={[
-                      { value: '', label: subprocessState === 'loading' ? '加载中...' : '请选择已发布流程' },
-                      ...subprocesses.map((flow) => ({ value: flow.flowCode, label: flow.flowName })),
-                    ]}
-                    onValueChange={(value) => commit(updateNode(definition, selectedNode.nodeCode, setSubprocessConfig(selectedNode, value)))}
-                  />
-                </UiField>
+                <SubprocessField key={selectedNode.nodeCode}
+                  value={String(getSubprocessConfig(selectedNode).fixedChildFlowCode || '')}
+                  disabled={disabled} queryResources={queryResources} ui={components}
+                  onChange={(value) => commit(updateNode(definition, selectedNode.nodeCode, setSubprocessConfig(selectedNode, value)))} />
               )}
               {selectedNode.nodeType === '7' && (
                 <UiField label="等待标识" hint="业务系统使用该标识恢复等待任务">
