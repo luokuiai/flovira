@@ -36,9 +36,9 @@ public class WaitTimeoutSchemaContractTest {
     @Test
     public void shouldProvideTimeoutColumnsAndDueIndexForEveryDatabase() throws IOException {
         List<String> scripts = Arrays.asList(
-            "../sql/mysql/flovira-v1.sql",
-            "../sql/postgresql/flovira-v1.sql",
-            "../sql/oracle/flovira-v1.sql"
+            "../sql/mysql/flovira-v1.0.0.sql",
+            "../sql/postgresql/flovira-v1.0.0.sql",
+            "../sql/oracle/flovira-v1.0.0.sql"
         );
         for (String path : scripts) {
             String sql = new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8)

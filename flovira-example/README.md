@@ -43,7 +43,7 @@ flovira-example/
 
 ## 启动
 
-先从仓库根目录启动数据库。初始化会依次执行权威 Flovira 建库脚本 `sql/<dialect>/flovira-v1.sql` 和对应后端中的示例业务表脚本。
+先从仓库根目录启动数据库。初始化会依次执行权威 Flovira 建库脚本 `sql/<dialect>/flovira-v1.0.0.sql` 和对应后端中的示例业务表脚本。
 
 ```bash
 docker compose -f flovira-example/compose.yaml up -d postgres mysql

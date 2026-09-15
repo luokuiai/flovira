@@ -30,7 +30,7 @@
 ## 4. Database schemas
 
 - [x] 4.1 Add `flow_subprocess_run`, `flow_subprocess_child` and `flow_subprocess_event` with tenant, uniqueness, reconciliation and paging indexes to the MySQL 1.0.0 initialization schema.
-- [x] 4.2 Provide complete MySQL and PostgreSQL `flovira-v1.sql` fresh-install scripts without inheriting the historical upgrade chain.
+- [x] 4.2 Provide complete MySQL and PostgreSQL `flovira-v1.0.0.sql` fresh-install scripts without inheriting the historical upgrade chain.
 - [x] 4.3 Add equivalent table/index definitions to Oracle and SQL Server full schemas with documented dialect differences.
 - [x] 4.4 Add schema contract tests verifying required columns, uniqueness and indexes for each supported database script.
 

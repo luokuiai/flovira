@@ -81,7 +81,7 @@ Parent chart nodes gain an optional subprocess summary. Child rows are paged and
 
 ### 10. Ship a fresh 1.0.0 schema and gate node use
 
-This fork starts a new version line at 1.0.0. MySQL and PostgreSQL ship complete `flovira-v1.sql` initialization scripts containing all ten tables; no Warm-Flow or earlier Flovira upgrade chain is supported. Oracle and SQL Server retain equivalent complete schemas. Definitions without `SUB_PROCESS` run exactly as before. Enabling a subprocess definition before applying the schema fails with an explicit persistence error.
+This fork starts a new version line at 1.0.0. MySQL and PostgreSQL ship complete `flovira-v1.0.0.sql` initialization scripts containing all ten tables; no Warm-Flow or earlier Flovira upgrade chain is supported. Oracle and SQL Server retain equivalent complete schemas. Definitions without `SUB_PROCESS` run exactly as before. Enabling a subprocess definition before applying the schema fails with an explicit persistence error.
 
 ## Risks / Trade-offs
 

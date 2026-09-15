@@ -54,7 +54,7 @@ The common module compiles with the Boot 3/Java 17 convention while published Ja
 
 ### Reuse authoritative schemas and isolate example data
 
-The PostgreSQL and MySQL container services initialize from `sql/postgresql/flovira-v1.sql` and `sql/mysql/flovira-v1.sql` respectively. Each then applies a small dialect-specific example schema/seed script for host-owned users, organizations, roles, condition fields, and purchase requests. No Flovira table definition is copied into `flovira-example`.
+The PostgreSQL and MySQL container services initialize from `sql/postgresql/flovira-v1.0.0.sql` and `sql/mysql/flovira-v1.0.0.sql` respectively. Each then applies a small dialect-specific example schema/seed script for host-owned users, organizations, roles, condition fields, and purchase requests. No Flovira table definition is copied into `flovira-example`.
 
 Initialization occurs only for a fresh development volume. Reset is a documented deliberate operation, never an automatic backend-start action. The sample workflow is imported/published idempotently through public Flovira services instead of direct definition-table inserts.
 

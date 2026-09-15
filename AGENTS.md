@@ -12,7 +12,7 @@ Core constraints: Java 8 source compatibility, framework / ORM / JSON independen
 - `flovira-orm`: MyBatis and MyBatis-Plus implementations. Each has an ORM core plus Spring Boot 2 / 3 / 4 starters (`sb` / `sb3` / `sb4`).
 - `flovira-plugin`: Spring expressions and integration (`modes`), separate Jackson / Jackson 3 / Gson providers (`json`), and designer backend APIs (`ui`). No bundled frontend pages.
 - `flovira-designer`: Bun workspace with independent Vue / React packages, optional React UI adapters and consuming examples.
-- `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
+- `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.0.0.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
 - Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
 - Flovira may manage versioned form metadata and content in `flow_form`; host applications may also supply forms. Workflow definitions, nodes, tasks and history store opaque string `formId` references and approval data snapshots. Keep host page routing outside `flow_form`; do not restore `form_custom`, `form_type`, `form_path`, numeric-only form references, bundled rendering pages or designer mode switching.
 
@@ -86,7 +86,7 @@ Read root and applicable module instructions before editing. Module files contai
 
 ## SQL and migration
 
-- Synchronize all three schemas: `sql/mysql/flovira-v1.sql`, `sql/postgresql/flovira-v1.sql`, `sql/oracle/flovira-v1.sql`.
+- Synchronize all three schemas: `sql/mysql/flovira-v1.0.0.sql`, `sql/postgresql/flovira-v1.0.0.sql`, `sql/oracle/flovira-v1.0.0.sql`.
 - Do not define foreign keys in Flovira schemas. Protect internal relationships through engine transactions and verification; use indexes and unique constraints where appropriate.
 - Every Flovira table must define `deleted` as `NOT NULL DEFAULT '0'`. Align indexes with tenant isolation, logical-deletion filters and actual DAO query predicates.
 - Maintain complete V1 fresh-install baselines during 1.0.0 development; do not restore an inherited historical upgrade chain.
