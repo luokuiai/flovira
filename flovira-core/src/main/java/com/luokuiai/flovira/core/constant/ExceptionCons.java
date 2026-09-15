@@ -72,6 +72,7 @@ public class ExceptionCons {
     public static final String NULL_BUSINESS_ID = "业务id为空!";
 
     public static final String NULL_BUSINESS_TYPE = "业务类型为空!";
+    public static final String NULL_DEFINITION_BUSINESS_TYPE = "流程定义的业务类型为空!";
 
     public static final String NULL_FLOW_CODE = "流程编码缺失!";
 

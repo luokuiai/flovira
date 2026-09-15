@@ -31,7 +31,7 @@ import java.util.List;
 public interface InstanceService extends IFloviraService<Instance> {
 
     /**
-     * 传入业务id开启流程
+     * 传入业务id开启流程，业务类型必须取自流程定义
      *
      * @param businessId: 业务id[必传]
      * @param flowParams: 包含流程相关参数的对象
@@ -47,17 +47,7 @@ public interface InstanceService extends IFloviraService<Instance> {
     Instance start(String businessId, FlowParams flowParams);
 
     /**
-     * 使用独立业务类型和业务id开启流程
-     *
-     * @param businessType 业务类型
-     * @param businessId   业务id
-     * @param flowParams   流程参数
-     * @return 流程实例
-     */
-    Instance start(String businessType, String businessId, FlowParams flowParams);
-
-    /**
-     * 使用明确的流程定义版本开启流程
+     * 使用明确的流程定义版本开启流程，业务类型必须取自该定义
      *
      * @param businessId 业务id
      * @param definitionId 流程定义id
@@ -65,8 +55,6 @@ public interface InstanceService extends IFloviraService<Instance> {
      * @return 流程实例
      */
     Instance startByDefinitionId(String businessId, Long definitionId, FlowParams flowParams);
-
-    Instance startByDefinitionId(String businessType, String businessId, Long definitionId, FlowParams flowParams);
 
     /**
      * 根据业务类型和业务id查询流程实例

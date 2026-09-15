@@ -5,6 +5,7 @@ create table FLOW_DEFINITION
     FLOW_CODE       VARCHAR2(40)          not null,
     FLOW_NAME       VARCHAR2(100)         not null,
     CATEGORY        VARCHAR2(100),
+    BUSINESS_TYPE   VARCHAR2(64),
     VERSION         VARCHAR2(20)          not null,
     PUBLISH_STATUS      NUMBER(1)   default 0 not null,
     FORM_ID       VARCHAR2(100),
@@ -28,6 +29,7 @@ comment on column FLOW_DEFINITION.ID is '主键id';
 comment on column FLOW_DEFINITION.FLOW_CODE is '流程编码';
 comment on column FLOW_DEFINITION.FLOW_NAME is '流程名称';
 comment on column FLOW_DEFINITION.CATEGORY is '流程类别';
+comment on column FLOW_DEFINITION.BUSINESS_TYPE is '业务类型';
 comment on column FLOW_DEFINITION.VERSION is '流程版本';
 comment on column FLOW_DEFINITION.PUBLISH_STATUS is '是否发布 (0未发布 1已发布 9失效)';
 comment on column FLOW_DEFINITION.FORM_ID is '外部业务表单标识';

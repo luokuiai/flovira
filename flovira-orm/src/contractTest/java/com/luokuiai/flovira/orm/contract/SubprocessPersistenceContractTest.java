@@ -17,6 +17,9 @@
 package com.luokuiai.flovira.orm.contract;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.dto.DefJson;
+import com.luokuiai.flovira.core.entity.Definition;
+import com.luokuiai.flovira.core.orm.dao.FlowDefinitionDao;
 import com.luokuiai.flovira.core.entity.SubprocessChild;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.SubprocessRun;
@@ -75,6 +78,7 @@ public class SubprocessPersistenceContractTest {
     private FlowSubprocessEventDao<SubprocessEvent> eventDao;
     private FlowTaskDao<Task> taskDao;
     private FlowFormDao<Form> formDao;
+    private FlowDefinitionDao<Definition> definitionDao;
     private FormService formService;
     private JdbcTemplate jdbcTemplate;
     private TransactionTemplate transactionTemplate;
@@ -111,6 +115,7 @@ public class SubprocessPersistenceContractTest {
         eventDao = (FlowSubprocessEventDao<SubprocessEvent>) context.getBean(FlowSubprocessEventDao.class);
         taskDao = (FlowTaskDao<Task>) context.getBean(FlowTaskDao.class);
         formDao = (FlowFormDao<Form>) context.getBean(FlowFormDao.class);
+        definitionDao = (FlowDefinitionDao<Definition>) context.getBean(FlowDefinitionDao.class);
         formService = context.getBean(FormService.class);
         jdbcTemplate = context.getBean(JdbcTemplate.class);
         transactionTemplate = new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
@@ -119,6 +124,31 @@ public class SubprocessPersistenceContractTest {
         jdbcTemplate.update("delete from flow_subprocess_run");
         jdbcTemplate.update("delete from flow_task");
         jdbcTemplate.update("delete from flow_form");
+        jdbcTemplate.update("delete from flow_definition");
+    }
+
+    @Test
+    public void shouldPersistAndCopyDefinitionBusinessType() {
+        Definition definition = FlowEngine.newDef().setId(60L).setFlowCode("purchase")
+            .setFlowName("Purchase").setVersion("1").setBusinessType("PURCHASE_ORDER")
+            .setPublishStatus(0).setActivityStatus(1);
+        root(definition);
+        assertEquals(1, definitionDao.save(definition));
+        Definition stored = definitionDao.selectById(60L);
+        assertEquals("PURCHASE_ORDER", stored.getBusinessType());
+        assertEquals("PURCHASE_ORDER", stored.copy().getBusinessType());
+        assertEquals("PURCHASE_ORDER", DefJson.copyDef(DefJson.copyDef(stored)).getBusinessType());
+
+        stored.setBusinessType("EXPENSE");
+        definitionDao.updateById(stored);
+        assertEquals("EXPENSE", definitionDao.selectById(60L).getBusinessType());
+        assertEquals(1, definitionDao.selectList(FlowEngine.newDef().setBusinessType("EXPENSE"), null).size());
+        assertEquals(0, definitionDao.selectList(FlowEngine.newDef().setBusinessType("PURCHASE_ORDER"), null).size());
+
+        Definition copy = stored.copy().setId(61L).setVersion("2").setPublishStatus(0).setActivityStatus(1);
+        root(copy);
+        definitionDao.saveBatch(java.util.Collections.singletonList(copy));
+        assertEquals("EXPENSE", definitionDao.selectById(61L).getBusinessType());
     }
 
     @Test

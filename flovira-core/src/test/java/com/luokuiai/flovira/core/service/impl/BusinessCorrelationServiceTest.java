@@ -17,6 +17,8 @@ package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
+import com.luokuiai.flovira.core.exception.FlowException;
+import com.luokuiai.flovira.core.service.DefService;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.HisTask;
@@ -59,22 +61,55 @@ public class BusinessCorrelationServiceTest {
         FlowEngine.jsonConvert = new EmptyJsonConvert();
     }
 
-    @Test
-    public void shouldUseFlowCodeAsDefaultBusinessType() {
+    @Test(expected = FlowException.class)
+    public void shouldRejectMissingDefinitionBusinessType() {
         Definition definition = TestEntityFactory.create(Definition.class).setFlowCode("PURCHASE");
-
-        assertEquals("PURCHASE", InstanceServiceImpl.defaultBusinessType(definition));
+        InstanceServiceImpl.requireBusinessType(definition);
     }
 
     @Test
-    public void shouldPersistExplicitBusinessType() throws Exception {
+    public void shouldUseDefinitionBusinessType() {
+        Definition definition = TestEntityFactory.create(Definition.class)
+            .setFlowCode("PURCHASE").setBusinessType("PURCHASE_ORDER");
+
+        assertEquals("PURCHASE_ORDER", InstanceServiceImpl.requireBusinessType(definition));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectEmptyDefinitionBusinessType() {
+        InstanceServiceImpl.requireBusinessType(TestEntityFactory.create(Definition.class)
+            .setFlowCode("PURCHASE").setBusinessType(""));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectStartByCodeWithoutDefinitionBusinessType() {
+        definitionWithoutBusinessType();
+        new InstanceServiceImpl().start("1001", FlowParams.build().flowCode("PURCHASE"));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectStartByIdWithoutDefinitionBusinessType() {
+        definitionWithoutBusinessType();
+        new InstanceServiceImpl().startByDefinitionId("1001", 1L, FlowParams.build());
+    }
+
+    private void definitionWithoutBusinessType() {
+        Definition definition = TestEntityFactory.create(Definition.class).setId(1L).setFlowCode("PURCHASE");
+        DefService service = proxy(DefService.class, (method, args) -> definition);
+        FrameInvoker.setBeanFunction(type -> DefService.class.equals(type) ? service : null);
+    }
+
+    @Test
+    public void shouldPersistDefinitionBusinessType() throws Exception {
         Node node = TestEntityFactory.create(Node.class).setDefinitionId(1L).setNodeType(1)
             .setNodeCode("APPROVE").setNodeName("审批");
         Method method = InstanceServiceImpl.class.getDeclaredMethod("setStartInstance", Node.class,
             String.class, String.class, FlowParams.class);
         method.setAccessible(true);
 
-        Instance instance = (Instance) method.invoke(new InstanceServiceImpl(), node, "PURCHASE_ORDER", "1001",
+        Definition definition = TestEntityFactory.create(Definition.class).setBusinessType("PURCHASE_ORDER");
+        Instance instance = (Instance) method.invoke(new InstanceServiceImpl(), node,
+            InstanceServiceImpl.requireBusinessType(definition), "1001",
             new FlowParams().handler("starter"));
 
         assertEquals("PURCHASE_ORDER", instance.getBusinessType());

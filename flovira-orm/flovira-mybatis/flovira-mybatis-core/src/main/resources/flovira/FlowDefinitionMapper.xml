@@ -8,6 +8,7 @@
         <result property="flowCode" column="flow_code"/>
         <result property="flowName" column="flow_name"/>
         <result property="category" column="category"/>
+        <result property="businessType" column="business_type"/>
         <result property="version" column="version"/>
         <result property="publishStatus" column="publish_status"/>
         <result property="formId" column="form_id"/>
@@ -28,6 +29,7 @@
                t.flow_code,
                t.flow_name,
                t.category,
+               t.business_type,
                t.version,
                t.publish_status,
                t.form_id,
@@ -60,6 +62,7 @@
             <if test="entity.flowCode != null  and entity.flowCode != ''">and t.flow_code = #{entity.flowCode}</if>
             <if test="entity.flowName != null  and entity.flowName != ''">and t.flow_name = #{entity.flowName}</if>
             <if test="entity.category != null  and entity.category != ''">and t.category = #{entity.category}</if>
+            <if test="entity.businessType != null  and entity.businessType != ''">and t.business_type = #{entity.businessType}</if>
             <if test="entity.version != null  and entity.version != ''">and t.version = #{entity.version}</if>
             <if test="entity.publishStatus != null ">and t.publish_status = #{entity.publishStatus}</if>
             <if test="entity.formId != null">and t.form_id = #{entity.formId}</if>
@@ -82,6 +85,7 @@
         flow_code,
         flow_name,
         category,
+        business_type,
         version,
         publish_status,
         form_id,
@@ -103,6 +107,7 @@
             #{item.flowCode},
             #{item.flowName},
             #{item.category},
+            #{item.businessType},
             #{item.version},
             #{item.publishStatus},
             #{item.formId},
@@ -126,6 +131,7 @@
         flow_code,
         flow_name,
         category,
+        business_type,
         version,
         publish_status,
         form_id,
@@ -146,6 +152,7 @@
             #{item.flowCode},
             #{item.flowName},
             #{item.category},
+            #{item.businessType},
             #{item.version},
             #{item.publishStatus},
             #{item.formId},
@@ -228,6 +235,7 @@
             <if test="flowCode != null and flowCode != ''">flow_code,</if>
             <if test="flowName != null and flowName != ''">flow_name,</if>
             <if test="category != null and category != ''">category,</if>
+            <if test="businessType != null and businessType != ''">business_type,</if>
             <if test="version != null and version != ''">version,</if>
             <if test="publishStatus != null">publish_status,</if>
             <if test="formId != null">form_id,</if>
@@ -247,6 +255,7 @@
             <if test="flowCode != null and flowCode != ''">#{flowCode},</if>
             <if test="flowName != null and flowName != ''">#{flowName},</if>
             <if test="category != null and category != ''">#{category},</if>
+            <if test="businessType != null and businessType != ''">#{businessType},</if>
             <if test="version != null and version != ''">#{version},</if>
             <if test="publishStatus != null">#{publishStatus},</if>
             <if test="formId != null">#{formId},</if>
@@ -269,6 +278,7 @@
             <if test="flowCode != null and flowCode != ''">flow_code = #{flowCode},</if>
             <if test="flowName != null and flowName != ''">flow_name = #{flowName},</if>
             <if test="category != null and category != ''">category = #{category},</if>
+            <if test="businessType != null and businessType != ''">business_type = #{businessType},</if>
             <if test="version != null and version != ''">version = #{version},</if>
             <if test="publishStatus != null">publish_status = #{publishStatus},</if>
             <if test="formId != null">form_id = #{formId},</if>
@@ -349,6 +359,7 @@
             <if test="flowCode != null and flowCode != ''">and flow_code = #{flowCode}</if>
             <if test="flowName != null and flowName != ''">and flow_name = #{flowName}</if>
             <if test="category != null and category != ''">and category = #{category}</if>
+            <if test="businessType != null and businessType != ''">and business_type = #{businessType}</if>
             <if test="version != null and version != ''">and version = #{version}</if>
             <if test="publishStatus != null">and publish_status = #{publishStatus}</if>
             <if test="formId != null">and form_id = #{formId}</if>
@@ -370,6 +381,7 @@
             <if test="entity.flowCode != null and entity.flowCode != ''">and flow_code = #{entity.flowCode}</if>
             <if test="entity.flowName != null and entity.flowName != ''">and flow_name = #{entity.flowName}</if>
             <if test="entity.category != null and entity.category != ''">and category = #{entity.category}</if>
+            <if test="entity.businessType != null and entity.businessType != ''">and business_type = #{entity.businessType}</if>
             <if test="entity.version != null and entity.version != ''">and version = #{entity.version}</if>
             <if test="entity.publishStatus != null">and publish_status = #{entity.publishStatus}</if>
             <if test="entity.formId != null">and form_id = #{entity.formId}</if>

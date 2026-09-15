@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -101,6 +102,14 @@ public interface Definition extends RootEntity {
     Definition setCategory(String category);
 
     /**
+     * 获取流程定义配置的业务类型
+     * @return 业务类型
+     */
+    String getBusinessType();
+
+    Definition setBusinessType(String businessType);
+
+    /**
      * 获取流程定义的版本号
      * @return 版本号
      */
@@ -164,6 +173,7 @@ public interface Definition extends RootEntity {
             .setFlowCode(this.getFlowCode())
             .setFlowName(this.getFlowName())
             .setCategory(this.getCategory())
+            .setBusinessType(this.getBusinessType())
             .setVersion(this.getVersion())
             .setFormId(this.getFormId())
             .setListenerType(this.getListenerType())
