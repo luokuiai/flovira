@@ -9,6 +9,8 @@ body {
 }
 
 main {
+  box-sizing: border-box;
+  height: 100dvh;
   padding: 16px;
 }
 

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -21,10 +22,13 @@ import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.service.DefService;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.DefJson;
+import com.luokuiai.flovira.core.dto.NodeJson;
+import com.luokuiai.flovira.core.dto.SkipJson;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
+import com.luokuiai.flovira.core.entity.Skip;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
@@ -33,6 +37,8 @@ import com.luokuiai.flovira.core.orm.dao.FlowDefinitionDao;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
 import com.luokuiai.flovira.core.service.InstanceService;
+import com.luokuiai.flovira.core.service.NodeService;
+import com.luokuiai.flovira.core.service.SkipService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +46,7 @@ import org.junit.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +89,58 @@ public class BusinessCorrelationServiceTest {
 
     @Test(expected = FlowException.class)
     public void shouldRejectFullDesignSaveWithoutBusinessType() {
-        new DefServiceImpl().saveDef(new DefJson().setId(1L).setFlowCode("PURCHASE"), false);
+        new DefServiceImpl().saveDef(new DefJson().setId(1L).setFlowCode("PURCHASE"));
+    }
+
+    @Test
+    public void shouldSaveDefinitionTogetherWithNodesAndSkips() {
+        FlowEngine.setNewDef(() -> TestEntityFactory.create(Definition.class));
+        FlowEngine.setNewNode(() -> TestEntityFactory.create(Node.class));
+        FlowEngine.setNewSkip(() -> TestEntityFactory.create(Skip.class));
+        final List<String> calls = new ArrayList<>();
+        DefService definitions = proxy(DefService.class, (method, args) -> {
+            if ("updateById".equals(method.getName())) {
+                Definition definition = (Definition) args[0];
+                assertEquals("更新后的流程", definition.getFlowName());
+                assertEquals("PURCHASE_ORDER", definition.getBusinessType());
+                assertEquals("采购", definition.getCategory());
+                assertEquals("", definition.getFormId());
+                calls.add("definition");
+                return true;
+            }
+            return defaultValue(method.getReturnType());
+        });
+        NodeService nodes = proxy(NodeService.class, (method, args) -> {
+            if ("getExt".equals(method.getName())) return Collections.emptyMap();
+            if ("remove".equals(method.getName())) {
+                assertEquals(Long.valueOf(1L), ((Node) args[0]).getDefinitionId());
+                calls.add("removeNodes");
+            } else if ("saveBatch".equals(method.getName())) {
+                assertEquals(2, ((List<?>) args[0]).size());
+                calls.add("nodes");
+            }
+            return defaultValue(method.getReturnType());
+        });
+        SkipService skips = proxy(SkipService.class, (method, args) -> {
+            if ("remove".equals(method.getName())) {
+                assertEquals(Long.valueOf(1L), ((Skip) args[0]).getDefinitionId());
+                calls.add("removeSkips");
+            } else if ("saveBatch".equals(method.getName())) {
+                assertEquals(1, ((List<?>) args[0]).size());
+                calls.add("skips");
+            }
+            return defaultValue(method.getReturnType());
+        });
+        FrameInvoker.setBeanFunction(type -> DefService.class.equals(type) ? definitions
+            : NodeService.class.equals(type) ? nodes : SkipService.class.equals(type) ? skips : null);
+        NodeJson start = new NodeJson().setNodeCode("start").setNodeType(0)
+            .setSkipList(Collections.singletonList(new SkipJson().setSourceNodeCode("start")
+                .setTargetNodeCode("end").setSkipType("PASS")));
+        NodeJson end = new NodeJson().setNodeCode("end").setNodeType(2);
+        new DefServiceImpl().saveDef(new DefJson().setId(1L).setFlowCode("PURCHASE")
+            .setFlowName("更新后的流程").setBusinessType("PURCHASE_ORDER").setCategory("采购")
+            .setVersion("1").setNodeList(Arrays.asList(start, end)));
+        assertEquals(Arrays.asList("definition", "removeNodes", "removeSkips", "nodes", "skips"), calls);
     }
 
     @Test

@@ -2,7 +2,7 @@
 
 import { createRef, useState } from 'react'
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { ReactFlowDesigner } from './ReactFlowDesigner'
 import { createInitialDefinition, getApproverRule, insertNodeAfter, setApproverRule } from './model'
 import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } from './types'
@@ -10,6 +10,41 @@ import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } f
 afterEach(cleanup)
 
 describe('ReactFlowDesigner', () => {
+  test('switches shell appearance independently of the toolbar without resetting the draft', () => {
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} />)
+    expect(view.container.querySelector('section')?.getAttribute('data-appearance')).toBe('standalone')
+    act(() => ref.current!.importJson({ ...createInitialDefinition(), flowName: '嵌入草稿' }))
+    view.rerender(<ReactFlowDesigner ref={ref} appearance="embedded" toolbar={false} />)
+    expect(view.container.querySelector('section')?.getAttribute('data-appearance')).toBe('embedded')
+    expect(view.container.querySelector('.frd-header')).toBeNull()
+    expect(ref.current!.getDefinition().flowName).toBe('嵌入草稿')
+    expect(ref.current!.isDirty()).toBe(true)
+    view.rerender(<ReactFlowDesigner ref={ref} appearance="standalone" />)
+    expect(view.container.querySelector('.frd-header')).toBeTruthy()
+    expect(ref.current!.getDefinition().flowName).toBe('嵌入草稿')
+  })
+  test('keeps the toolbar optional and exposes only editing APIs', () => {
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} />)
+    expect(view.queryByRole('button', { name: '保存' })).toBeNull()
+    expect(view.queryByRole('button', { name: '发布' })).toBeNull()
+    expect(ref.current).not.toHaveProperty('save')
+    expect(ref.current).not.toHaveProperty('publish')
+    view.rerender(<ReactFlowDesigner ref={ref} toolbar={false} />)
+    expect(view.container.querySelector('.frd-header')).toBeNull()
+    expect(ref.current!.getFlowJson()).toBeTruthy()
+    expect(ref.current!.validate()).toHaveProperty('valid')
+    view.rerender(<ReactFlowDesigner ref={ref} renderToolbar={({ defaultToolbar, dirty }) =>
+      <div>{defaultToolbar}<button onClick={() => ref.current!.resetDirty()}>业务操作 {String(dirty)}</button></div>} />)
+    act(() => ref.current!.importJson({ ...createInitialDefinition(), flowName: '业务草稿' }))
+    expect(ref.current!.isDirty()).toBe(true)
+    expect(view.getByRole('button', { name: '业务操作 true' })).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: '业务操作 true' }))
+    expect(ref.current!.isDirty()).toBe(false)
+    expect(view.getByRole('button', { name: '撤销' })).toBeTruthy()
+  })
+
   test('leaves package import and export actions to the host', () => {
     const view = render(<ReactFlowDesigner defaultValue={createInitialDefinition()} />)
     expect(view.queryByRole('button', { name: '导入 JSON' })).toBeNull()
@@ -33,7 +68,7 @@ describe('ReactFlowDesigner', () => {
     const ref = createRef<ReactFlowDesignerRef>()
     const definition = createInitialDefinition()
     definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
-    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} onSave={async () => {}} />)
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
     fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
     fireEvent.click(view.getByRole('radio', { name: '票签' }))
     const ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
@@ -43,7 +78,6 @@ describe('ReactFlowDesigner', () => {
     expect(JSON.parse(ref.current!.getFlowJson()).nodeList.find((node: { nodeType: string }) => node.nodeType === '1').nodeRatio).toBe('75')
     fireEvent.change(ratio, { target: { value: '' } })
     expect(ref.current!.validate().issues.some((issue) => issue.code === 'VOTE_RATIO_INVALID')).toBe(true)
-    expect((view.getByRole('button', { name: '保存' }) as HTMLButtonElement).disabled).toBe(true)
     fireEvent.change(ratio, { target: { value: '100' } })
     expect(view.getByRole('alert').textContent).toContain('小于 100')
     fireEvent.change(ratio, { target: { value: '60' } })

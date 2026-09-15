@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ReactFlowDesigner,
   createInitialDefinition,
@@ -6,6 +6,7 @@ import {
   type DesignerResourceLoader,
   type DesignerUiAdapter,
   type FloviraDefinition,
+  type ReactFlowDesignerRef,
 } from '@luokuiai/flovira-react-designer'
 import {
   exampleApi,
@@ -39,6 +40,8 @@ const freshDefinition = (): FloviraDefinition => {
 }
 
 export function ExampleApp({ title, ui }: ExampleAppProps) {
+  const designerRef = useRef<ReactFlowDesignerRef>(null)
+  const [saving, setSaving] = useState(false)
   const [identities, setIdentities] = useState<DemoIdentity[]>([])
   const [user, setUser] = useState('alice')
   const [definitions, setDefinitions] = useState<DefinitionSummary[]>([])
@@ -146,6 +149,7 @@ export function ExampleApp({ title, ui }: ExampleAppProps) {
 
       <section className="card designer-card">
         <ReactFlowDesigner
+          ref={designerRef}
           key={definitionKey}
           defaultValue={definition}
           ui={ui}
@@ -155,14 +159,25 @@ export function ExampleApp({ title, ui }: ExampleAppProps) {
             { code: 'amount', label: 'Purchase amount', type: 'NUMBER' },
             { code: 'department', label: 'Department', type: 'STRING' },
           ]}
-          onSave={async (value) => {
-            await run(async () => {
-              const saved = await exampleApi.saveDefinition(value, user)
-              setSelectedId(saved.id)
-              await refresh()
-              setNotice(`Saved definition ${saved.id}`)
-            })
-          }}
+          renderToolbar={({ defaultToolbar, disabled }) => <div>{defaultToolbar}
+            <button disabled={disabled || saving} onClick={async () => {
+              const editor = designerRef.current
+              if (!editor || saving) return
+              const result = editor.validate()
+              if (!result.valid) { setError(result.issues.map(issue => issue.message).join('; ')); return }
+              const json = editor.getFlowJson()
+              setSaving(true)
+              try {
+                await run(async () => {
+                  const saved = await exampleApi.saveDefinition(JSON.parse(json), user)
+                  setSelectedId(saved.id)
+                  if (editor.getFlowJson() === json) editor.resetDirty()
+                  await refresh()
+                  setNotice(`Saved definition ${saved.id}`)
+                })
+              } finally { setSaving(false) }
+            }}>Save definition</button>
+          </div>}
         />
       </section>
 

@@ -1,4 +1,5 @@
 import { createId, createNode, findBranchMerge, getNodeExtConfig, insertNodeAfter, setNodeExtConfig } from './model'
+import { compileFormConditionGroup } from './formDefinition'
 import type { DesignerConditionGroup, FloviraDefinition, FloviraNode, FloviraNodeType, FloviraSkip } from './types'
 
 export interface BranchRule {
@@ -7,28 +8,12 @@ export interface BranchRule {
   expression: string
 }
 
-const operators = { EQ: '==', NE: '!=', GT: '>', GE: '>=', LT: '<', LE: '<=' }
 export const operatorLabels = { EQ: '等于', NE: '不等于', GT: '大于', GE: '大于等于', LT: '小于', LE: '小于等于' }
 
 /** Uses the existing SpEL strategy; field names and values never become executable fragments. */
 export function compileBranchConditions(groups: DesignerConditionGroup[]): string {
   if (!groups.length || groups.some((group) => !group.conditions.length)) throw new Error('请添加完整的条件规则')
-  const expression = groups.map((group) => `(${group.conditions.map((condition) => {
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(condition.fieldCode)) throw new Error('字段编码需为字母、数字或下划线，且不能以数字开头')
-    const operator = operators[condition.operator]
-    if (!operator || (condition.fieldType !== 'NUMBER' && !['EQ', 'NE'].includes(condition.operator))) throw new Error('比较方式与字段类型不匹配')
-    let value: string
-    if (condition.fieldType === 'NUMBER') {
-      if (!/^-?\d+(\.\d+)?$/.test(condition.value) || !Number.isFinite(Number(condition.value))) throw new Error('请输入有效数字')
-      value = condition.value
-    } else if (condition.fieldType === 'BOOLEAN') {
-      if (!['true', 'false'].includes(condition.value)) throw new Error('请选择是或否')
-      value = condition.value
-    } else {
-      value = `'${condition.value.replace(/'/g, "''")}'`
-    }
-    return `#${condition.fieldCode} ${operator} ${value}`
-  }).join(' and ')})`).join(' or ')
+  const expression = groups.map((group) => `(${compileFormConditionGroup(group)})`).join(' or ')
   return `spel@@#{${expression}}`
 }
 
@@ -51,9 +36,10 @@ export function branchSummary(node: FloviraNode, index: number): string {
   if (rule.mode === 'default') return '其他条件都不满足时进入'
   if (rule.mode === 'always') return '每次都进入此分支'
   if (rule.mode === 'expression') return rule.expression || '请设置条件'
-  return rule.groups.map((group) => group.conditions.map((condition) =>
-    `${condition.fieldLabel || condition.fieldCode} ${operatorLabels[condition.operator]} ${condition.fieldType === 'BOOLEAN' ? condition.value === 'true' ? '是' : '否' : condition.value}`
-  ).join(' 且 ')).join(' 或 ') || '请设置条件'
+  return rule.groups.map((group) => (group.collection ? `${group.collection.label}（${group.collection.quantifier === 'ALL' ? '所有条' : '任一条'}满足）：` : '')
+    + group.conditions.map((condition) =>
+      `${condition.fieldLabel || condition.fieldCode} ${operatorLabels[condition.operator]} ${condition.fieldType === 'BOOLEAN' ? condition.value === 'true' ? '是' : '否' : condition.value}`
+    ).join(' 且 ')).join(' 或 ') || '请设置条件'
 }
 
 const edge = (source: FloviraNode, target: FloviraNode): FloviraSkip => ({

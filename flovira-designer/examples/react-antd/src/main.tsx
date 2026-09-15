@@ -1,4 +1,4 @@
-import { StrictMode, useState } from 'react'
+import { StrictMode, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ConfigProvider } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
@@ -6,6 +6,7 @@ import {
   ReactFlowDesigner,
   createInitialDefinition,
   type FloviraDefinition,
+  type ReactFlowDesignerRef,
 } from '@luokuiai/flovira-react-designer'
 import { antdDesignerUi } from '@luokuiai/flovira-react-adapter-antd'
 import 'antd/dist/reset.css'
@@ -18,6 +19,17 @@ initial.flowCode = 'expense_approval'
 initial.flowName = '费用报销审批'
 
 function App() {
+  const designerRef = useRef<ReactFlowDesignerRef>(null)
+  const [error, setError] = useState('')
+  const saveDesign = () => {
+    const designer = designerRef.current
+    if (!designer) return
+    const result = designer.validate()
+    if (!result.valid) { setError(result.issues.map(issue => issue.message).join('；')); return }
+    setSaved(JSON.parse(designer.getFlowJson()))
+    designer.resetDirty()
+    setError('')
+  }
   const [saved, setSaved] = useState<FloviraDefinition | null>(null)
 
   return (
@@ -45,7 +57,12 @@ function App() {
               ],
               total: 2,
             })}
-          onSave={(definition) => setSaved(definition)}
+          ref={designerRef}
+        renderToolbar={({ defaultToolbar, disabled }) => <div>
+          {defaultToolbar}
+          <button disabled={disabled} onClick={saveDesign}>保存到示例状态</button>
+          {error && <p role="alert">{error}</p>}
+        </div>}
         />
         {saved && <div className="save-toast" role="status">已保存 {saved.flowName}</div>}
       </main>

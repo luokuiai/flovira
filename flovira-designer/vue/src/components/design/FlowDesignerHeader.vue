@@ -33,9 +33,9 @@
       </slot>
     </div>
 
-    <!-- 右侧：保存按钮（slot: header-actions 可追加 / 替换操作按钮，透出 save / disabled） -->
+    <!-- 右侧操作区；外部插槽上下文由 FlowDesigner 提供。 -->
     <div class="header-right">
-      <slot name="header-actions" :save="emitSave" :disabled="disabled">
+      <slot name="header-actions">
         <span class="workbench-header-group">
           <wf-tooltip :content="t('flowDesigner.undo')" placement="bottom"><wf-button @click="emit('undo')"><svg-icon icon-class="ep:d-arrow-left" /></wf-button></wf-tooltip>
           <wf-tooltip :content="t('flowDesigner.redo')" placement="bottom"><wf-button @click="emit('redo')"><svg-icon icon-class="ep:d-arrow-right" /></wf-button></wf-tooltip>
@@ -44,10 +44,6 @@
         <span class="workbench-header-group workbench-header-group--export">
           <wf-tooltip :content="t('flowDesigner.downloadImage')" placement="bottom"><wf-button @click="emit('download-image')"><svg-icon icon-class="ep:picture" /></wf-button></wf-tooltip>
         </span>
-        <wf-button class="save-btn" size="default" @click="emitSave" v-if="!disabled">
-          <svg-icon icon-class="save" class="save-icon" />
-          <span>{{ t('common.save') }}</span>
-        </wf-button>
       </slot>
     </div>
   </div>
@@ -56,7 +52,7 @@
 <script setup lang="ts">
 import { useI18n } from '@/i18n';
 
-/** 流程设计器顶部导航：流程名（左） + 步骤切换（中） + 保存（右）。
+/** 流程设计器顶部导航：流程名（左） + 步骤切换（中） + 画布操作（右）。
  *  从 FlowDesigner 抽出的纯展示编排子组件，状态/逻辑仍由容器持有，经 props 入、事件出。
  *  样式沿用 FlowDesigner 的全局（非 scoped）样式表中的 .design-header 等类，无需迁移。 */
 defineOptions({ name: 'FlowDesignerHeader' });
@@ -79,7 +75,6 @@ withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: 'step-click', index: number): void;
-  (e: 'save'): void;
   (e: 'undo'): void;
   (e: 'redo'): void;
   (e: 'clear'): void;
@@ -89,5 +84,4 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const goToStep = (index: number) => emit('step-click', index);
-const emitSave = () => emit('save');
 </script>

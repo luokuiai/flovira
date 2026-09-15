@@ -18,18 +18,17 @@ export interface UseFlowDesignerReturn extends FlowDesignerInstance {
  *
  * 相比直接用模板 ref，本 hook 额外提供：
  * - 空安全：组件尚未挂载时调用方法不会抛错，仅 warn 并返回安全默认值；
- * - 解构友好：`const { designerRef, save, getFlowJson } = useFlowDesigner()`；
+ * - 解构友好：`const { designerRef, validate, getFlowJson } = useFlowDesigner()`；
  * - 类型完备：方法签名与 FlowDesignerInstance 完全一致，IDE 自动补全。
  *
  * @example
  * ```vue
  * <script setup lang="ts">
  * import { FlowDesigner, useFlowDesigner } from '@luokuiai/flovira-vue-designer'
- * const { designerRef, save, getFlowJson } = useFlowDesigner()
+ * const { designerRef, validate, getFlowJson } = useFlowDesigner()
  * </script>
  * <template>
  *   <FlowDesigner ref="designerRef" :definition-id="id" />
- *   <button @click="save">保存</button>
  * </template>
  * ```
  *
@@ -53,7 +52,6 @@ export function useFlowDesigner(): UseFlowDesignerReturn {
   return {
     designerRef,
     isReady: () => !!designerRef.value,
-    save: async () => { await ensure('save')?.save() },
     validate: async () => (await ensure('validate')?.validate()) ?? false,
     getGraphData: () => ensure('getGraphData')?.getGraphData() ?? null,
     getFlowJson: () => ensure('getFlowJson')?.getFlowJson() ?? '',

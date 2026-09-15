@@ -18,6 +18,17 @@ test('does not expose a JSON download action in the built-in header', () => {
   expect(header).not.toContain('flowDesigner.downloadJson')
 })
 
+test('keeps persistence actions out of the default header', () => {
+  const header = readFileSync(new URL('../components/design/FlowDesignerHeader.vue', import.meta.url), 'utf8')
+  const designer = readFileSync(new URL('../components/design/FlowDesigner.vue', import.meta.url), 'utf8')
+  expect(header).not.toContain('emitSave')
+  expect(header).not.toContain('emitPublish')
+  expect(header).not.toContain('common.save')
+  expect(designer).toContain('name="toolbar" v-bind="toolbarContext"')
+  expect(designer).not.toContain('saveJsonModel')
+  expect(designer).not.toContain('props.onPublish')
+})
+
 test('parses the backend fixture for offline root, child and form display', () => {
   const bundle = parseWorkflowPackage(JSON.stringify(fixture))
   expect(getPackageDefinition(bundle).flowCode).toBe('package_parent')

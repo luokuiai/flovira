@@ -43,12 +43,13 @@ test('restricts fixed return targets to upstream approval nodes and catches remo
   expect(validateDefinition(definition).issues.some((issue) => issue.code === 'REJECT_TARGET_INVALID')).toBe(false)
 })
 
-test('requires a fixed return target before saving and preserves old policies', () => {
-  const view = render(<ReactFlowDesigner onSave={async () => {}} />)
+test('validates fixed return targets and preserves old policies', () => {
+  const ref = createRef<ReactFlowDesignerRef>()
+  const view = render(<ReactFlowDesigner ref={ref} />)
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
   fireEvent.click(view.getByRole('radio', { name: '退回指定节点' }))
   expect(view.getByRole('alert').textContent).toContain('没有可选')
-  expect((view.getByRole('button', { name: '保存' }) as HTMLButtonElement).disabled).toBe(true)
+  expect(ref.current!.validate().issues.some(issue => issue.code === 'REJECT_TARGET_INVALID')).toBe(true)
   const node = createInitialDefinition().nodeList[1]
   expect(getNodeControlConfig({ ...node, returnPolicy: 'ANY' }).rejectStrategy).toBe('TO_REJECTOR_SPECIFIED_NODE')
   expect(getNodeControlConfig({ ...node, returnPolicy: 'REJECT' }).rejectStrategy).toBe('REJECT')

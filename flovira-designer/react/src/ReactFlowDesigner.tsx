@@ -16,7 +16,6 @@ import {
   Network,
   Plus,
   Redo2,
-  Save,
   Settings2,
   Timer,
   Undo2,
@@ -158,6 +157,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     value,
     defaultValue,
     disabled = false,
+    appearance = 'standalone',
     className = '',
     capabilities: configuredCapabilities,
     queryResources,
@@ -166,7 +166,8 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     compileBranchConditions,
     maxHistory = 50,
     onChange,
-    onSave,
+    toolbar,
+    renderToolbar,
     renderNode,
     renderApproverEditor,
     ui,
@@ -656,8 +657,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       ? editorRenderer?.(editorContext)
       : undefined
 
-    return (
-      <section className={`flovira-react-designer ${className}`}>
+    const defaultToolbar = (
         <header className="frd-header">
           <div className="frd-heading">
             <div className="frd-heading__icon">
@@ -676,23 +676,14 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           <div className="frd-toolbar">
             <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="撤销" disabled={!past.length || disabled} onPress={undo}><Undo2 size={16} /></ToolbarButton>
             <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="重做" disabled={!future.length || disabled} onPress={redo}><Redo2 size={16} /></ToolbarButton>
-            <span className="frd-toolbar__divider" />
-            {onSave && (
-              <UiButton
-                variant="primary"
-                disabled={disabled || validation.issues.some((issue) => ['BRANCH_CONDITION_REQUIRED', 'VOTE_RATIO_INVALID', 'REJECT_TARGET_INVALID'].includes(issue.code))}
-                className="frd-save-button"
-                onPress={async () => {
-                  await onSave(definition, serializeDefinition(definition))
-                  setDirty(false)
-                }}
-              >
-                <Save size={14} />保存
-              </UiButton>
-            )}
           </div>
         </header>
-
+    )
+    return (
+      <section className={`flovira-react-designer ${className}`} data-appearance={appearance}>
+        {toolbar !== false && (renderToolbar
+          ? renderToolbar({ defaultToolbar, disabled, dirty })
+          : defaultToolbar)}
         <div className="frd-workspace">
           <div className="frd-canvas-shell">
             <div ref={canvasRef} className="flovira-react-canvas" data-dragging={canvasDragging}

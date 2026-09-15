@@ -353,6 +353,7 @@ export interface DesignerBranchCondition {
 
 export interface DesignerConditionGroup {
   conditions: DesignerBranchCondition[]
+  collection?: { code: string; label: string; quantifier: 'ANY' | 'ALL' }
 }
 
 export interface DesignerConditionFieldContext {
@@ -366,6 +367,11 @@ export type DesignerConditionFieldLoader = (
 ) => Promise<readonly DesignerConditionField[]>
 
 export interface ReactFlowDesignerProps {
+  /** standalone 为独立卡片，embedded 去掉外层边框、圆角和阴影。 */
+  appearance?: 'standalone' | 'embedded'
+  /** 是否显示顶栏；默认显示。 */
+  toolbar?: boolean
+  renderToolbar?: (context: DesignerToolbarContext) => ReactNode
   value?: FloviraDefinition | string
   defaultValue?: FloviraDefinition | string
   disabled?: boolean
@@ -380,7 +386,6 @@ export interface ReactFlowDesignerProps {
   compileBranchConditions?: (groups: DesignerConditionGroup[]) => string
   maxHistory?: number
   onChange?: (change: ReactFlowDesignerChange) => void
-  onSave?: (definition: FloviraDefinition, json: string) => void | Promise<void>
   renderNode?: (context: NodeRendererContext) => ReactNode
   /** Render a strategy editor for INLINE or DIALOG strategies. */
   renderApproverEditor?: (context: ApproverEditorRenderContext) => ReactNode
@@ -401,4 +406,10 @@ export interface ReactFlowDesignerRef {
   zoomOut(): void
   resetZoom(): void
   locateStart(): void
+}
+
+export interface DesignerToolbarContext {
+  defaultToolbar: ReactNode
+  disabled: boolean
+  dirty: boolean
 }

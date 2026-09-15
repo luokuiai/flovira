@@ -5,7 +5,7 @@ import type { FlowDesignerInstance } from '@/designer/types'
  * useFlowJson 返回值：流程 json 的响应式只读视图 + 同步入口 + 可直接展开到 FlowDesigner 的事件集合。
  */
 export interface UseFlowJsonReturn {
-  /** 最近一次同步的可保存流程 json 字符串（响应式，随 ready / change / saved 自动刷新） */
+  /** 最近一次同步的可保存流程 json 字符串（响应式，随 ready / change 自动刷新） */
   json: Ref<string>
   /** json 解析后的对象（解析失败为 null） */
   data: ComputedRef<any>
@@ -16,7 +16,7 @@ export interface UseFlowJsonReturn {
   /**
    * 事件监听集合，直接展开到设计器即自动驱动同步：
    * `<FlowDesigner ref="designerRef" v-on="flowJson.bind" />`
-   * 包含 onReady / onChange / onSaved（刷新 json）与 onDirty（同步 dirty）。
+   * 包含 onReady / onChange（刷新 json）与 onDirty（同步 dirty）。
    */
   bind: Record<string, (...args: any[]) => void>
 }
@@ -67,10 +67,9 @@ export function useFlowJson(designerRef: Ref<FlowDesignerInstance | null>): UseF
   }
 
   const bind: Record<string, (...args: any[]) => void> = {
-    // 画布就绪 / 变更 / 保存成功后刷新 json（与 dirty）
+    // 画布就绪 / 变更后刷新 json（与 dirty）
     onReady: () => { sync() },
     onChange: () => { sync() },
-    onSaved: () => { sync() },
     // 未保存状态翻转：同步 dirty；变干净时顺带刷新 json（反映已保存内容）
     onDirty: (d: boolean) => { dirty.value = !!d; if (!d) sync() },
   }

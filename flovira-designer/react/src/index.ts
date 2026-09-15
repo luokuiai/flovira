@@ -1,4 +1,6 @@
 import './styles.css'
+export { getFormConditionFields, compileFormCondition, compileFormConditionGroup } from './formDefinition'
+export type { FormDefinition, FormFieldDefinition, FormConditionField, FormConditionGroup, FormCondition } from './formDefinition'
 
 export { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from './workflowPackage'
 export type { WorkflowPackage, PackageDefinition, PackagedForm } from './workflowPackage'
@@ -36,6 +38,7 @@ export {
   validateDefinition,
 } from './model'
 export type {
+  DesignerToolbarContext,
   ApproverRule,
   ApproverEditorType,
   ApproverOptionCondition,

@@ -1,5 +1,5 @@
 const NODE_TYPE_MAP = {0: 'start', 1: 'between', 2: 'end', 3: 'serial', 4: 'parallel', 5: 'inclusive', 6: 'subProcess', 7: 'wait', 8: 'carbonCopy'}
-const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig']
+const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig', 'branchConditions']
 
 /**
  * 将flovira的定义json数据转成LogicFlow支持的数据格式
@@ -99,6 +99,13 @@ export const json2LogicFlowJson = (definition) => {
       edge.targetNodeId = skipEle.targetNodeCode
       edge.text = { value: skipEle.skipName }
       edge.properties.skipCondition = skipEle.skipCondition
+      const source = allNodes.find(node => node.nodeCode === skipEle.sourceNodeCode)
+      const sourceGraph = graphData.nodes.find(node => node.id === skipEle.sourceNodeCode)
+      const savedRules = sourceGraph?.properties.ext?.branchConditions
+      if (savedRules) {
+        const rule = JSON.parse(savedRules).rules?.[source.skipList.indexOf(skipEle)]
+        if (rule && rule.expression === (skipEle.skipCondition || '')) edge.properties.branchRule = rule
+      }
       edge.properties.skipName = skipEle.skipName
       edge.properties.skipType = skipEle.skipType
       edge.properties.status = skipEle.status
@@ -248,6 +255,14 @@ export const logicFlowJsonToFlovira = (data) => {
         node.skipList.push(skip)
       }
     })
+    const outgoing = data.edges.filter(edge => edge.sourceNodeId === anyNode.id)
+    const extensions = JSON.parse(node.ext)
+    if (outgoing.some(edge => edge.properties.branchRule) || extensions.some(item => item.code === 'branchConditions')) {
+      const rules = outgoing.map(edge => edge.properties.branchRule?.expression === (edge.properties.skipCondition || '')
+        ? edge.properties.branchRule : { mode: 'expression', groups: [], expression: edge.properties.skipCondition || '' })
+      node.ext = JSON.stringify([...extensions.filter(item => item.code !== 'branchConditions'),
+        { code: 'branchConditions', value: JSON.stringify({ schemaVersion: 1, rules }) }])
+    }
     definition.nodeList.push(node)
   })
   return JSON.stringify(definition)

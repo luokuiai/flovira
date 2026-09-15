@@ -7,8 +7,14 @@ plugins {
 }
 
 dependencies {
+    testImplementation libs.junit.junit
     api project(':flovira-core')
     api libs.com.google.code.gson.gson
 }
 
 description = 'flovira-plugin-json-gson'
+
+sourceSets.test {
+    java.srcDir('../src/contractTest/java')
+    resources.srcDir(rootProject.file('flovira-core/src/test/resources'))
+}

@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   ReactFlowDesigner,
@@ -6,6 +6,7 @@ import {
   type DesignerCapabilities,
   type DesignerConditionFieldLoader,
   type FloviraDefinition,
+  type ReactFlowDesignerRef,
 } from '@luokuiai/flovira-react-designer'
 import { lumenDesignerUi } from '@luokuiai/flovira-react-adapter-lumen'
 import '@luokuiai/lumen-ui/styles.css'
@@ -29,6 +30,17 @@ const queryFormConditionFields: DesignerConditionFieldLoader = async () => [
 ]
 
 function App() {
+  const designerRef = useRef<ReactFlowDesignerRef>(null)
+  const [error, setError] = useState('')
+  const saveDesign = () => {
+    const designer = designerRef.current
+    if (!designer) return
+    const result = designer.validate()
+    if (!result.valid) { setError(result.issues.map(issue => issue.message).join('；')); return }
+    setSaved(JSON.parse(designer.getFlowJson()))
+    designer.resetDirty()
+    setError('')
+  }
   const [tab, setTab] = useState<'designer' | 'preview'>('preview')
   const [saved, setSaved] = useState<FloviraDefinition | null>(null)
   const [capabilities, setCapabilities] = useState<DesignerCapabilities>()
@@ -69,7 +81,12 @@ function App() {
         renderApproverEditor={(context) => context.strategy.editorKey === 'organization-user-picker'
           ? <OrganizationParticipantPicker {...context} />
           : null}
-        onSave={(definition) => setSaved(definition)}
+        ref={designerRef}
+        renderToolbar={({ defaultToolbar, disabled }) => <div>
+          {defaultToolbar}
+          <button disabled={disabled} onClick={saveDesign}>保存到示例状态</button>
+          {error && <p role="alert">{error}</p>}
+        </div>}
       />
       {saved && <div className="save-toast" role="status">已保存 {saved.flowName}</div>}
       </div>
