@@ -7,7 +7,7 @@ CREATE TABLE flow_definition
     flow_code       varchar(40)  NOT NULL,
     flow_name       varchar(100) NOT NULL,
     category        varchar(100) NULL,
-    business_type   varchar(64) NULL,
+    business_type   varchar(128) NOT NULL,
     "version"       varchar(20)  NOT NULL,
     publish_status      int2         NOT NULL DEFAULT 0,
     form_id       varchar(100) NULL,
@@ -172,7 +172,7 @@ CREATE TABLE flow_instance
 (
     id              int8         NOT NULL,
     definition_id   int8         NOT NULL,
-    business_type   varchar(64)  NOT NULL,
+    business_type   varchar(128) NOT NULL,
     business_id     varchar(40)  NOT NULL,
     node_type       int2         NOT NULL,
     node_code       varchar(96)  NOT NULL,

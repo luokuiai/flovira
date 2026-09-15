@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -61,6 +62,21 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     }
 
     @Override
+    public void insertFill(Definition definition) {
+        AssertUtil.isEmpty(definition.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
+        super.insertFill(definition);
+    }
+
+    @Override
+    public void updateFill(Definition definition) {
+        // 部分更新允许不传业务类型；显式传入空串不能被 ORM 静默忽略。
+        if (definition.getBusinessType() != null) {
+            AssertUtil.isEmpty(definition.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
+        }
+        super.updateFill(definition);
+    }
+
+    @Override
     public Definition importIs(InputStream is) {
         StringBuilder stringBuilder = new StringBuilder();
         try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
@@ -108,6 +124,9 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     public void saveDef(DefJson defJson, boolean onlyNodeSkip) {
         if (ObjectUtil.isNull(defJson)) {
             return;
+        }
+        if (defJson.getId() == null || !onlyNodeSkip) {
+            AssertUtil.isEmpty(defJson.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
         }
         FlowCombine flowCombine = DefJson.copyCombine(defJson);
         Definition definition = flowCombine.getDefinition();

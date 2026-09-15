@@ -46,6 +46,8 @@ public class BusinessCorrelationSchemaContractTest {
                 .toLowerCase();
             String instance = tableSection(sql, "flow_instance");
             String definition = tableSection(sql, "flow_definition");
+            assertBusinessTypeColumn(path, definition);
+            assertBusinessTypeColumn(path, instance);
             assertTrue(path + " definition missing business_type", definition.contains("business_type"));
             assertFalse(path + " definition contains business_id", definition.contains("business_id"));
             String task = tableSection(sql, "flow_task");
@@ -70,5 +72,16 @@ public class BusinessCorrelationSchemaContractTest {
         assertTrue("missing table " + tableName, start >= 0);
         int nextTable = sql.indexOf("create table", start + 12);
         return sql.substring(start, nextTable < 0 ? sql.length() : nextTable);
+    }
+
+    private void assertBusinessTypeColumn(String path, String table) {
+        java.util.regex.Matcher column = java.util.regex.Pattern.compile(
+            "(?m)^\\s*`?business_type`?\\s+([^\\r\\n]+)").matcher(table);
+        assertTrue(path + " missing business_type column", column.find());
+        String declaration = column.group(1);
+        assertTrue(path + " business_type must have length 128",
+            declaration.matches("varchar2?\\(128\\).*"));
+        assertTrue(path + " business_type must be required", declaration.contains("not null"));
+        assertFalse(path + " business_type must have no default", declaration.contains("default"));
     }
 }

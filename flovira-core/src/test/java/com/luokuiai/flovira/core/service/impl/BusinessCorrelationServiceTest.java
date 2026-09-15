@@ -20,6 +20,7 @@ import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.service.DefService;
 import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Instance;
@@ -28,6 +29,7 @@ import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
+import com.luokuiai.flovira.core.orm.dao.FlowDefinitionDao;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
 import com.luokuiai.flovira.core.service.InstanceService;
@@ -59,6 +61,43 @@ public class BusinessCorrelationServiceTest {
         FlowEngine.setNewIns(() -> TestEntityFactory.create(Instance.class));
         FlowEngine.initDataFillHandler(null);
         FlowEngine.jsonConvert = new EmptyJsonConvert();
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectSavingDefinitionWithoutBusinessType() {
+        new DefServiceImpl().save(TestEntityFactory.create(Definition.class));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectBatchSavingBlankBusinessType() {
+        new DefServiceImpl().saveBatch(Collections.singletonList(
+            TestEntityFactory.create(Definition.class).setBusinessType("  ")));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectClearingBusinessTypeOnUpdate() {
+        new DefServiceImpl().updateById(TestEntityFactory.create(Definition.class)
+            .setId(1L).setBusinessType(""));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectFullDesignSaveWithoutBusinessType() {
+        new DefServiceImpl().saveDef(new DefJson().setId(1L).setFlowCode("PURCHASE"), false);
+    }
+
+    @Test
+    public void shouldAllowStatusOnlyDefinitionUpdate() {
+        final Definition[] updated = new Definition[1];
+        FlowDefinitionDao<Definition> dao = proxy(FlowDefinitionDao.class, (method, args) -> {
+            if ("updateById".equals(method.getName())) {
+                updated[0] = (Definition) args[0];
+                return 1;
+            }
+            return defaultValue(method.getReturnType());
+        });
+        Definition patch = TestEntityFactory.create(Definition.class).setId(1L).setPublishStatus(1);
+        new DefServiceImpl().setDao(dao).updateById(patch);
+        assertSame(patch, updated[0]);
     }
 
     @Test(expected = FlowException.class)

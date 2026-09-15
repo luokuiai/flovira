@@ -4,10 +4,34 @@ DROP TABLE IF EXISTS flow_subprocess_run;
 DROP TABLE IF EXISTS flow_task;
 DROP TABLE IF EXISTS flow_form;
 DROP TABLE IF EXISTS flow_definition;
+DROP TABLE IF EXISTS flow_instance;
+
+CREATE TABLE flow_instance
+(
+    id              int8         NOT NULL,
+    definition_id   int8         NOT NULL,
+    business_type   varchar(128) NOT NULL,
+    business_id     varchar(40)  NOT NULL,
+    node_type       int2         NOT NULL,
+    node_code       varchar(96)  NOT NULL,
+    node_name       varchar(100) NULL,
+    variables        text         NULL,
+    flow_status     varchar(20)  NOT NULL,
+    activity_status int2         NOT NULL DEFAULT 1,
+    def_json        text         NULL,
+    created_at     timestamp    NULL,
+    created_by       varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at     timestamp    NULL,
+    updated_by       varchar(64)  NULL     DEFAULT '':: character varying,
+    ext             varchar(500) NULL,
+    deleted        bpchar(1)    NOT NULL DEFAULT '0':: character varying,
+    tenant_id       varchar(40)  NULL,
+    CONSTRAINT flow_instance_pkey PRIMARY KEY (id)
+);
 
 CREATE TABLE flow_definition (
     id bigint PRIMARY KEY, flow_code varchar(40) NOT NULL, flow_name varchar(100) NOT NULL,
-    category varchar(100), business_type varchar(64), version varchar(20) NOT NULL,
+    category varchar(100), business_type varchar(128) NOT NULL, version varchar(20) NOT NULL,
     publish_status smallint NOT NULL DEFAULT 0, form_id varchar(100),
     activity_status smallint NOT NULL DEFAULT 1, listener_type varchar(100), listener_path varchar(400),
     ext varchar(500), created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp,
