@@ -19,6 +19,8 @@ package com.luokuiai.flovira.orm.contract;
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.entity.Definition;
+import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.dao.FlowDefinitionDao;
 import com.luokuiai.flovira.core.entity.SubprocessChild;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
@@ -125,25 +127,46 @@ public class SubprocessPersistenceContractTest {
         jdbcTemplate.update("delete from flow_task");
         jdbcTemplate.update("delete from flow_form");
         jdbcTemplate.update("delete from flow_definition");
+        jdbcTemplate.update("delete from flow_instance");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldPersist128CharacterInstanceBusinessType() {
+        FlowInstanceDao<Instance> dao = (FlowInstanceDao<Instance>) context.getBean(FlowInstanceDao.class);
+        String businessType = repeat('b', 128);
+        Instance instance = FlowEngine.newIns().setId(70L).setDefinitionId(60L)
+            .setBusinessType(businessType).setBusinessId("1001").setNodeType(1)
+            .setNodeCode("APPROVE").setNodeName("Approve").setFlowStatus("1").setActivityStatus(1);
+        root(instance);
+        assertEquals(1, dao.save(instance));
+        assertEquals(businessType, dao.selectById(70L).getBusinessType());
+    }
+
+    @Test(expected = org.springframework.dao.DataIntegrityViolationException.class)
+    public void shouldRejectNullDefinitionBusinessTypeInDatabase() {
+        jdbcTemplate.update("insert into flow_definition (id, flow_code, flow_name, version) "
+            + "values (80, 'missing-type', 'Missing type', '1')");
     }
 
     @Test
     public void shouldPersistAndCopyDefinitionBusinessType() {
+        String businessType = repeat('a', 128);
         Definition definition = FlowEngine.newDef().setId(60L).setFlowCode("purchase")
-            .setFlowName("Purchase").setVersion("1").setBusinessType("PURCHASE_ORDER")
+            .setFlowName("Purchase").setVersion("1").setBusinessType(businessType)
             .setPublishStatus(0).setActivityStatus(1);
         root(definition);
         assertEquals(1, definitionDao.save(definition));
         Definition stored = definitionDao.selectById(60L);
-        assertEquals("PURCHASE_ORDER", stored.getBusinessType());
-        assertEquals("PURCHASE_ORDER", stored.copy().getBusinessType());
-        assertEquals("PURCHASE_ORDER", DefJson.copyDef(DefJson.copyDef(stored)).getBusinessType());
+        assertEquals(businessType, stored.getBusinessType());
+        assertEquals(businessType, stored.copy().getBusinessType());
+        assertEquals(businessType, DefJson.copyDef(DefJson.copyDef(stored)).getBusinessType());
 
         stored.setBusinessType("EXPENSE");
         definitionDao.updateById(stored);
         assertEquals("EXPENSE", definitionDao.selectById(60L).getBusinessType());
         assertEquals(1, definitionDao.selectList(FlowEngine.newDef().setBusinessType("EXPENSE"), null).size());
-        assertEquals(0, definitionDao.selectList(FlowEngine.newDef().setBusinessType("PURCHASE_ORDER"), null).size());
+        assertEquals(0, definitionDao.selectList(FlowEngine.newDef().setBusinessType(businessType), null).size());
 
         Definition copy = stored.copy().setId(61L).setVersion("2").setPublishStatus(0).setActivityStatus(1);
         root(copy);

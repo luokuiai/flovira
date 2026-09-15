@@ -6,7 +6,7 @@ CREATE TABLE `flow_definition`
     `id`              bigint          NOT NULL COMMENT '主键id',
     `flow_code`       varchar(40)     NOT NULL COMMENT '流程编码',
     `flow_name`       varchar(100)    NOT NULL COMMENT '流程名称',
-    `business_type`   varchar(64)              DEFAULT NULL COMMENT '业务类型',
+    `business_type`   varchar(128) NOT NULL COMMENT '业务类型',
     `category`        varchar(100)             DEFAULT NULL COMMENT '流程类别',
     `version`         varchar(20)     NOT NULL COMMENT '流程版本',
     `publish_status`      tinyint(1)      NOT NULL DEFAULT '0' COMMENT '是否发布（0未发布 1已发布 9失效）',
@@ -97,7 +97,7 @@ CREATE TABLE `flow_instance`
 (
     `id`              bigint      NOT NULL COMMENT '主键id',
     `definition_id`   bigint      NOT NULL COMMENT '对应flow_definition表的id',
-    `business_type`   varchar(64) NOT NULL COMMENT '业务类型',
+    `business_type`   varchar(128) NOT NULL COMMENT '业务类型',
     `business_id`     varchar(40) NOT NULL COMMENT '业务id',
     `node_type`       tinyint(1)  NOT NULL COMMENT '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
     `node_code`       varchar(96) NOT NULL COMMENT '流程节点编码',

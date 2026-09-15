@@ -5,7 +5,7 @@ create table FLOW_DEFINITION
     FLOW_CODE       VARCHAR2(40)          not null,
     FLOW_NAME       VARCHAR2(100)         not null,
     CATEGORY        VARCHAR2(100),
-    BUSINESS_TYPE   VARCHAR2(64),
+    BUSINESS_TYPE   VARCHAR2(128) not null,
     VERSION         VARCHAR2(20)          not null,
     PUBLISH_STATUS      NUMBER(1)   default 0 not null,
     FORM_ID       VARCHAR2(100),
@@ -178,7 +178,7 @@ create table FLOW_INSTANCE
 (
     ID              NUMBER       not null,
     DEFINITION_ID   NUMBER       not null,
-    BUSINESS_TYPE   VARCHAR2(64) not null,
+    BUSINESS_TYPE   VARCHAR2(128) not null,
     BUSINESS_ID     VARCHAR2(40) not null,
     NODE_TYPE       NUMBER(1)    not null,
     NODE_CODE       VARCHAR2(96) not null,
