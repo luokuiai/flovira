@@ -30,7 +30,7 @@ Flovira 目前只能执行彼此独立的普通流程实例，无法在一个流
 
 - `flovira-core`：公共实体、枚举、服务、`FlowEngine` 门面和流程状态机增加兼容性扩展。
 - `flovira-orm`：三个 ORM core 模块增加运行时实体、Mapper/DAO 和初始化接线；各 starter 继续复用对应 ORM core。
-- `sql/`：四种数据库建表脚本增加三张 `flow_subprocess_*` 表；MySQL、PostgreSQL 以 `flovira-v1.sql` 作为全新安装入口，不继承旧升级链。
+- `sql/`：四种数据库建表脚本增加三张 `flow_subprocess_*` 表；MySQL、PostgreSQL 以 `flovira-v1.0.0.sql` 作为全新安装入口，不继承旧升级链。
 - `flovira-vue-designer`、`flovira-ui` 和 UI 插件静态资源：增加子流程节点与只读运行态展示。
 - 公共 API 采用加法扩展；已有七张核心表、普通节点定义和运行中普通流程不改写。
 - 子流程能力会把核心表数量从七张增加到十张，并要求使用新版本数据库脚本后才能启用 `SUB_PROCESS` 节点。

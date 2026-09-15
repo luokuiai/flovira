@@ -4,7 +4,7 @@
 
 ## 新建数据库
 
-MySQL、PostgreSQL、Oracle 的 `flovira-v1.sql` 已包含完整 `flow_form`。新建库直接执行对应基线脚本。
+MySQL、PostgreSQL、Oracle 的 `flovira-v1.0.0.sql` 已包含完整 `flow_form`。新建库直接执行对应基线脚本。
 
 ## 已有开发数据库
 

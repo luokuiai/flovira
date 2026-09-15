@@ -9,7 +9,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ../sql/postgresql/flovira-v1.sql:/docker-entrypoint-initdb.d/01-flovira.sql:ro
+      - ../sql/postgresql/flovira-v1.0.0.sql:/docker-entrypoint-initdb.d/01-flovira.sql:ro
       - ./backend/postgres/src/main/resources/db/example-v1.sql:/docker-entrypoint-initdb.d/02-example.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U flovira -d flovira_example"]
@@ -28,7 +28,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ../sql/mysql/flovira-v1.sql:/docker-entrypoint-initdb.d/01-flovira.sql:ro
+      - ../sql/mysql/flovira-v1.0.0.sql:/docker-entrypoint-initdb.d/01-flovira.sql:ro
       - ./backend/mysql/src/main/resources/db/example-v1.sql:/docker-entrypoint-initdb.d/02-example.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uflovira", "-pflovira"]

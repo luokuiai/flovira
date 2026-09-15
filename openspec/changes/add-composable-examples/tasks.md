@@ -17,7 +17,7 @@
 
 - [x] 3.1 Implement the PostgreSQL runtime module with only its application entry point, driver, configuration, and example schema/seed assets; verify its dependency graph and `compileJava` task succeed.
 - [x] 3.2 Implement the MySQL runtime module with only its application entry point, driver, configuration, and example schema/seed assets; verify its dependency graph and `compileJava` task succeed.
-- [x] 3.3 Add container services that initialize each database from its authoritative `sql/<dialect>/flovira-v1.sql` plus the matching example-owned schema; verify fresh PostgreSQL and MySQL volumes contain the expected Flovira and example tables.
+- [x] 3.3 Add container services that initialize each database from its authoritative `sql/<dialect>/flovira-v1.0.0.sql` plus the matching example-owned schema; verify fresh PostgreSQL and MySQL volumes contain the expected Flovira and example tables.
 - [ ] 3.4 Run the reusable backend contract suite against both real database variants; verify definition round-trip, publish/start, approve-to-completion, rejection, progress/history, tenant/deletion behavior, and persistence after backend restart.
 
 ## 4. Shared frontend implementation
