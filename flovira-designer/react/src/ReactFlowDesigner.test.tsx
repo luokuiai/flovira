@@ -76,6 +76,8 @@ describe('ReactFlowDesigner', () => {
 
     fireEvent.click(within(first.container).getByRole('button', { name: `编辑节点：${subprocess.nodeName}` }))
     fireEvent.click(within(second.container).getByRole('button', { name: `编辑节点：${subprocess.nodeName}` }))
+    fireEvent.click(within(first.container).getByRole('button', { name: '选择流程' }))
+    fireEvent.click(within(second.container).getByRole('button', { name: '选择流程' }))
 
     await waitFor(() => {
       expect(within(first.container).getByRole('option', { name: '租户 A 子流程' })).toBeTruthy()
