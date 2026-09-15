@@ -43,7 +43,6 @@
         </span>
         <span class="workbench-header-group workbench-header-group--export">
           <wf-tooltip :content="t('flowDesigner.downloadImage')" placement="bottom"><wf-button @click="emit('download-image')"><svg-icon icon-class="ep:picture" /></wf-button></wf-tooltip>
-          <wf-tooltip :content="t('flowDesigner.downloadJson')" placement="bottom"><wf-button @click="emit('download-json')"><svg-icon icon-class="ep:download" /></wf-button></wf-tooltip>
         </span>
         <wf-button class="save-btn" size="default" @click="emitSave" v-if="!disabled">
           <svg-icon icon-class="save" class="save-icon" />
@@ -85,7 +84,6 @@ const emit = defineEmits<{
   (e: 'redo'): void;
   (e: 'clear'): void;
   (e: 'download-image'): void;
-  (e: 'download-json'): void;
 }>();
 
 const { t } = useI18n();

@@ -55,6 +55,11 @@ export function ProcessEditor({
 - `ui`: 可选 UI Adapter，按需替换 Button、Input、Select、Checkbox、RadioGroup、Field、Tooltip、DropdownMenu、Drawer 和 Dialog；未传入的控件继续使用默认实现。
 - ref: `getDefinition`、`getFlowJson`、`importJson`、`validate`、`undo`、`redo`、缩放和定位命令。
 
+完整迁移由后端流程包方法负责，设计器不内置 JSON 导入/导出按钮。
+前端可使用 `parseWorkflowPackage` 解析包 JSON，用 `getPackageDefinition` 取得根流程或子流程，
+直接传给 `FlowPreview` / `ReactFlowDesigner`；`getPackageForm` 和 `parsePackageFormContent`
+提供表单元数据及内容给宿主渲染器。详见[流程包接入说明](../../docs/workflow-packages.md)。
+
 默认 UI 使用包内作用域 CSS，消费方只需引入 `style.css`，不需要安装或配置 Tailwind。UI Adapter 使用 `onPress`、`onValueChange` 和 `onCheckedChange` 等语义事件，便于对接 Ant Design、Arco Design、MUI 或业务组件库。
 
 办理人类型不在 React 包中枚举。设计器直接渲染宿主传入的

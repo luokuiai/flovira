@@ -1,4 +1,6 @@
 import type { App, Plugin } from 'vue'
+export { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from '../data/workflowPackage'
+export type { WorkflowPackage, PackageDefinition, PackagedForm } from '../data/workflowPackage'
 import '@/icons'
 
 import FlowDesigner from '@/components/design/FlowDesigner.vue'

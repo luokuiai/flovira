@@ -21,6 +21,8 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.constant.ExceptionCons;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowCombine;
+import com.luokuiai.flovira.core.dto.WorkflowPackage;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
@@ -53,6 +55,17 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definition>, Definition> implements DefService {
+
+    @Override
+    public WorkflowPackage exportPackage(Long definitionId) {
+        return FlowEngine.transactionExecutor().execute(() -> new WorkflowPackageTransfer(this).exportPackage(definitionId));
+    }
+
+    @Override
+    public WorkflowImportResult importPackage(WorkflowPackage workflowPackage, Map<String, String> externalFormReferences) {
+        return FlowEngine.transactionExecutor().execute(() ->
+            new WorkflowPackageTransfer(this).importPackage(workflowPackage, externalFormReferences));
+    }
 
 
     @Override

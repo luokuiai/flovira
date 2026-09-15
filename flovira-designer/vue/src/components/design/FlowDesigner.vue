@@ -13,7 +13,6 @@
       @redo="undoOrRedo(false)"
       @clear="clear()"
       @download-image="downLoad"
-      @download-json="downJson"
       @save="saveJsonModel"
     >
       <!-- 仅转发消费方实际提供的具名插槽；未提供时由子组件渲染默认内容（保留默认回退） -->

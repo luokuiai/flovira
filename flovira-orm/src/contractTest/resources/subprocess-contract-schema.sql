@@ -5,6 +5,54 @@ DROP TABLE IF EXISTS flow_task;
 DROP TABLE IF EXISTS flow_form;
 DROP TABLE IF EXISTS flow_definition;
 DROP TABLE IF EXISTS flow_instance;
+DROP TABLE IF EXISTS flow_node;
+DROP TABLE IF EXISTS flow_skip;
+
+CREATE TABLE flow_node
+(
+    id              int8          NOT NULL,
+    node_type       int2          NOT NULL,
+    definition_id   int8          NOT NULL,
+    node_code       varchar(96)   NOT NULL,
+    node_name       varchar(100)  NULL,
+    permission_flag varchar(200)  NULL,
+    node_ratio      varchar(200) NULL,
+    coordinate      varchar(100)  NULL,
+    any_node_skip   varchar(100)  NULL,
+    listener_type   varchar(100)  NULL,
+    listener_path   varchar(400)  NULL,
+    form_id       varchar(100)  NULL,
+    "version"       varchar(20)   NOT NULL,
+    created_at     timestamp     NULL,
+    created_by       varchar(64)   NULL     DEFAULT '':: character varying,
+    updated_at     timestamp     NULL,
+    updated_by       varchar(64)   NULL     DEFAULT '':: character varying,
+    ext             text          NULL,
+    deleted        bpchar(1)     NOT NULL DEFAULT '0':: character varying,
+    tenant_id       varchar(40)   NULL,
+    CONSTRAINT flow_node_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE flow_skip
+(
+    id             int8         NOT NULL,
+    definition_id  int8         NOT NULL,
+    source_node_code  varchar(96) NOT NULL,
+    source_node_type  int2         NULL,
+    target_node_code varchar(96) NOT NULL,
+    target_node_type int2         NULL,
+    skip_name      varchar(100) NULL,
+    skip_type      varchar(40)  NULL,
+    skip_condition varchar(200) NULL,
+    coordinate     varchar(100) NULL,
+    created_at    timestamp    NULL,
+    created_by      varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at    timestamp    NULL,
+    updated_by      varchar(64)  NULL     DEFAULT '':: character varying,
+    deleted       bpchar(1)    NOT NULL DEFAULT '0':: character varying,
+    tenant_id      varchar(40)  NULL,
+    CONSTRAINT flow_skip_pkey PRIMARY KEY (id)
+);
 
 CREATE TABLE flow_instance
 (

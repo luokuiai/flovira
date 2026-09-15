@@ -1,5 +1,8 @@
 import './styles.css'
 
+export { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from './workflowPackage'
+export type { WorkflowPackage, PackageDefinition, PackagedForm } from './workflowPackage'
+
 export { ReactFlowDesigner } from './ReactFlowDesigner'
 export { FlowPreview } from './FlowPreview'
 export type { FlowPreviewProps, FlowPreviewNodeContext } from './FlowPreview'
