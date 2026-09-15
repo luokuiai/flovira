@@ -15,6 +15,7 @@ export const json2LogicFlowJson = (definition) => {
   graphData.flowCode = definition.flowCode
   graphData.flowName = definition.flowName
   graphData.category = definition.category
+  graphData.businessType = definition.businessType
   graphData.version = definition.version
   graphData.formId = definition.formId
   graphData.listenerType = definition.listenerType
@@ -191,6 +192,7 @@ export const logicFlowJsonToFlovira = (data) => {
   definition.flowCode = data.flowCode
   definition.flowName = data.flowName
   definition.category = data.category
+  definition.businessType = data.businessType
   definition.version = data.version
   definition.formId = data.formId
   definition.listenerType = data.listenerType

@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { json2LogicFlowJson, logicFlowJsonToFlovira } from './tool'
 
+test('preserves definition business type independently of category', () => {
+  const graph = json2LogicFlowJson({ category: 'finance', businessType: 'PURCHASE_ORDER', nodeList: [] })
+  const saved = JSON.parse(logicFlowJsonToFlovira(graph))
+  expect(saved.category).toBe('finance')
+  expect(saved.businessType).toBe('PURCHASE_ORDER')
+})
+
 test('preserves external form IDs and supports clearing node overrides', () => {
   const logic = json2LogicFlowJson({ formId: 'expense:v2', nodeList: [{
     nodeType: '1', nodeCode: 'approval', nodeName: '审批', nodeRatio: '0', formId: 'finance:v1', skipList: [],

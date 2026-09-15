@@ -1,5 +1,6 @@
 {
   "flowCode": "example_purchase_approval",
+  "businessType": "purchase-request",
   "flowName": "Example purchase approval",
   "category": "examples",
   "publishStatus": 0,

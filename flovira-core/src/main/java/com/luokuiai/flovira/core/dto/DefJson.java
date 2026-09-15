@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -62,6 +63,11 @@ public class DefJson {
      * 流程类别
      */
     private String category;
+
+    /**
+     * 业务类型
+     */
+    private String businessType;
 
     /**
      * 流程版本
@@ -139,6 +145,7 @@ public class DefJson {
                 .setVersion(definition.getVersion())
                 .setPublishStatus(definition.getPublishStatus())
                 .setCategory(definition.getCategory())
+                .setBusinessType(definition.getBusinessType())
                 .setFormId(definition.getFormId())
                 .setListenerType(definition.getListenerType())
                 .setListenerPath(definition.getListenerPath())
@@ -193,6 +200,7 @@ public class DefJson {
                 .setFlowName(defJson.getFlowName())
                 .setVersion(defJson.getVersion())
                 .setCategory(defJson.getCategory())
+                .setBusinessType(defJson.getBusinessType())
                 .setFormId(defJson.getFormId())
                 .setListenerType(defJson.getListenerType())
                 .setListenerPath(defJson.getListenerPath())

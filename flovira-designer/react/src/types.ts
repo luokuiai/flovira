@@ -109,6 +109,8 @@ export interface NodeControlConfig {
 }
 
 export interface FloviraDefinition extends Record<string, unknown> {
+  /** 流程定义配置的业务类型，启动时写入实例快照。 */
+  businessType?: string | null
   /** 外部业务表单标识，由业务系统解析。 */
   formId?: string | null
   id?: string | number

@@ -75,7 +75,7 @@ public class ExampleWorkflowService {
         variables.put("department", purchase.department());
         FlowParams params = FlowParams.build().handler(DemoUserContext.get()).variables(variables)
             .formData(new LinkedHashMap<>(variables));
-        Instance instance = FlowEngine.instanceService().startByDefinitionId("purchase-request", purchaseId,
+        Instance instance = FlowEngine.instanceService().startByDefinitionId(purchaseId,
             definitionId, params);
         repository.markPurchaseStarted(purchaseId);
         return instance;

@@ -58,14 +58,7 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
         AssertUtil.isEmpty(businessId, ExceptionCons.NULL_BUSINESS_ID);
         // 获取已发布的流程节点
         Definition definition = FlowEngine.defService().getPublishByFlowCode(flowParams.getFlowCode());
-        return start(defaultBusinessType(definition), businessId, flowParams, definition);
-    }
-
-    @Override
-    public Instance start(String businessType, String businessId, FlowParams flowParams) {
-        AssertUtil.isNull(flowParams.getFlowCode(), ExceptionCons.NULL_FLOW_CODE);
-        Definition definition = FlowEngine.defService().getPublishByFlowCode(flowParams.getFlowCode());
-        return start(businessType, businessId, flowParams, definition);
+        return start(businessId, flowParams, definition);
     }
 
     @Override
@@ -73,20 +66,11 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
         AssertUtil.isNull(definitionId, ExceptionCons.NOT_FOUNT_DEF);
         AssertUtil.isEmpty(businessId, ExceptionCons.NULL_BUSINESS_ID);
         Definition definition = FlowEngine.defService().getById(definitionId);
-        return start(defaultBusinessType(definition), businessId, flowParams, definition);
+        return start(businessId, flowParams, definition);
     }
 
-    @Override
-    public Instance startByDefinitionId(String businessType, String businessId, Long definitionId,
-                                        FlowParams flowParams) {
-        AssertUtil.isNull(definitionId, ExceptionCons.NOT_FOUNT_DEF);
-        Definition definition = FlowEngine.defService().getById(definitionId);
-        return start(businessType, businessId, flowParams, definition);
-    }
-
-    private Instance start(String businessType, String businessId, FlowParams flowParams, Definition definition) {
-        AssertUtil.isNull(definition, ExceptionCons.NOT_FOUNT_DEF);
-        AssertUtil.isEmpty(businessType, ExceptionCons.NULL_BUSINESS_TYPE);
+    private Instance start(String businessId, FlowParams flowParams, Definition definition) {
+        String businessType = requireBusinessType(definition);
         AssertUtil.isEmpty(businessId, ExceptionCons.NULL_BUSINESS_ID);
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombine(definition);
         // 获取开始节点
@@ -142,8 +126,10 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
         return instance;
     }
 
-    static String defaultBusinessType(Definition definition) {
-        return definition == null ? null : definition.getFlowCode();
+    static String requireBusinessType(Definition definition) {
+        AssertUtil.isNull(definition, ExceptionCons.NOT_FOUNT_DEF);
+        AssertUtil.isEmpty(definition.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
+        return definition.getBusinessType();
     }
 
     @Override

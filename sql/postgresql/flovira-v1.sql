@@ -7,6 +7,7 @@ CREATE TABLE flow_definition
     flow_code       varchar(40)  NOT NULL,
     flow_name       varchar(100) NOT NULL,
     category        varchar(100) NULL,
+    business_type   varchar(64) NULL,
     "version"       varchar(20)  NOT NULL,
     publish_status      int2         NOT NULL DEFAULT 0,
     form_id       varchar(100) NULL,
@@ -28,6 +29,7 @@ COMMENT ON COLUMN flow_definition.id IS '主键id';
 COMMENT ON COLUMN flow_definition.flow_code IS '流程编码';
 COMMENT ON COLUMN flow_definition.flow_name IS '流程名称';
 COMMENT ON COLUMN flow_definition.category IS '流程类别';
+COMMENT ON COLUMN flow_definition.business_type IS '业务类型';
 COMMENT ON COLUMN flow_definition."version" IS '流程版本';
 COMMENT ON COLUMN flow_definition.publish_status IS '是否发布（0未发布 1已发布 9失效）';
 COMMENT ON COLUMN flow_definition.form_id IS '外部业务表单标识';

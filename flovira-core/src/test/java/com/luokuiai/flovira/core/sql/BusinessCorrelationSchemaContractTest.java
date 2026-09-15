@@ -45,6 +45,9 @@ public class BusinessCorrelationSchemaContractTest {
             String sql = new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8)
                 .toLowerCase();
             String instance = tableSection(sql, "flow_instance");
+            String definition = tableSection(sql, "flow_definition");
+            assertTrue(path + " definition missing business_type", definition.contains("business_type"));
+            assertFalse(path + " definition contains business_id", definition.contains("business_id"));
             String task = tableSection(sql, "flow_task");
             String history = tableSection(sql, "flow_his_task");
 

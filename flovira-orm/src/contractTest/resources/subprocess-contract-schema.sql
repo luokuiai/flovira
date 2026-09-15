@@ -3,6 +3,16 @@ DROP TABLE IF EXISTS flow_subprocess_child;
 DROP TABLE IF EXISTS flow_subprocess_run;
 DROP TABLE IF EXISTS flow_task;
 DROP TABLE IF EXISTS flow_form;
+DROP TABLE IF EXISTS flow_definition;
+
+CREATE TABLE flow_definition (
+    id bigint PRIMARY KEY, flow_code varchar(40) NOT NULL, flow_name varchar(100) NOT NULL,
+    category varchar(100), business_type varchar(64), version varchar(20) NOT NULL,
+    publish_status smallint NOT NULL DEFAULT 0, form_id varchar(100),
+    activity_status smallint NOT NULL DEFAULT 1, listener_type varchar(100), listener_path varchar(400),
+    ext varchar(500), created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp,
+    updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40)
+);
 
 CREATE TABLE flow_form (
     id bigint PRIMARY KEY, form_code varchar(40) NOT NULL, form_name varchar(100) NOT NULL,
