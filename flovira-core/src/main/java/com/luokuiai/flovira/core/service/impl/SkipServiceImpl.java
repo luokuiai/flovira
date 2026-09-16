@@ -50,7 +50,7 @@ public class SkipServiceImpl extends FloviraServiceImpl<FlowSkipDao<Skip>, Skip>
     }
 
     @Override
-    public List<Skip> getByDefIdAndNowNodeCode(Long definitionId, String nodeCode) {
-        return list(FlowEngine.newSkip().setDefinitionId(definitionId).setNowNodeCode(nodeCode));
+    public List<Skip> getByDefIdAndSourceNodeCode(Long definitionId, String sourceNodeCode) {
+        return list(FlowEngine.newSkip().setDefinitionId(definitionId).setSourceNodeCode(sourceNodeCode));
     }
 }

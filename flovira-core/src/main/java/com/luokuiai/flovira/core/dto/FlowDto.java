@@ -18,7 +18,6 @@ package com.luokuiai.flovira.core.dto;
 
 import lombok.Getter;
 import lombok.Setter;
-import com.luokuiai.flovira.core.entity.Form;
 
 import java.io.Serializable;
 
@@ -31,19 +30,9 @@ import java.io.Serializable;
 public class FlowDto implements Serializable {
 
     /**
-     * ID
+     * 外部业务表单标识
      */
-    private Long id;
-
-    /**
-     * 表单内容
-     */
-    private String formContent;
-
-    /**
-     * 表单数据
-     */
-    private Form form;
+    private String formId;
 
     /**
      * 数据

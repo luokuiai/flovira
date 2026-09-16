@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,22 +17,28 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.constant.FlowCons;
 import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.dto.FormChangeRecord;
+import com.luokuiai.flovira.core.dto.FormFieldChange;
+import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.entity.User;
-import com.luokuiai.flovira.core.enums.CooperateType;
+import com.luokuiai.flovira.core.enums.CooperationType;
 import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
 import com.luokuiai.flovira.core.service.HisTaskService;
 import com.luokuiai.flovira.core.utils.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 
 /**
  * 历史任务记录Service业务层处理
@@ -40,6 +47,8 @@ import java.util.List;
  * @since 2023-03-29
  */
 public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTask>, HisTask> implements HisTaskService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HisTaskServiceImpl.class);
 
     @Override
     public HisTaskService setDao(FlowHisTaskDao<HisTask> floviraDao) {
@@ -53,14 +62,14 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
     }
 
     @Override
-    public List<HisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer... cooperateTypes) {
-        if (ArrayUtil.isEmpty(cooperateTypes)) {
+    public List<HisTask> listByTaskIdAndCooperationTypes(Long taskId, Integer... cooperationTypes) {
+        if (ArrayUtil.isEmpty(cooperationTypes)) {
             return listByTaskId(taskId);
         }
-        if (cooperateTypes.length == 1) {
-            return list(FlowEngine.newHisTask().setTaskId(taskId).setCooperateType(cooperateTypes[0]));
+        if (cooperationTypes.length == 1) {
+            return list(FlowEngine.newHisTask().setTaskId(taskId).setCooperationType(cooperationTypes[0]));
         }
-        return getDao().listByTaskIdAndCooperateTypes(taskId, cooperateTypes);
+        return getDao().listByTaskIdAndCooperationTypes(taskId, cooperationTypes);
     }
 
     @Override
@@ -104,7 +113,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(ObjectUtil.defaultNull(flowParams.getCooperateType(), CooperateType.APPROVAL.getKey()))
+            .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setCollaborator(StreamUtils.join(collaborators, c -> c))
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
@@ -115,13 +124,12 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setApprover(flowParams.getHandler())
             .setSkipType(flowParams.getSkipType())
             .setFlowStatus(StringUtils.emptyDefault(flowStatus, FlowStatus.APPROVAL.getKey()))
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -132,7 +140,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(ObjectUtil.defaultNull(flowParams.getCooperateType(), CooperateType.APPROVAL.getKey()))
+            .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -142,13 +150,12 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setApprover(flowParams.getHandler())
             .setSkipType(SkipType.NONE.getKey())
             .setFlowStatus(flowStatus)
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -159,7 +166,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(CooperateType.DEPUTE.getKey())
+            .setCooperationType(CooperationType.DEPUTE.getKey())
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -167,18 +174,17 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setTargetNodeCode(task.getNodeCode())
             .setTargetNodeName(task.getNodeName())
             .setApprover(flowParams.getHandler())
-            .setCollaborator(entrustedUser.getCreateBy())
+            .setCollaborator(entrustedUser.getCreatedBy())
             .setSkipType(flowParams.getSkipType())
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : SkipType.isReject(flowParams.getSkipType())
                 ? FlowStatus.REJECT.getKey() : FlowStatus.PASS.getKey())
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -189,8 +195,8 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(CooperateType.isCountersign(nodeRatio)
-                ? CooperateType.COUNTERSIGN.getKey() : CooperateType.VOTE.getKey())
+            .setCooperationType(CooperationType.isCountersign(nodeRatio)
+                ? CooperationType.COUNTERSIGN.getKey() : CooperationType.VOTE.getKey())
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -201,13 +207,12 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : isPass
                 ? FlowStatus.PASS.getKey() : FlowStatus.REJECT.getKey())
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
@@ -218,8 +223,52 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
     }
 
     @Override
+    public List<FormChangeRecord> getFormChanges(Long instanceId) {
+        List<HisTask> source = getByInsId(instanceId);
+        if (CollUtil.isEmpty(source)) {
+            return new ArrayList<FormChangeRecord>();
+        }
+        List<HisTask> hisTasks = new ArrayList<HisTask>(source);
+        hisTasks.sort((left, right) -> compareHistoryOrder(left, right));
+
+        List<FormChangeRecord> records = new ArrayList<FormChangeRecord>();
+        Map<String, Map<String, String>> fieldLabelCache = new HashMap<String, Map<String, String>>();
+        Map<String, Object> previousFormData = null;
+        for (HisTask hisTask : hisTasks) {
+            if (hisTask == null || SkipType.NONE.getKey().equals(hisTask.getSkipType())) {
+                continue;
+            }
+            Map<String, Object> currentFormData = getFormData(hisTask);
+            if (currentFormData == null) {
+                continue;
+            }
+            if (previousFormData == null) {
+                previousFormData = new LinkedHashMap<String, Object>(currentFormData);
+                continue;
+            }
+
+            List<FormFieldChange> changes = compareFormData(previousFormData, currentFormData);
+            if (CollUtil.isNotEmpty(changes)) {
+                fillFieldLabels(hisTask, changes, fieldLabelCache);
+                records.add(new FormChangeRecord()
+                    .setHisTaskId(hisTask.getId())
+                    .setTaskId(hisTask.getTaskId())
+                    .setInstanceId(hisTask.getInstanceId())
+                    .setNodeCode(hisTask.getNodeCode())
+                    .setNodeName(hisTask.getNodeName())
+                    .setApprover(hisTask.getApprover())
+                    .setChangeTime(eventTime(hisTask))
+                    .setFormId(hisTask.getFormId())
+                    .setChanges(changes));
+            }
+            previousFormData = new LinkedHashMap<String, Object>(currentFormData);
+        }
+        return records;
+    }
+
+    @Override
     public List<HisTask> listByBusinessKey(String businessType, String businessId) {
-        List<Instance> instances = FlowEngine.insService().listByBusinessKey(businessType, businessId);
+        List<Instance> instances = FlowEngine.instanceService().listByBusinessKey(businessType, businessId);
         if (CollUtil.isEmpty(instances)) {
             return new ArrayList<HisTask>();
         }
@@ -231,7 +280,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
             .setInstanceId(task.getInstanceId())
-            .setCooperateType(ObjectUtil.defaultNull(flowParams.getCooperateType(), CooperateType.APPROVAL.getKey()))
+            .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setNodeCode(task.getNodeCode())
             .setNodeName(task.getNodeName())
             .setNodeType(task.getNodeType())
@@ -243,18 +292,127 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
             .setFlowStatus(StringUtils.isNotEmpty(flowStatus)
                 ? flowStatus : SkipType.isReject(flowParams.getSkipType())
                 ? FlowStatus.REJECT.getKey() : FlowStatus.PASS.getKey())
-            .setFormCustom(task.getFormCustom())
-            .setFormPath(task.getFormPath())
+            .setFormId(task.getFormId())
             .setMessage(flowParams.getMessage())
-            .setVariable(flowParams.getVariableStr())
+            .setVariables(flowParams.getVariablesStr())
             //业务详情添加至历史记录
             .setExt(flowParams.getHisTaskExt())
-            .setCreateTime(task.getCreateTime());
+            .setCreatedAt(task.getCreatedAt());
         FlowEngine.dataFillHandler().idFill(hisTask);
         return hisTask;
     }
 
     private String getFlowStatus(FlowParams flowParams) {
         return StringUtils.emptyDefault(flowParams.getHisStatus(), flowParams.getFlowStatus());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getFormData(HisTask hisTask) {
+        Map<String, Object> variables = hisTask.getVariableMap();
+        if (MapUtil.isEmpty(variables)) {
+            return null;
+        }
+        Object formData = variables.get(FlowCons.FORM_DATA);
+        return formData instanceof Map ? (Map<String, Object>) formData : null;
+    }
+
+    private List<FormFieldChange> compareFormData(Map<String, Object> previous, Map<String, Object> current) {
+        Set<String> fieldKeys = new LinkedHashSet<String>();
+        fieldKeys.addAll(previous.keySet());
+        fieldKeys.addAll(current.keySet());
+
+        List<FormFieldChange> changes = new ArrayList<FormFieldChange>();
+        for (String fieldKey : fieldKeys) {
+            boolean existed = previous.containsKey(fieldKey);
+            boolean exists = current.containsKey(fieldKey);
+            Object beforeValue = previous.get(fieldKey);
+            Object afterValue = current.get(fieldKey);
+            if (existed && exists && valuesEqual(beforeValue, afterValue)) {
+                continue;
+            }
+            String changeType = !existed ? FormFieldChange.ADDED
+                : !exists ? FormFieldChange.REMOVED : FormFieldChange.UPDATED;
+            changes.add(new FormFieldChange()
+                .setFieldKey(fieldKey)
+                .setFieldLabel(fieldKey)
+                .setChangeType(changeType)
+                .setBeforeValue(beforeValue)
+                .setAfterValue(afterValue));
+        }
+        return changes;
+    }
+
+    private boolean valuesEqual(Object left, Object right) {
+        if (left instanceof Number && right instanceof Number) {
+            try {
+                return new BigDecimal(left.toString()).compareTo(new BigDecimal(right.toString())) == 0;
+            } catch (NumberFormatException ignored) {
+                // NaN and infinity fall back to the regular object comparison.
+            }
+        }
+        return Objects.deepEquals(left, right);
+    }
+
+    private void fillFieldLabels(HisTask hisTask, List<FormFieldChange> changes,
+        Map<String, Map<String, String>> fieldLabelCache) {
+        Map<String, String> labels = getFieldLabels(hisTask, fieldLabelCache);
+        if (MapUtil.isEmpty(labels)) {
+            return;
+        }
+        for (FormFieldChange change : changes) {
+            String label = labels.get(change.getFieldKey());
+            if (StringUtils.isNotEmpty(label)) {
+                change.setFieldLabel(label);
+            }
+        }
+    }
+
+    private Map<String, String> getFieldLabels(HisTask hisTask,
+        Map<String, Map<String, String>> fieldLabelCache) {
+        String formId = hisTask.getFormId();
+        if (StringUtils.isEmpty(formId)) {
+            return Collections.emptyMap();
+        }
+        if (fieldLabelCache.containsKey(formId)) {
+            return fieldLabelCache.get(formId);
+        }
+        FormFieldProvider provider = FlowEngine.formFieldProvider();
+        Map<String, String> labels = provider == null ? Collections.emptyMap() : provider.getFieldLabels(formId);
+        if (labels == null) {
+            labels = Collections.emptyMap();
+        }
+        fieldLabelCache.put(formId, labels);
+        return labels;
+    }
+
+    private int compareHistoryOrder(HisTask left, HisTask right) {
+        if (left == right) {
+            return 0;
+        }
+        if (left == null) {
+            return 1;
+        }
+        if (right == null) {
+            return -1;
+        }
+        int timeCompare = compareNullable(eventTime(left), eventTime(right));
+        return timeCompare != 0 ? timeCompare : compareNullable(left.getId(), right.getId());
+    }
+
+    private Date eventTime(HisTask hisTask) {
+        return hisTask.getUpdatedAt() != null ? hisTask.getUpdatedAt() : hisTask.getCreatedAt();
+    }
+
+    private <T extends Comparable<T>> int compareNullable(T left, T right) {
+        if (left == right) {
+            return 0;
+        }
+        if (left == null) {
+            return 1;
+        }
+        if (right == null) {
+            return -1;
+        }
+        return left.compareTo(right);
     }
 }

@@ -20,12 +20,12 @@ import java.util.Date;
 @Accessors(chain = true)
 public class FlowSubprocessRun implements SubprocessRun {
     private Long id;
-    private Date createTime;
-    private Date updateTime;
-    private String createBy;
-    private String updateBy;
+    private Date createdAt;
+    private Date updatedAt;
+    private String createdBy;
+    private String updatedBy;
     private String tenantId;
-    private String delFlag;
+    private String deleted;
     private Long parentInstanceId;
     private Long parentTaskId;
     private Long parentDefinitionId;

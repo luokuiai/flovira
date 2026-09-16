@@ -8,8 +8,8 @@
       <wf-button class="property-panel-close" @click="handleClose"><svg-icon icon-class="ep:close" /></wf-button>
     </header>
     <div class="property-panel-body">
-      <component v-if="componentType" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled"
-                 :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips" :form-path-list="formPathList">
+      <component v-if="componentType" :key="objId" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled"
+                 :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips" :form-options="formOptions">
         <template v-slot:[key]="data" v-for="(item, key) in $slots">
           <slot :name="key" v-bind="data || {}"></slot>
         </template>
@@ -27,8 +27,8 @@
       :append-to-body="true"
       :before-close="handleClose"
       class="property-drawer-modern">
-      <component v-if="componentType" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled" :skipConditionShow="skipConditionShow"
-                 :nodes="nodes" :skips="skips" :form-path-list="formPathList">
+      <component v-if="componentType" :key="objId" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled" :skipConditionShow="skipConditionShow"
+                 :nodes="nodes" :skips="skips" :form-options="formOptions">
         <template v-slot:[key]="data" v-for="(item, key) in $slots">
           <slot :name="key" v-bind="data || {}"></slot>
         </template>
@@ -43,6 +43,7 @@ import start from '@/components/design/common/vue/start.vue'
 import between from '@/components/design/common/vue/between.vue'
 import subProcess from '@/components/design/common/vue/subProcess.vue'
 import wait from '@/components/design/common/vue/wait.vue'
+import carbonCopy from '@/components/design/common/vue/carbonCopy.vue'
 import serial from '@/components/design/common/vue/gateway.vue'
 import parallel from '@/components/design/common/vue/gateway.vue'
 import inclusive from '@/components/design/common/vue/gateway.vue'
@@ -78,6 +79,7 @@ const COMPONENT_LIST = {
   between,
   subProcess,
   wait,
+  carbonCopy,
   serial,
   parallel,
   inclusive,
@@ -103,7 +105,7 @@ interface PropertySettingProps {
   /** 画布边列表 */
   skips?: any[];
   /** 自定义表单路径树 */
-  formPathList?: any[];
+  formOptions?: any[];
 }
 const props = withDefaults(defineProps<PropertySettingProps>(), {
   displayMode: 'drawer',
@@ -114,7 +116,7 @@ const props = withDefaults(defineProps<PropertySettingProps>(), {
   skipConditionShow: true,
   nodes: () => [],
   skips: () => [],
-  formPathList: () => [],
+  formOptions: () => [],
 });
 const emit = defineEmits<{
   (e: 'visibility-change', visible: boolean): void;
@@ -141,6 +143,8 @@ const title = computed(() => {
     return t('property.titleSubprocess')
   } else if (props.node && props.node.type === 'wait') {
     return t('property.titleWait')
+  } else if (props.node && props.node.type === 'carbonCopy') {
+    return t('property.titleCarbonCopy')
   }
   return t('property.titleBetween')
 });
@@ -160,7 +164,7 @@ watch(() => props.node, n => {
       let condition, conditionType, conditionValue = ''
       if (skipCondition) {
         let conditionSpl = skipCondition.split('@@')
-        if (skipCondition && (/^spel/.test(skipCondition) || /^default/.test(skipCondition)) || /^snel/.test(skipCondition)) {
+        if (skipCondition && (/^spel/.test(skipCondition) || /^default/.test(skipCondition))) {
           conditionType = conditionSpl && conditionSpl.length > 0 ? conditionSpl[0] : ''
           conditionValue = conditionSpl && conditionSpl.length > 1 ? conditionSpl[1] : ''
         } else if (skipCondition) {
@@ -176,6 +180,7 @@ watch(() => props.node, n => {
         skipType: n.properties.skipType,
         skipName: n.text instanceof Object ? n.text.value : n.text,
         skipCondition: skipCondition,
+        branchRule: n.properties.branchRule,
         condition: condition,
         conditionType: conditionType,
         conditionValue: conditionValue
@@ -194,7 +199,7 @@ watch(() => props.node, n => {
               const [type, value] = nodeRatio.split('=');
               nodeRatioType = type;
               nodeRatioValue = value;
-          } else if (/^spel|default|snel/.test(nodeRatio)) {
+          } else if (/^spel|default/.test(nodeRatio)) {
               const [type, value] = nodeRatio.split('@@');
               nodeRatioType = type;
               nodeRatioValue = value;
@@ -204,8 +209,6 @@ watch(() => props.node, n => {
           }
       }
 
-      n.properties.formCustom = JSON.stringify(n.properties) === "{}" ? "N" : (n.properties.formCustom ?
-          n.properties.formCustom : props.formPathList && props.formPathList.length > 0 ? "Y" :"N");
       let listenerTypes = n.properties.listenerType ? n.properties.listenerType.split(",") : [];
       let listenerPaths = n.properties.listenerPath ? n.properties.listenerPath.split("@@") : [];
       n.properties.listenerRows = listenerTypes && listenerTypes.length > 0 ? listenerTypes.map((type, index) => ({
@@ -290,15 +293,10 @@ watch(() => form.value.listenerRows?.map(e => e.listenerPath), (n) => {
   })
 }, { deep: true });
 
-watch(() => form.value.formCustom, (n) => {
-  props.lf.setProperties(objId.value, {
-    formCustom: n || ""
-  })
-});
 
-watch(() => form.value.formPath, (n) => {
+watch(() => form.value.formId, (n) => {
   props.lf.setProperties(objId.value, {
-    formPath: n
+    formId: n
   })
 });
 
@@ -316,7 +314,8 @@ watch(() => form.value.skipName, (n) => {
 watch(() => form.value.skipCondition, (n) => {
   // 监听跳转属性变化并更新
   props.lf.setProperties(objId.value, {
-    skipCondition: n
+    skipCondition: n,
+    branchRule: form.value.branchRule
   })
 
 });
@@ -326,6 +325,10 @@ watch(() => form.value.ext, (n) => {
   props.lf.setProperties(objId.value, {
     ext: n
   })
+}, { deep: true });
+
+watch(() => form.value.branchRule, (rule) => {
+  if (props.node?.type === 'skip') props.lf.setProperties(objId.value, { branchRule: rule })
 }, { deep: true });
 
 function show () {

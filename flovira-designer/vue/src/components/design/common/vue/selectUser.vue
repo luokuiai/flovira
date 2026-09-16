@@ -61,7 +61,7 @@
               <div class="card-info">
                 <div class="card-name-row">
                   <span class="card-name">{{ item.handlerName || '-' }}</span>
-                  <span class="card-time" v-if="item.createTime">{{ item.createTime }}</span>
+                  <span class="card-time" v-if="item.createdAt">{{ item.createdAt }}</span>
                 </div>
                 <div class="card-sub">
                   <span class="card-code">{{ item.handlerCode || '-' }}</span>
@@ -112,9 +112,9 @@
             <wf-table-column :label="t('selectUser.permCode')" align="center" key="handlerCode" prop="handlerCode" v-if="columns[1].visible" :show-overflow-tooltip="true" />
             <wf-table-column :label="t('between.handlerStorageId')" align="center" key="storageId" prop="storageId" v-if="columns[0].visible" class-name="mobile-hide-col" />
             <wf-table-column :label="t('selectUser.permGroup')" align="center" key="groupName" prop="groupName" v-if="columns[3].visible" :show-overflow-tooltip="true" class-name="mobile-hide-col" />
-            <wf-table-column :label="t('selectUser.createTime')" align="center" prop="createTime" v-if="columns[4].visible" width="160" class-name="mobile-hide-col">
+            <wf-table-column :label="t('selectUser.createdAt')" align="center" prop="createdAt" v-if="columns[4].visible" width="160" class-name="mobile-hide-col">
               <template #default="scope">
-                <span>{{ parseTime(scope.row.createTime) }}</span>
+                <span>{{ parseTime(scope.row.createdAt) }}</span>
               </template>
             </wf-table-column>
           </wf-table>

@@ -1,6 +1,14 @@
 import './styles.css'
+export { getFormConditionFields, compileFormCondition, compileFormConditionGroup } from './formDefinition'
+export type { FormDefinition, FormFieldDefinition, FormConditionField, FormConditionGroup, FormCondition } from './formDefinition'
+
+export { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from './workflowPackage'
+export type { WorkflowPackage, PackageDefinition, PackagedForm } from './workflowPackage'
 
 export { ReactFlowDesigner } from './ReactFlowDesigner'
+export { FlowPreview } from './FlowPreview'
+export type { FlowPreviewProps, FlowPreviewNodeContext } from './FlowPreview'
+export { defaultDesignerUi } from './ui'
 export {
   addGatewayBranch,
   approverStrategyOptions,
@@ -11,6 +19,10 @@ export {
   filterNodeTypes,
   findApproverStrategy,
   getApproverRule,
+  getNodeControlConfig,
+  setNodeControlConfig,
+  getRejectTargetCandidates,
+  getCarbonCopyRule,
   getSubprocessConfig,
   getTimeoutConfig,
   getWaitConfig,
@@ -19,24 +31,51 @@ export {
   serializeDefinition,
   setSubprocessConfig,
   setApproverRule,
+  setCarbonCopyRule,
   setTimeoutConfig,
   setWaitConfig,
   updateNode,
   validateDefinition,
 } from './model'
 export type {
+  DesignerToolbarContext,
   ApproverRule,
+  ApproverEditorType,
+  ApproverOptionCondition,
+  ApproverResultCardinality,
   ApproverStrategy,
   ApproverSubject,
   ApproverSelectionType,
   DesignerApproverStrategy,
-  DesignerDataProvider,
+  DesignerApproverOption,
+  DesignerApproverOptionChoice,
+  DesignerButtonProps,
+  DesignerButtonVariant,
+  DesignerCheckboxProps,
+  DesignerRadioGroupProps,
+  DesignerControlSize,
+  DesignerDropdownMenuItem,
+  DesignerDropdownMenuProps,
+  DesignerDialogProps,
+  DesignerDrawerProps,
+  DesignerFieldProps,
+  DesignerInputProps,
   DesignerCapabilities,
+  DesignerConditionField,
+  DesignerConditionFieldContext,
+  DesignerConditionFieldLoader,
+  DesignerBranchCondition,
+  DesignerConditionGroup,
   DesignerRelationshipQuery,
   DesignerResourceItem,
   DesignerResourcePage,
   DesignerResourceQuery,
+  DesignerResourceLoader,
   DesignerSubject,
+  DesignerSelectOption,
+  DesignerSelectProps,
+  DesignerTooltipProps,
+  DesignerUiAdapter,
   FloviraDefinition,
   FloviraNode,
   FloviraNodeType,
@@ -44,7 +83,9 @@ export type {
   FlowValidationIssue,
   FlowValidationResult,
   NodeRendererContext,
+  ApproverEditorRenderContext,
   NodeTimeoutConfig,
+  NodeControlConfig,
   ReactFlowDesignerChange,
   ReactFlowDesignerProps,
   ReactFlowDesignerRef,

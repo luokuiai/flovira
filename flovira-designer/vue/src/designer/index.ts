@@ -1,4 +1,6 @@
 import type { App, Plugin } from 'vue'
+export { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from '../data/workflowPackage'
+export type { WorkflowPackage, PackageDefinition, PackagedForm } from '../data/workflowPackage'
 import '@/icons'
 
 import FlowDesigner from '@/components/design/FlowDesigner.vue'
@@ -35,9 +37,7 @@ import type { WfLocale, WfMessageTree, UseI18nReturn } from '@/i18n'
 import type {
   FlowDesignerProps,
   FlowDesignerInstance,
-  FlowDesignerSavedPayload,
   FlowDesignerReadyPayload,
-  FlowDesignerBeforeSavePayload,
   FlowDesignerChangePayload,
   FlowDesignerValidateErrorPayload,
   FlowDesignerNodeClickPayload,
@@ -116,7 +116,7 @@ export {
   // 全局 UI 选项：设置 / 获取设计器组件尺寸（small / default / large）
   setComponentSize,
   getComponentSize,
-  // 组合式 API：命令式操控设计器（save / zoom / getFlowJson 等，空安全包装）
+  // 组合式 API：命令式操控设计器（validate / zoom / getFlowJson 等，空安全包装）
   useFlowDesigner,
   // 组合式 API：流程 json 响应式只读视图（json / data / dirty + sync + bind）
   useFlowJson,
@@ -154,9 +154,7 @@ export type { WfLocale, WfMessageTree, UseI18nReturn }
 export type {
   FlowDesignerProps,
   FlowDesignerInstance,
-  FlowDesignerSavedPayload,
   FlowDesignerReadyPayload,
-  FlowDesignerBeforeSavePayload,
   FlowDesignerChangePayload,
   FlowDesignerValidateErrorPayload,
   FlowDesignerNodeClickPayload,
@@ -168,3 +166,5 @@ export type {
 }
 
 export default FloviraDesigner
+export { getFormConditionFields, compileFormCondition, compileFormConditionGroup } from '../data/formDefinition'
+export type { FormDefinition, FormFieldDefinition, FormConditionField, FormConditionGroup, FormCondition } from '../data/formDefinition'

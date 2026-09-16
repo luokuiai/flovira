@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,16 +17,29 @@
 package com.luokuiai.flovira.orm.contract;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.dto.DefJson;
+import com.luokuiai.flovira.core.dto.WorkflowPackage;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
+import com.luokuiai.flovira.core.exception.FlowException;
+import com.luokuiai.flovira.core.entity.Definition;
+import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
+import com.luokuiai.flovira.core.orm.dao.FlowDefinitionDao;
 import com.luokuiai.flovira.core.entity.SubprocessChild;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.SubprocessRun;
 import com.luokuiai.flovira.core.entity.Task;
+import com.luokuiai.flovira.core.entity.Form;
+import com.luokuiai.flovira.core.enums.PublishStatus;
 import com.luokuiai.flovira.core.enums.SubprocessChildStatus;
 import com.luokuiai.flovira.core.enums.SubprocessRunStatus;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessChildDao;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessEventDao;
 import com.luokuiai.flovira.core.orm.dao.FlowSubprocessRunDao;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
+import com.luokuiai.flovira.core.orm.dao.FlowFormDao;
+import com.luokuiai.flovira.core.handler.TenantHandler;
+import com.luokuiai.flovira.core.service.FormService;
 import com.luokuiai.flovira.core.utils.page.Page;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -49,6 +63,9 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.fail;
 
 /**
  * 三种 ORM 共用的子流程持久化契约测试
@@ -67,6 +84,9 @@ public class SubprocessPersistenceContractTest {
     private FlowSubprocessChildDao<SubprocessChild> childDao;
     private FlowSubprocessEventDao<SubprocessEvent> eventDao;
     private FlowTaskDao<Task> taskDao;
+    private FlowFormDao<Form> formDao;
+    private FlowDefinitionDao<Definition> definitionDao;
+    private FormService formService;
     private JdbcTemplate jdbcTemplate;
     private TransactionTemplate transactionTemplate;
 
@@ -82,8 +102,9 @@ public class SubprocessPersistenceContractTest {
             "--spring.datasource.driver-class-name=" + Driver.class.getName(),
             "--spring.sql.init.mode=always",
             "--spring.sql.init.schema-locations=classpath:subprocess-contract-schema.sql",
-            "--easy-query.database=pgsql",
             "--flovira.banner=false",
+            "--flovira.logic-delete=true",
+            "--flovira.tenant-handler-path=" + ContractTenantHandler.class.getName(),
             "--flovira.data-source-type=postgresql"
         );
     }
@@ -100,12 +121,168 @@ public class SubprocessPersistenceContractTest {
         childDao = (FlowSubprocessChildDao<SubprocessChild>) context.getBean(FlowSubprocessChildDao.class);
         eventDao = (FlowSubprocessEventDao<SubprocessEvent>) context.getBean(FlowSubprocessEventDao.class);
         taskDao = (FlowTaskDao<Task>) context.getBean(FlowTaskDao.class);
+        formDao = (FlowFormDao<Form>) context.getBean(FlowFormDao.class);
+        definitionDao = (FlowDefinitionDao<Definition>) context.getBean(FlowDefinitionDao.class);
+        formService = context.getBean(FormService.class);
         jdbcTemplate = context.getBean(JdbcTemplate.class);
         transactionTemplate = new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
         jdbcTemplate.update("delete from flow_subprocess_event");
         jdbcTemplate.update("delete from flow_subprocess_child");
         jdbcTemplate.update("delete from flow_subprocess_run");
         jdbcTemplate.update("delete from flow_task");
+        jdbcTemplate.update("delete from flow_form");
+        jdbcTemplate.update("delete from flow_definition");
+        jdbcTemplate.update("delete from flow_instance");
+        jdbcTemplate.update("delete from flow_skip");
+        jdbcTemplate.update("delete from flow_node");
+    }
+
+    @Test
+    public void shouldRoundTripWorkflowPackageWithFormsAndSubprocesses() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        WorkflowImportResult imported = FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+        assertEquals(2, imported.getDefinitionIds().size());
+        assertEquals(1, imported.getFormReferences().size());
+        assertNotEquals(Long.valueOf(999999L), imported.getRootDefinitionId());
+        String newFormId = imported.getFormReferences().get("source-form-1");
+        assertNotEquals("source-form-1", newFormId);
+        Definition parent = FlowEngine.defService().getAllDataDefinition(imported.getRootDefinitionId());
+        assertEquals(newFormId, parent.getFormId());
+        assertEquals(newFormId, parent.getNodeList().stream().filter(n -> "sub".equals(n.getNodeCode()))
+            .findFirst().get().getFormId());
+        assertEquals(Integer.valueOf(0), parent.getPublishStatus());
+        assertEquals("1", parent.getVersion());
+        assertEquals("tenant-a", parent.getTenantId());
+        assertEquals("source-form-1", input.getDefinitions().get(1).getFormId());
+        assertEquals(Long.valueOf(999999L), input.getDefinitions().get(1).getId());
+        Form form = FlowEngine.formService().getById(Long.valueOf(newFormId));
+        assertEquals(input.getForms().get(0).getFormContent(), form.getFormContent());
+        assertEquals(Integer.valueOf(0), form.getPublishStatus());
+
+        // 固定子流程按已发布版本解析，先发布依赖，再导出父流程。
+        assertTrue(FlowEngine.defService().publish(imported.getDefinitionIds().get("package_child")));
+        WorkflowPackage exported = FlowEngine.defService().exportPackage(imported.getRootDefinitionId());
+        assertEquals(2, exported.getDefinitions().size());
+        assertEquals(1, exported.getForms().size());
+        assertTrue(exported.getExternalFormIds().isEmpty());
+        assertNull(exported.getDefinitions().get(1).getId());
+        assertEquals("1", exported.getForms().get(0).getVersion());
+        assertEquals(form.getFormContent(), exported.getForms().get(0).getFormContent());
+        WorkflowPackage decoded = FlowEngine.jsonConvert.strToBean(
+            FlowEngine.jsonConvert.objToStr(exported), WorkflowPackage.class);
+        WorkflowImportResult second = FlowEngine.defService().importPackage(decoded, java.util.Collections.emptyMap());
+        assertNotEquals(imported.getRootDefinitionId(), second.getRootDefinitionId());
+        assertEquals("2", FlowEngine.defService().getById(second.getRootDefinitionId()).getVersion());
+        assertNotEquals(newFormId, second.getFormReferences().get(newFormId));
+    }
+
+    @Test
+    public void shouldRequireExplicitExternalFormMappings() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        input.getDefinitions().get(1).setFormId("host:purchase");
+        input.getExternalFormIds().add("host:purchase");
+        try {
+            FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+            fail("Missing external mapping must fail");
+        } catch (FlowException expected) {
+            assertTrue(expected.getMessage().contains("外部表单映射"));
+        }
+        assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+        WorkflowImportResult result = FlowEngine.defService().importPackage(input,
+            java.util.Collections.singletonMap("host:purchase", "target:purchase"));
+        assertEquals("target:purchase", FlowEngine.defService().getById(result.getRootDefinitionId()).getFormId());
+    }
+
+    @Test
+    public void shouldRollbackFormsAndDefinitionsWhenNodePersistenceFails() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        input.getDefinitions().get(1).getNodeList().get(0).setNodeName(repeat('x', 101));
+        try {
+            FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+            fail("Oversized node name must fail in database");
+        } catch (org.springframework.dao.DataIntegrityViolationException expected) {
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_definition", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_node", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_skip", Integer.class));
+        }
+    }
+
+    @Test
+    public void shouldRejectIncompletePackageBeforeWriting() throws Exception {
+        WorkflowPackage input = workflowPackage();
+        input.getDefinitions().remove(0);
+        try {
+            FlowEngine.defService().importPackage(input, java.util.Collections.emptyMap());
+            fail("Missing subprocess must fail");
+        } catch (FlowException expected) {
+            assertTrue(expected.getMessage().contains("子流程"));
+        }
+        assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+    }
+
+    @Test
+    public void shouldNotExportAnotherTenantsDefinition() throws Exception {
+        WorkflowImportResult result = FlowEngine.defService().importPackage(workflowPackage(), java.util.Collections.emptyMap());
+        jdbcTemplate.update("update flow_definition set tenant_id = 'tenant-b' where id = ?", result.getRootDefinitionId());
+        try {
+            FlowEngine.defService().exportPackage(result.getRootDefinitionId());
+            fail("Other tenant definition must be hidden");
+        } catch (FlowException expected) {
+            assertTrue(expected.getMessage().contains("不存在"));
+        }
+    }
+
+    private WorkflowPackage workflowPackage() throws Exception {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
+            getClass().getResourceAsStream("/workflow-package.json"), java.nio.charset.StandardCharsets.UTF_8))) {
+            return FlowEngine.jsonConvert.strToBean(reader.lines().collect(java.util.stream.Collectors.joining("\n")),
+                WorkflowPackage.class);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void shouldPersist128CharacterInstanceBusinessType() {
+        FlowInstanceDao<Instance> dao = (FlowInstanceDao<Instance>) context.getBean(FlowInstanceDao.class);
+        String businessType = repeat('b', 128);
+        Instance instance = FlowEngine.newIns().setId(70L).setDefinitionId(60L)
+            .setBusinessType(businessType).setBusinessId("1001").setNodeType(1)
+            .setNodeCode("APPROVE").setNodeName("Approve").setFlowStatus("1").setActivityStatus(1);
+        root(instance);
+        assertEquals(1, dao.save(instance));
+        assertEquals(businessType, dao.selectById(70L).getBusinessType());
+    }
+
+    @Test(expected = org.springframework.dao.DataIntegrityViolationException.class)
+    public void shouldRejectNullDefinitionBusinessTypeInDatabase() {
+        jdbcTemplate.update("insert into flow_definition (id, flow_code, flow_name, version) "
+            + "values (80, 'missing-type', 'Missing type', '1')");
+    }
+
+    @Test
+    public void shouldPersistAndCopyDefinitionBusinessType() {
+        String businessType = repeat('a', 128);
+        Definition definition = FlowEngine.newDef().setId(60L).setFlowCode("purchase")
+            .setFlowName("Purchase").setVersion("1").setBusinessType(businessType)
+            .setPublishStatus(0).setActivityStatus(1);
+        root(definition);
+        assertEquals(1, definitionDao.save(definition));
+        Definition stored = definitionDao.selectById(60L);
+        assertEquals(businessType, stored.getBusinessType());
+        assertEquals(businessType, stored.copy().getBusinessType());
+        assertEquals(businessType, DefJson.copyDef(DefJson.copyDef(stored)).getBusinessType());
+
+        stored.setBusinessType("EXPENSE");
+        definitionDao.updateById(stored);
+        assertEquals("EXPENSE", definitionDao.selectById(60L).getBusinessType());
+        assertEquals(1, definitionDao.selectList(FlowEngine.newDef().setBusinessType("EXPENSE"), null).size());
+        assertEquals(0, definitionDao.selectList(FlowEngine.newDef().setBusinessType(businessType), null).size());
+
+        Definition copy = stored.copy().setId(61L).setVersion("2").setPublishStatus(0).setActivityStatus(1);
+        root(copy);
+        definitionDao.saveBatch(java.util.Collections.singletonList(copy));
+        assertEquals("EXPENSE", definitionDao.selectById(61L).getBusinessType());
     }
 
     @Test
@@ -156,13 +333,14 @@ public class SubprocessPersistenceContractTest {
         task.setId(40L).setDefinitionId(1000L).setInstanceId(100L).setNodeCode("APPROVE")
             .setNodeName("Approve").setNodeType(1).setFlowStatus("1").setTimeoutAt(new Date(1000L))
             .setTimeoutAction("AUTO_PASS").setTimeoutConfig("{\"schemaVersion\":1}")
-            .setTimeoutStatus("PENDING");
+            .setTimeoutStatus("PENDING").setFormId("expense:v2");
         root(task);
         assertEquals(1, taskDao.save(task));
 
         List<Task> due = taskDao.listDueTimeoutTasks(new Date(2000L), new Date(0L), 10);
         assertEquals(1, due.size());
         assertEquals("AUTO_PASS", due.get(0).getTimeoutAction());
+        assertEquals("expense:v2", due.get(0).getFormId());
         assertEquals(1, taskDao.claimTimeout(40L, new Date(3000L), new Date(2500L)));
         assertEquals(0, taskDao.claimTimeout(40L, new Date(3500L), new Date(2500L)));
         assertEquals(1, taskDao.claimTimeout(40L, new Date(5000L), new Date(4000L)));
@@ -179,6 +357,35 @@ public class SubprocessPersistenceContractTest {
         assertEquals(1, taskDao.save(wait));
         assertEquals(1, taskDao.claimWait(41L, new Date(6000L)));
         assertEquals(0, taskDao.claimWait(41L, new Date(7000L)));
+    }
+
+    @Test
+    public void shouldManageFormsAndIsolateThemByTenant() {
+        Form form = FlowEngine.newForm();
+        form.setId(50L).setFormCode("expense").setFormName("Expense")
+            .setPublishStatus(PublishStatus.UNPUBLISHED.getKey())
+            .setFormContent("{\"schemaVersion\":\"1\"}");
+        assertTrue(formService.save(form));
+        assertEquals("1", form.getVersion());
+        assertEquals("tenant-a", form.getTenantId());
+
+        assertTrue(formService.saveContent(50L, "{\"fields\":[]}"));
+        assertEquals("{\"fields\":[]}", formService.getByCode("expense", "1").getFormContent());
+        assertTrue(formService.publish(50L));
+        assertEquals(1L, formService.publishedPage("Expense", 1, 20).getTotal());
+        assertTrue(formService.copyForm(50L));
+        Form copy = formService.getByCode("expense", "2");
+        assertEquals(PublishStatus.UNPUBLISHED.getKey(),
+            copy.getPublishStatus());
+        assertTrue(formService.removeById(copy.getId()));
+        assertNull(formService.getById(copy.getId()));
+
+        jdbcTemplate.update("insert into flow_form "
+                + "(id, form_code, form_name, version, publish_status, deleted, tenant_id) "
+                + "values (?, ?, ?, ?, ?, ?, ?)",
+            51L, "expense", "Other tenant", "1", 1, "0", "tenant-b");
+        assertNull(formService.getById(51L));
+        assertEquals(1, formDao.queryByCodeList(java.util.Collections.singletonList("expense")).size());
     }
 
     private SubprocessRun run(Long id, Long taskId, String status) {
@@ -236,9 +443,9 @@ public class SubprocessPersistenceContractTest {
 
     private void root(com.luokuiai.flovira.core.entity.RootEntity entity) {
         entity.setTenantId("tenant-a");
-        entity.setDelFlag("0");
-        entity.setCreateTime(new Date());
-        entity.setUpdateTime(new Date());
+        entity.setDeleted("0");
+        entity.setCreatedAt(new Date());
+        entity.setUpdatedAt(new Date());
     }
 
     private String repeat(char value, int count) {
@@ -250,5 +457,12 @@ public class SubprocessPersistenceContractTest {
     @SpringBootApplication
     @EnableAutoConfiguration
     public static class TestApplication {
+    }
+
+    public static class ContractTenantHandler implements TenantHandler {
+        @Override
+        public String getTenantId() {
+            return "tenant-a";
+        }
     }
 }

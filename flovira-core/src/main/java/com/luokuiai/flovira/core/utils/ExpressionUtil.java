@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -82,7 +83,7 @@ public class ExpressionUtil {
         if (CollUtil.isEmpty(addTasks)) {
             return;
         }
-        Map<String, Object> variable = flowParams.getVariable();
+        Map<String, Object> variable = flowParams.getVariables();
         addTasks.forEach(addTask -> {
             boolean resolvedApproverRule = ApproverRuleUtil.isResolved(addTask.getPermissionList());
             List<String> permissions = addTask.getPermissionList().stream()
@@ -111,7 +112,7 @@ public class ExpressionUtil {
      *
      * @param expression 表达式，比如“${flag}或者# { &#064;user.notify(#listenerVariable) } ” ，或者自定义策略
      * @param variable   流程变量
-     * @return List<String>
+     * @return {@code List<String>}
      */
     public static List<String> evalVariable(String expression, Map<String, Object> variable) {
         List<String> value = getValue(HandlerStrategy.EXPRESSION_STRATEGY_LIST, expression, variable

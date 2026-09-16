@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,8 +18,10 @@ package com.luokuiai.flovira.core;
 
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.entity.*;
+import com.luokuiai.flovira.core.handler.ApproverResolver;
 import com.luokuiai.flovira.core.handler.DataFillHandler;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
+import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.handler.PermissionHandler;
 import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
@@ -44,7 +47,7 @@ public class FlowEngine {
     private static final DefService defService = null;
     private static final NodeService nodeService = null;
     private static final SkipService skipService = null;
-    private static final InsService insService = null;
+    private static final InstanceService instanceService = null;
     private static final TaskService taskService = null;
     private static final HisTaskService hisTaskService = null;
     private static final UserService userService = null;
@@ -53,6 +56,7 @@ public class FlowEngine {
     private static final SubprocessService subprocessService = null;
     private static final WaitService waitService = null;
     private static final TimeoutService timeoutService = null;
+    private static final ProgressService progressService = null;
 
     private static Supplier<Definition> defSupplier;
     private static Supplier<Node> nodeSupplier;
@@ -94,8 +98,8 @@ public class FlowEngine {
         return getObj(skipService, SkipService.class);
     }
 
-    public static InsService insService() {
-        return getObj(insService, InsService.class);
+    public static InstanceService instanceService() {
+        return getObj(instanceService, InstanceService.class);
     }
 
     public static TaskService taskService() {
@@ -128,6 +132,10 @@ public class FlowEngine {
 
     public static TimeoutService timeoutService() {
         return getObj(timeoutService, TimeoutService.class);
+    }
+
+    public static ProgressService progressService() {
+        return getObj(progressService, ProgressService.class);
     }
 
     public static void setNewDef(Supplier<Definition> supplier) {
@@ -244,6 +252,28 @@ public class FlowEngine {
      */
     public static BusinessRelationProvider businessRelationProvider() {
         return getObj(null, BusinessRelationProvider.class);
+    }
+
+    /**
+     * 可选的业务表单字段名称提供者，通过 FrameInvoker 注册。
+     */
+    public static FormFieldProvider formFieldProvider() {
+        return getObj(null, FormFieldProvider.class);
+    }
+
+    /**
+     * 按策略编码查找接入方注册的办理人解析器。
+     *
+     * @param strategy 策略编码
+     * @return 未注册时返回 null，由引擎使用内置默认解析逻辑
+     */
+    public static ApproverResolver approverResolver(String strategy) {
+        for (ApproverResolver resolver : FrameInvoker.getBeans(ApproverResolver.class)) {
+            if (resolver != null && strategy != null && strategy.equals(resolver.getStrategy())) {
+                return resolver;
+            }
+        }
+        return null;
     }
 
     public static Flovira getFlowConfig() {

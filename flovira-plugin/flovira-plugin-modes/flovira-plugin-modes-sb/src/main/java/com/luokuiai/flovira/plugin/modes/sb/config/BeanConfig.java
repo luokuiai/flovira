@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -96,8 +97,8 @@ public class BeanConfig {
     }
 
     @Bean
-    public InsService instanceService(FlowInstanceDao instanceDao) {
-        return new InsServiceImpl().setDao(instanceDao);
+    public InstanceService instanceService(FlowInstanceDao instanceDao) {
+        return new InstanceServiceImpl().setDao(instanceDao);
     }
 
     @Bean
@@ -118,6 +119,11 @@ public class BeanConfig {
     @Bean
     public TimeoutService timeoutService() {
         return new TimeoutServiceImpl();
+    }
+
+    @Bean
+    public ProgressService progressService() {
+        return new ProgressServiceImpl();
     }
 
     @Bean
@@ -182,6 +188,7 @@ public class BeanConfig {
         setNewEntity();
         FrameInvoker.setCfgFunction((key) -> Objects.requireNonNull(SpringUtil.getBean(Environment.class)).getProperty(key));
         FrameInvoker.setBeanFunction(SpringUtil::getBean);
+        FrameInvoker.setBeansFunction(SpringUtil::getBeans);
         FlowEngine.setTransactionExecutor(SpringUtil.getBean(com.luokuiai.flovira.core.transaction.TransactionExecutor.class));
         FlowEngine.setTimeoutSchedulerLock(FrameInvoker.getBean(TimeoutSchedulerLock.class));
         FloviraProperties flovira = SpringUtil.getBean(FloviraProperties.class);
@@ -190,7 +197,7 @@ public class BeanConfig {
         FlowEngine.setFlowConfig(flovira);
         setExpression();
         after(flovira);
-        log.info("【flovira】，加载完成");
+        log.info("[flovira] loaded successfully");
         return flovira;
     }
 

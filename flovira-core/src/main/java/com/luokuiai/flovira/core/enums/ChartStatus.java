@@ -49,11 +49,7 @@ public enum ChartStatus {
     private final Color color;
 
     private static final Map<Integer, Color> CUSTOM_COLOR = new HashMap<>();
-    private static final Map<Integer, Color> CUSTOM_COLOR_CLASSICS = new HashMap<>();
-    private static final Map<Integer, Color> CUSTOM_COLOR_MIMIC = new HashMap<>();
-
-    public static void initCustomColor(List<String> chartStatusColor, List<String> chartStatusColorClassics,
-                                       List<String> chartStatusColorMimic) {
+    public static void initCustomColor(List<String> chartStatusColor) {
         if (CollUtil.isNotEmpty(chartStatusColor) && chartStatusColor.size() == 3) {
             for (int i = 0; i < chartStatusColor.size(); i++) {
                 String statusColor = chartStatusColor.get(i);
@@ -65,52 +61,22 @@ public enum ChartStatus {
                 }
             }
         }
-        if (CollUtil.isNotEmpty(chartStatusColorClassics) && chartStatusColorClassics.size() == 3) {
-            for (int i = 0; i < chartStatusColorClassics.size(); i++) {
-                String statusColor = chartStatusColorClassics.get(i);
-                if (StringUtils.isNotEmpty(statusColor)) {
-                    String[] colorArr = statusColor.split(",");
-                    if (colorArr.length == 3) {
-                        ChartStatus.CUSTOM_COLOR_CLASSICS.put(i, new Color(Integer.parseInt(colorArr[0]), Integer.parseInt(colorArr[1]), Integer.parseInt(colorArr[2])));
-                    }
-                }
-            }
-        }
-        if (CollUtil.isNotEmpty(chartStatusColorMimic) && chartStatusColorMimic.size() == 3) {
-            for (int i = 0; i < chartStatusColorMimic.size(); i++) {
-                String statusColor = chartStatusColorMimic.get(i);
-                if (StringUtils.isNotEmpty(statusColor)) {
-                    String[] colorArr = statusColor.split(",");
-                    if (colorArr.length == 3) {
-                        ChartStatus.CUSTOM_COLOR_MIMIC.put(i, new Color(Integer.parseInt(colorArr[0]), Integer.parseInt(colorArr[1]), Integer.parseInt(colorArr[2])));
-                    }
-                }
-            }
-        }
     }
 
-    public static Color getNotDone(String modelValue) {
-        return getColorByKey(ChartStatus.NOT_DONE, modelValue);
+    public static Color getNotDone() {
+        return getColorByKey(ChartStatus.NOT_DONE);
     }
 
-    public static Color getToDo(String modelValue) {
-        return getColorByKey(ChartStatus.TO_DO, modelValue);
+    public static Color getToDo() {
+        return getColorByKey(ChartStatus.TO_DO);
     }
 
-    public static Color getDone(String modelValue) {
-        return getColorByKey(ChartStatus.DONE, modelValue);
+    public static Color getDone() {
+        return getColorByKey(ChartStatus.DONE);
     }
 
-    public static Color getColorByKey(ChartStatus chartStatus, String modelValue) {
-        Color color = null;
-        if (ModelEnum.CLASSICS.name().equals(modelValue)) {
-            color = ChartStatus.CUSTOM_COLOR_CLASSICS.get(chartStatus.getKey());
-        } else if (ModelEnum.MIMIC.name().equals(modelValue)) {
-            color = ChartStatus.CUSTOM_COLOR_MIMIC.get(chartStatus.getKey());
-        }
-        if (ObjectUtil.isNull(color)) {
-            color = ChartStatus.CUSTOM_COLOR.get(chartStatus.getKey());
-        }
+    public static Color getColorByKey(ChartStatus chartStatus) {
+        Color color = CUSTOM_COLOR.get(chartStatus.getKey());
         return ObjectUtil.defaultNull(color, chartStatus.getColor());
     }
 

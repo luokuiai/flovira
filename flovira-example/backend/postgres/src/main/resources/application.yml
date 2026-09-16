@@ -1,0 +1,19 @@
+server:
+  port: ${EXAMPLE_SERVER_PORT:8081}
+
+spring:
+  application:
+    name: flovira-example-postgres
+  datasource:
+    url: ${EXAMPLE_DATABASE_URL:jdbc:postgresql://localhost:5433/flovira_example}
+    username: ${EXAMPLE_DATABASE_USERNAME:flovira}
+    password: ${EXAMPLE_DATABASE_PASSWORD:flovira}
+    driver-class-name: org.postgresql.Driver
+
+flovira:
+  banner: true
+  data-source-type: postgresql
+  permission-handler-path: com.luokuiai.flovira.example.common.security.DemoPermissionHandler
+  token-name: X-Demo-User
+  ui: true
+  ui-api-prefix: /flovira

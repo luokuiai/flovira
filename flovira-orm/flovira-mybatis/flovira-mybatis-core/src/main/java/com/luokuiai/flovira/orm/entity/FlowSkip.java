@@ -40,22 +40,22 @@ public class FlowSkip implements Skip {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -65,7 +65,7 @@ public class FlowSkip implements Skip {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
     /**
      * 流程id
@@ -78,24 +78,24 @@ public class FlowSkip implements Skip {
     private Long nodeId;
 
     /**
-     * 当前流程节点的编码
+     * 跳转来源节点编码
      */
-    private String nowNodeCode;
+    private String sourceNodeCode;
 
     /**
-     * 当前节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）
+     * 跳转来源节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）
      */
-    private Integer nowNodeType;
+    private Integer sourceNodeType;
 
     /**
-     * 下一个流程节点的编码
+     * 跳转目标节点编码
      */
-    private String nextNodeCode;
+    private String targetNodeCode;
 
     /**
-     * 下一个节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）
+     * 跳转目标节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关）
      */
-    private Integer nextNodeType;
+    private Integer targetNodeType;
 
     /**
      * 跳转名称

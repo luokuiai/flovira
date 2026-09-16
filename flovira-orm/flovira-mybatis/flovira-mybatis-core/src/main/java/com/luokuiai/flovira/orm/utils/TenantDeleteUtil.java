@@ -39,7 +39,7 @@ public class TenantDeleteUtil {
     public static <T extends RootEntity> T getEntity(T entity) {
         Flovira flowConfig = FlowEngine.getFlowConfig();
         if (flowConfig.isLogicDelete()) {
-            entity.setDelFlag(flowConfig.getLogicNotDeleteValue());
+            entity.setDeleted(flowConfig.getLogicNotDeleteValue());
         }
 
         TenantHandler tenantHandler = FlowEngine.tenantHandler();

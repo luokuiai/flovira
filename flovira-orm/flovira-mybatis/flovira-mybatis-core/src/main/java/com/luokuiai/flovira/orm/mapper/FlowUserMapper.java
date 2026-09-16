@@ -54,8 +54,8 @@ public interface FlowUserMapper extends FloviraMapper<FlowUser> {
                              @Param("logicDeleteValue") String logicDeleteValue,
                              @Param("logicNotDeleteValue") String logicNotDeleteValue);
 
-    List<FlowUser> listByAssociatedAndTypes(@Param("types") String[] types
-        , @Param("associateds") List<Long> associateds
+    List<FlowUser> listByTaskIdsAndTypes(@Param("types") String[] types
+        , @Param("taskIds") List<Long> taskIds
         , @Param("entity") FlowUser entity, @Param("dataSourceType") String dataSourceType);
 
     List<FlowUser> listByProcessedBys(@Param("types") String[] types

@@ -104,7 +104,7 @@ public class SubprocessServiceImpl implements SubprocessService {
         if (!Objects.equals(tenantId, tenant(childDefinition.getTenantId()))) {
             throw new IllegalStateException("Subprocess child definition belongs to another tenant");
         }
-        Instance parent = FlowEngine.insService().getById(task.getInstanceId());
+        Instance parent = FlowEngine.instanceService().getById(task.getInstanceId());
         if (parent == null) {
             throw new IllegalStateException("Parent instance not found: " + task.getInstanceId());
         }
@@ -139,7 +139,7 @@ public class SubprocessServiceImpl implements SubprocessService {
         FlowEngine.dataFillHandler().idFill(run);
         FlowEngine.dataFillHandler().insertFill(run);
         run.setTenantId(tenant(task.getTenantId()));
-        run.setDelFlag("0");
+        run.setDeleted("0");
         run.setParentInstanceId(task.getInstanceId());
         run.setParentTaskId(task.getId());
         run.setParentDefinitionId(task.getDefinitionId());
@@ -170,7 +170,7 @@ public class SubprocessServiceImpl implements SubprocessService {
             FlowEngine.dataFillHandler().idFill(child);
             FlowEngine.dataFillHandler().insertFill(child);
             child.setTenantId(run.getTenantId());
-            child.setDelFlag("0");
+            child.setDeleted("0");
             child.setRunId(run.getId());
             child.setItemKey(plan.getItemKey());
             child.setItemLabel(plan.getItemLabel());
@@ -185,8 +185,8 @@ public class SubprocessServiceImpl implements SubprocessService {
             return;
         }
         FlowParams params = FlowParams.build().flowCode(childDefinition.getFlowCode())
-            .handler(parent.getCreateBy()).variable(plan.getVariables());
-        Instance childInstance = FlowEngine.insService().startByDefinitionId(
+            .handler(parent.getCreatedBy()).variables(plan.getVariables());
+        Instance childInstance = FlowEngine.instanceService().startByDefinitionId(
             plan.getBusinessKey(), childDefinition.getId(), params);
         child.setChildInstanceId(childInstance.getId());
         child.setChildStatus(SubprocessChildStatus.RUNNING.name());
@@ -274,7 +274,7 @@ public class SubprocessServiceImpl implements SubprocessService {
 
     @Override
     public void cancelByParent(final Long parentInstanceId, final String reason) {
-        final Instance parent = FlowEngine.insService().getById(parentInstanceId);
+        final Instance parent = FlowEngine.instanceService().getById(parentInstanceId);
         if (parent == null) {
             return;
         }
@@ -481,7 +481,7 @@ public class SubprocessServiceImpl implements SubprocessService {
         for (HisTask hisTask : history) {
             SubprocessHistoryEntry entry = new SubprocessHistoryEntry();
             entry.setSource(source);
-            entry.setOccurredAt(hisTask.getCreateTime());
+            entry.setOccurredAt(hisTask.getCreatedAt());
             entry.setRunId(run.getId());
             entry.setChildId(child == null ? null : child.getId());
             entry.setItemLabel(child == null ? null : child.getItemLabel());
@@ -626,7 +626,7 @@ public class SubprocessServiceImpl implements SubprocessService {
         FlowEngine.dataFillHandler().idFill(event);
         FlowEngine.dataFillHandler().insertFill(event);
         event.setTenantId(run.getTenantId());
-        event.setDelFlag("0");
+        event.setDeleted("0");
         event.setRunId(run.getId());
         event.setChildId(child == null ? null : child.getId());
         event.setParentInstanceId(run.getParentInstanceId());

@@ -16,20 +16,19 @@
         <result property="definitionId" column="definition_id"/>
         <result property="instanceId" column="instance_id"/>
         <result property="taskId" column="task_id"/>
-        <result property="cooperateType" column="cooperate_type"/>
+        <result property="cooperationType" column="cooperation_type"/>
         <result property="skipType" column="skip_type"/>
         <result property="flowStatus" column="flow_status"/>
-        <result property="formCustom" column="form_custom"/>
-        <result property="formPath" column="form_path"/>
+        <result property="formId" column="form_id"/>
         <result property="message" column="message"/>
-        <result property="variable" column="variable"/>
+        <result property="variables" column="variables"/>
         <result property="ext" column="ext"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
         <result property="businessId" column="business_id"/>
         <result property="tenantId" column="tenant_id"/>
         <result property="flowName" column="flow_name"/>
-        <result property="delFlag" column="del_flag"/>
+        <result property="deleted" column="deleted"/>
     </resultMap>
 
     <sql id="selectVo">
@@ -44,18 +43,17 @@
                t.definition_id,
                t.instance_id,
                t.task_id,
-               t.cooperate_type,
+               t.cooperation_type,
                t.skip_type,
                t.flow_status,
-               t.form_custom,
-               t.form_path,
+               t.form_id,
                t.message,
-               t.variable,
+               t.variables,
                t.ext,
-               t.create_time,
-               t.update_time,
+               t.created_at,
+               t.updated_at,
                t.tenant_id,
-               t.del_flag
+               t.deleted
         from flow_his_task t
     </sql>
 
@@ -87,17 +85,16 @@
             <if test="entity.definitionId != null ">and t.definition_id = #{entity.definitionId}</if>
             <if test="entity.instanceId != null ">and t.instance_id = #{entity.instanceId}</if>
             <if test="entity.taskId != null ">and t.task_id = #{entity.taskId}</if>
-            <if test="entity.cooperateType != null ">and t.cooperate_type = #{entity.cooperateType}</if>
+            <if test="entity.cooperationType != null ">and t.cooperation_type = #{entity.cooperationType}</if>
             <if test="entity.skipType != null  and entity.skipType != ''">and t.skip_type = #{entity.skipType}</if>
             <if test="entity.flowStatus != null">and t.flow_status = #{entity.flowStatus}</if>
-            <if test="entity.formCustom != null  and entity.formCustom != ''">and t.form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null  and entity.formPath != ''">and t.form_path = #{entity.formPath}</if>
+            <if test="entity.formId != null  and entity.formId != ''">and t.form_id = #{entity.formId}</if>
             <if test="entity.message != null  and entity.message != ''">and t.message = #{entity.message}</if>
-            <if test="entity.variable != null  and entity.variable != ''">and t.variable = #{entity.variable}</if>
+            <if test="entity.variables != null  and entity.variables != ''">and t.variables = #{entity.variables}</if>
             <if test="entity.ext != null  and entity.ext != ''">and t.ext = #{entity.ext}</if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
         </where>
     </sql>
@@ -144,18 +141,17 @@
         definition_id,
         instance_id,
         task_id,
-        cooperate_type,
+        cooperation_type,
         skip_type,
         flow_status,
-        form_custom,
-        form_path,
+        form_id,
         message,
-        variable,
+        variables,
         ext,
-        create_time,
-        update_time,
+        created_at,
+        updated_at,
         tenant_id,
-        del_flag
+        deleted
         )
         values
         <foreach collection="list" item="item" separator=",">
@@ -171,18 +167,17 @@
             #{item.definitionId},
             #{item.instanceId},
             #{item.taskId},
-            #{item.cooperateType},
+            #{item.cooperationType},
             #{item.skipType},
             #{item.flowStatus},
-            #{item.formCustom},
-            #{item.formPath},
+            #{item.formId},
             #{item.message},
-            #{item.variable},
+            #{item.variables},
             #{item.ext},
-            #{item.createTime},
-            #{item.updateTime},
+            #{item.createdAt},
+            #{item.updatedAt},
             #{item.tenantId},
-            #{item.delFlag}
+            #{item.deleted}
             )
         </foreach>
     </sql>
@@ -200,18 +195,17 @@
         definition_id,
         instance_id,
         task_id,
-        cooperate_type,
+        cooperation_type,
         skip_type,
         flow_status,
-        form_custom,
-        form_path,
+        form_id,
         message,
-        variable,
+        variables,
         ext,
-        create_time,
-        update_time,
+        created_at,
+        updated_at,
         tenant_id,
-        del_flag
+        deleted
         )
         <foreach collection="list" item="item" separator=" union all">
             select
@@ -226,18 +220,17 @@
             #{item.definitionId},
             #{item.instanceId},
             #{item.taskId},
-            #{item.cooperateType},
+            #{item.cooperationType},
             #{item.skipType},
             #{item.flowStatus},
-            #{item.formCustom},
-            #{item.formPath},
+            #{item.formId},
             #{item.message},
-            #{item.variable},
+            #{item.variables},
             #{item.ext},
-            #{item.createTime},
-            #{item.updateTime},
+            #{item.createdAt},
+            #{item.updatedAt},
             #{item.tenantId},
-            #{item.delFlag}
+            #{item.deleted}
             from dual
         </foreach>
     </sql>
@@ -248,14 +241,14 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
     <select id="selectById" resultMap="FlowHisTaskResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -263,9 +256,9 @@
         <include refid="selectVo"/>
         where t.instance_id = #{instanceId}
         and t.skip_type = 'PASS'
-        <if test="entity.delFlag != null and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-        order by t.create_time desc
+        order by t.created_at desc
     </select>
 
     <select id="getByInsAndNodeCodes" resultMap="FlowHisTaskResult">
@@ -278,9 +271,9 @@
                 #{nodeCode}
             </foreach>
         </if>
-        <if test="entity.delFlag != null and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-        order by t.create_time desc
+        order by t.created_at desc
     </select>
 
     <select id="listByInsIds" resultMap="FlowHisTaskResult">
@@ -289,22 +282,22 @@
         <foreach item="instanceId" collection="instanceIds" open="(" separator="," close=")">
             #{instanceId}
         </foreach>
-        <if test="entity.delFlag != null and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-        order by t.create_time desc
+        order by t.created_at desc
     </select>
 
-    <select id="listByTaskIdAndCooperateTypes" resultMap="FlowHisTaskResult">
+    <select id="listByTaskIdAndCooperationTypes" resultMap="FlowHisTaskResult">
         <include refid="selectVo"/>
         <where>
             <if test="entity.taskId != null  and entity.taskId != ''">and t.task_id = #{entity.taskId}</if>
-            <if test="cooperateTypes != null and cooperateTypes.length > 0">
-                AND cooperate_type in
-                <foreach item="item" collection="cooperateTypes" open="(" separator="," close=")">
+            <if test="cooperationTypes != null and cooperationTypes.length > 0">
+                AND cooperation_type in
+                <foreach item="item" collection="cooperationTypes" open="(" separator="," close=")">
                     #{item}
                 </foreach>
             </if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
         </where>
 
@@ -324,18 +317,17 @@
             <if test="definitionId != null">definition_id,</if>
             <if test="instanceId != null">instance_id,</if>
             <if test="taskId != null">task_id,</if>
-            <if test="cooperateType != null">cooperate_type,</if>
+            <if test="cooperationType != null">cooperation_type,</if>
             <if test="skipType != null and skipType != ''">skip_type,</if>
             <if test="flowStatus != null">flow_status,</if>
-            <if test="formCustom != null and formCustom != ''">form_custom,</if>
-            <if test="formPath != null and formPath != ''">form_path,</if>
+            <if test="formId != null and formId != ''">form_id,</if>
             <if test="message != null">message,</if>
-            <if test="variable != null">variable,</if>
+            <if test="variables != null">variables,</if>
             <if test="ext != null">ext,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
@@ -349,18 +341,17 @@
             <if test="definitionId != null">#{definitionId},</if>
             <if test="instanceId != null">#{instanceId},</if>
             <if test="taskId != null">#{taskId},</if>
-            <if test="cooperateType != null">#{cooperateType},</if>
+            <if test="cooperationType != null">#{cooperationType},</if>
             <if test="skipType != null and skipType != ''">#{skipType},</if>
             <if test="flowStatus != null">#{flowStatus},</if>
-            <if test="formCustom != null and formCustom != ''">#{formCustom},</if>
-            <if test="formPath != null and formPath != ''">#{formPath},</if>
+            <if test="formId != null and formId != ''">#{formId},</if>
             <if test="message != null">#{message},</if>
-            <if test="variable != null">#{variable},</if>
+            <if test="variables != null">#{variables},</if>
             <if test="ext != null">#{ext},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
         </trim>
     </insert>
 
@@ -376,19 +367,18 @@
             <if test="definitionId != null">definition_id = #{definitionId},</if>
             <if test="instanceId != null">instance_id = #{instanceId},</if>
             <if test="taskId != null">task_id = #{taskId},</if>
-            <if test="cooperateType != null">cooperate_type = #{cooperateType},</if>
+            <if test="cooperationType != null">cooperation_type = #{cooperationType},</if>
             <if test="skipType != null and skipType != ''">skip_type = #{skipType},</if>
             <if test="flowStatus != null">flow_status = #{flowStatus},</if>
-            <if test="formCustom != null and formCustom != ''">form_custom = #{formCustom},</if>
-            <if test="formPath != null and formPath != ''">form_path = #{formPath},</if>
+            <if test="formId != null and formId != ''">form_id = #{formId},</if>
             <if test="message != null">message = #{message},</if>
-            <if test="variable != null">variable = #{variable},</if>
+            <if test="variables != null">variables = #{variables},</if>
             <if test="ext != null">ext = #{ext},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
         </trim>
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
@@ -401,10 +391,10 @@
 
     <update id="updateByIdLogic">
         update flow_his_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -418,13 +408,13 @@
 
     <update id="updateByInsIdsLogic">
         update flow_his_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where instance_id in
         <foreach item="instanceId" collection="instanceIds" open="(" separator="," close=")">
             #{instanceId}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -438,13 +428,13 @@
 
     <update id="updateByIdsLogic">
         update flow_his_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -461,23 +451,22 @@
             <if test="definitionId != null">and definition_id = #{definitionId}</if>
             <if test="instanceId != null">and instance_id = #{instanceId}</if>
             <if test="taskId != null">and task_id = #{taskId}</if>
-            <if test="cooperateType != null">and cooperate_type = #{cooperateType}</if>
+            <if test="cooperationType != null">and cooperation_type = #{cooperationType}</if>
             <if test="skipType != null and skipType != ''">and skip_type = #{skipType}</if>
             <if test="flowStatus != null">and flow_status = #{flowStatus}</if>
-            <if test="formCustom != null and formCustom != ''">and form_custom = #{formCustom}</if>
-            <if test="formPath != null and formPath != ''">and form_path = #{formPath}</if>
+            <if test="formId != null and formId != ''">and form_id = #{formId}</if>
             <if test="message != null">and message = #{message}</if>
-            <if test="variable != null">and variable = #{variable}</if>
+            <if test="variables != null">and variables = #{variables}</if>
             <if test="ext != null">and ext = #{ext}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
         </where>
     </delete>
 
     <update id="updateLogic">
         update flow_his_task
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.nodeCode != null and entity.nodeCode != ''">and node_code = #{entity.nodeCode}</if>
@@ -496,18 +485,17 @@
             <if test="entity.definitionId != null">and definition_id = #{entity.definitionId}</if>
             <if test="entity.instanceId != null">and instance_id = #{entity.instanceId}</if>
             <if test="entity.taskId != null">and task_id = #{entity.taskId}</if>
-            <if test="entity.cooperateType != null">and cooperate_type = #{entity.cooperateType}</if>
+            <if test="entity.cooperationType != null">and cooperation_type = #{entity.cooperationType}</if>
             <if test="entity.skipType != null and entity.skipType != ''">and skip_type = #{entity.skipType}</if>
             <if test="entity.flowStatus != null">and flow_status = #{entity.flowStatus}</if>
-            <if test="entity.formCustom != null and entity.formCustom != ''">and form_custom = #{entity.formCustom}</if>
-            <if test="entity.formPath != null and entity.formPath != ''">and form_path = #{entity.formPath}</if>
+            <if test="entity.formId != null and entity.formId != ''">and form_id = #{entity.formId}</if>
             <if test="entity.message != null">and message = #{entity.message}</if>
-            <if test="entity.variable != null">and variable = #{entity.variable}</if>
+            <if test="entity.variables != null">and variables = #{entity.variables}</if>
             <if test="entity.ext != null">and ext = #{entity.ext}</if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag =
+            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}
             </if>
         </where>

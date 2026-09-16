@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,11 +21,10 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.*;
 import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.entity.Form;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
-import com.luokuiai.flovira.core.enums.FormCustomEnum;
-import com.luokuiai.flovira.core.enums.ModelEnum;
 import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
@@ -32,6 +32,7 @@ import com.luokuiai.flovira.core.utils.ExceptionUtil;
 import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.core.utils.page.Page;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
+import com.luokuiai.flovira.ui.dto.FormContentRequest;
 import com.luokuiai.flovira.ui.vo.*;
 
 import java.util.*;
@@ -48,7 +49,7 @@ public class FloviraService {
     /**
      * 返回流程定义的配置
      *
-     * @return ApiResult<FloviraVo>
+     * @return {@code ApiResult<FloviraVo>}
      */
     public static ApiResult<FloviraVo> config() {
         FloviraVo floviraVo = new FloviraVo();
@@ -86,11 +87,29 @@ public class FloviraService {
      */
     public static ApiResult<DesignerResourcePage> queryResources(DesignerResourceQuery query) {
         DesignerDataProvider provider = FrameInvoker.getBean(DesignerDataProvider.class);
-        if (provider == null) {
-            return ApiResult.ok(new DesignerResourcePage());
+        DesignerResourcePage page = provider == null ? null : provider.queryResources(query);
+        if (page == null && query != null && "FORM".equals(query.getResourceType())) {
+            page = managedFormResources(query);
         }
-        DesignerResourcePage page = provider.queryResources(query);
         return ApiResult.ok(page == null ? new DesignerResourcePage() : page);
+    }
+
+    private static DesignerResourcePage managedFormResources(DesignerResourceQuery query) {
+        Page<Form> forms = FlowEngine.formService().publishedPage(query.getKeyword(),
+            query.getPageNum(), query.getPageSize());
+        List<DesignerResourceItem> items = new ArrayList<DesignerResourceItem>();
+        if (forms.getList() != null) {
+            for (Form form : forms.getList()) {
+                DesignerResourceItem item = new DesignerResourceItem()
+                    .setId(String.valueOf(form.getId()))
+                    .setCode(form.getFormCode())
+                    .setName(form.getFormName())
+                    .setResourceType("FORM");
+                item.getMetadata().put("version", form.getVersion());
+                items.add(item);
+            }
+        }
+        return new DesignerResourcePage().setItems(items).setTotal(forms.getTotal());
     }
 
     /**
@@ -112,14 +131,13 @@ public class FloviraService {
      * 保存流程json字符串
      *
      * @param defJson      流程数据集合
-     * @param onlyNodeSkip 是否只保存节点和跳转
-     * @return ApiResult<Void>
+     * @return {@code ApiResult<Void>}
      * @throws Exception 异常
      * @author xiarg
      * @since 2024/10/29 16:31
      */
-    public static ApiResult<Void> saveJson(DefJson defJson, boolean onlyNodeSkip) throws Exception {
-        FlowEngine.defService().saveDef(defJson, onlyNodeSkip);
+    public static ApiResult<Void> saveJson(DefJson defJson) throws Exception {
+        FlowEngine.defService().saveDef(defJson);
         return ApiResult.ok();
     }
 
@@ -127,7 +145,7 @@ public class FloviraService {
      * 获取流程定义数据(包含节点和跳转)
      *
      * @param id 流程定义id
-     * @return ApiResult<DefVo>
+     * @return {@code ApiResult<DefVo>}
      * @author xiarg
      * @since 2024/10/29 16:31
      */
@@ -135,9 +153,7 @@ public class FloviraService {
         try {
             DefJson defJson;
             if (id == null) {
-                defJson = new DefJson()
-                    .setModelValue(ModelEnum.CLASSICS.name())
-                    .setFormCustom(FormCustomEnum.N.name());
+                defJson = new DefJson();
             } else {
                 defJson = FlowEngine.defService().queryDesign(id);
             }
@@ -152,17 +168,17 @@ public class FloviraService {
      * 获取流程图
      *
      * @param id 流程实例id
-     * @return ApiResult<DefJson>
+     * @return {@code ApiResult<DefJson>}
      */
     public static ApiResult<DefJson> queryFlowChart(Long id) {
         try {
-            Instance instance = FlowEngine.insService().getById(id);
+            Instance instance = FlowEngine.instanceService().getById(id);
             String defJsonStr = instance.getDefJson();
             DefJson defJson = FlowEngine.jsonConvert.strToBean(defJsonStr, DefJson.class);
             defJson.setInstance(instance);
 
             // 获取流程图三原色
-            defJson.setChartStatusColor(FlowEngine.chartService().getChartRgb(defJson.getModelValue()));
+            defJson.setChartStatusColor(FlowEngine.chartService().getChartRgb());
             // 是否显示流程图顶部文字
             defJson.setTopTextShow(FlowEngine.getFlowConfig().isTopTextShow());
             List<Task> tasks = FlowEngine.taskService().getByInsId(instance.getId());
@@ -213,40 +229,36 @@ public class FloviraService {
         return FlowEngine.tenantHandler() == null ? "0" : FlowEngine.tenantHandler().getTenantId();
     }
 
-    /**
-     * 读取表单内容
-     *
-     * @param id
-     * @return
-     */
+    /** 读取 Flovira 管理的表单内容。 */
     public static ApiResult<String> getFormContent(Long id) {
         try {
-            return ApiResult.ok(FlowEngine.formService().getById(id).getFormContent());
+            Form form = FlowEngine.formService().getById(id);
+            if (form == null) {
+                throw new FlowException(com.luokuiai.flovira.core.constant.ExceptionCons.NOT_FOUND_FORM);
+            }
+            return ApiResult.ok(form.getFormContent());
         } catch (Exception e) {
-            log.error("获取表单内容字符串", e);
-            throw new FlowException(ExceptionUtil.handleMsg("获取表单内容字符串失败", e));
+            log.error("获取表单内容失败 - id: {}", id, e);
+            throw new FlowException(ExceptionUtil.handleMsg("获取表单内容失败", e));
         }
     }
 
-    /**
-     * 保存表单内容,该接口不需要系统实现
-     *
-     * @param flowDto
-     * @return
-     */
-    public static ApiResult<Void> saveFormContent(FlowDto flowDto) {
-        FlowEngine.formService().saveContent(flowDto.getId(), flowDto.getFormContent());
+    /** 保存 Flovira 管理的表单内容。 */
+    public static ApiResult<Void> saveFormContent(FormContentRequest request) {
+        FlowEngine.formService().saveContent(request.getId(), request.getFormContent());
         return ApiResult.ok();
     }
 
 
+
+
     /**
-     * 根据任务id获取待办任务表单及数据
+     * 根据任务id获取待办任务业务表单标识及数据
      *
      * @param taskId 当前任务id
      * @return {@link ApiResult<FlowDto>}
      * @author liangli
-     * @date 2024/8/21 17:08
+     * Date: 2024/8/21 17:08
      **/
     public static ApiResult<FlowDto> load(Long taskId) {
         FlowParams flowParams = FlowParams.build();
@@ -255,7 +267,7 @@ public class FloviraService {
     }
 
     /**
-     * 根据任务id获取已办任务表单及数据
+     * 根据任务id获取已办任务业务表单标识及数据
      *
      * @param hisTaskId
      * @return

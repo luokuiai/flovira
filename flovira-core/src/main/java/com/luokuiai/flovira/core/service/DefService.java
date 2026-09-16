@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,6 +18,8 @@ package com.luokuiai.flovira.core.service;
 
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowCombine;
+import com.luokuiai.flovira.core.dto.WorkflowPackage;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Skip;
@@ -24,6 +27,7 @@ import com.luokuiai.flovira.core.orm.service.IFloviraService;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 流程定义Service接口
@@ -34,7 +38,22 @@ import java.util.List;
 public interface DefService extends IFloviraService<Definition> {
 
     /**
-     * 导入流程定义、流程节点和流程跳转数据
+     * 导出当前租户的完整流程包，包含固定子流程和所引用的托管表单版本。
+     * @param definitionId 根流程定义 ID
+     * @return 不含运行实例的可迁移流程包
+     */
+    WorkflowPackage exportPackage(Long definitionId);
+
+    /**
+     * 在事务中导入流程包，创建新 ID 和未发布版本，失败整体回滚。
+     * @param workflowPackage 流程包
+     * @param externalFormReferences 外部表单的源引用到目标引用映射，无外部表单时传空 Map
+     * @return 新定义 ID 和表单引用映射
+     */
+    WorkflowImportResult importPackage(WorkflowPackage workflowPackage, Map<String, String> externalFormReferences);
+
+    /**
+     * 导入单份设计数据，不包含表单；跨环境迁移请使用 importPackage。
      *
      * @param is 流程定义的输入流
      */
@@ -75,14 +94,13 @@ public interface DefService extends IFloviraService<Definition> {
      * 保存流程节点和跳转
      *
      * @param defJson      流程定义json对象
-     * @param onlyNodeSkip 是否只保存节点和跳转
      * @author xiarg
      * @since 2024/10/29 16:30
      */
-    void saveDef(DefJson defJson, boolean onlyNodeSkip) throws Exception;
+    void saveDef(DefJson defJson) throws Exception;
 
     /**
-     * 导出流程定义(流程定义、流程节点和流程跳转数据)的json字符串
+     * 导出单份设计 JSON，不包含表单；跨环境迁移请使用 exportPackage。
      *
      * @param id 流程定义id
      * @return json字符串
@@ -133,7 +151,7 @@ public interface DefService extends IFloviraService<Definition> {
      * 根据流程定义code列表查询流程定义
      *
      * @param flowCodeList 流程定义code列表
-     * @return List<Definition>
+     * @return {@code List<Definition>}
      */
     List<Definition> queryByCodeList(List<String> flowCodeList);
 
@@ -195,7 +213,7 @@ public interface DefService extends IFloviraService<Definition> {
      * 根据流程定义code查询流程定义
      *
      * @param flowCode 流程定义code
-     * @return List<Definition>
+     * @return {@code List<Definition>}
      */
     List<Definition> getByFlowCode(String flowCode);
 

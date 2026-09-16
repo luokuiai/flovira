@@ -36,28 +36,28 @@ public interface Node extends RootEntity {
     Node setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Node setCreateTime(Date createTime);
+    Node setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Node setUpdateTime(Date updateTime);
+    Node setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Node setCreateBy(String createBy);
+    Node setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Node setUpdateBy(String updateBy);
+    Node setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -66,10 +66,10 @@ public interface Node extends RootEntity {
     Node setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Node setDelFlag(String delFlag);
+    Node setDeleted(String deleted);
 
     Integer getNodeType();
 
@@ -111,13 +111,9 @@ public interface Node extends RootEntity {
 
     Node setListenerPath(String listenerPath);
 
-    String getFormCustom();
+    String getFormId();
 
-    Node setFormCustom(String formCustom);
-
-    String getFormPath();
-
-    Node setFormPath(String formPath);
+    Node setFormId(String formId);
 
     String getExt();
 
@@ -142,7 +138,7 @@ public interface Node extends RootEntity {
     default Node copy() {
         return FlowEngine.newNode()
             .setTenantId(this.getTenantId())
-            .setDelFlag(this.getDelFlag())
+            .setDeleted(this.getDeleted())
             .setNodeType(this.getNodeType())
             .setDefinitionId(this.getDefinitionId())
             .setNodeCode(this.getNodeCode())
@@ -154,8 +150,7 @@ public interface Node extends RootEntity {
             .setAnyNodeSkip(this.getAnyNodeSkip())
             .setListenerType(this.getListenerType())
             .setListenerPath(this.getListenerPath())
-            .setFormCustom(this.getFormCustom())
-            .setFormPath(this.getFormPath())
+            .setFormId(this.getFormId())
             .setExt(this.getExt());
     }
 }

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -25,8 +26,8 @@ import java.util.List;
 
 /**
  * @author vanlin
- * @className FlowFormDaoImpl
- * @description
+ * 流程表单DAO实现
+ *
  * @since 2024/8/19 14:29
  */
 public class FlowFormDaoImpl extends FloviraDaoImpl<FlowForm> implements FlowFormDao<FlowForm> {

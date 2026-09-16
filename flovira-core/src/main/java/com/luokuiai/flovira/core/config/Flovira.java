@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -111,19 +112,9 @@ public class Flovira implements Serializable {
     private String tokenName = "Authorization";
 
     /**
-     * 公共模型流程状态对应的三原色
+     * 流程状态对应的三原色
      */
     private List<String> chartStatusColor;
-
-    /**
-     * 经典模式流程状态对应的三原色
-     */
-    private List<String> chartStatusColorClassics;
-
-    /**
-     * 仿钉钉模式流程状态对应的三原色
-     */
-    private List<String> chartStatusColorMimic;
 
     /**
      * 是否显示流程图顶部文字
@@ -174,7 +165,7 @@ public class Flovira implements Serializable {
         printBanner();
 
         // 初始化流程状态对应的自定义三原色
-        ChartStatus.initCustomColor(this.getChartStatusColor(), this.getChartStatusColorClassics(), this.getChartStatusColorMimic());
+        ChartStatus.initCustomColor(this.getChartStatusColor());
 
         // 通过SPI机制
         spiLoad();
@@ -183,7 +174,12 @@ public class Flovira implements Serializable {
 
     public void spiLoad() {
         // 通过SPI机制加载json转换策略实现类
-        FlowEngine.jsonConvert = ServiceLoaderUtil.loadFirst(JsonConvert.class);
+        List<JsonConvert> jsonConverts = ServiceLoaderUtil.loadList(JsonConvert.class);
+        if (jsonConverts.size() != 1) {
+            throw new IllegalStateException("Exactly one JsonConvert provider is required, found: "
+                + jsonConverts.size());
+        }
+        FlowEngine.jsonConvert = jsonConverts.get(0);
     }
 
     private void printBanner() {

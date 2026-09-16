@@ -30,7 +30,7 @@ export interface DesignerDataProvider {
 export interface DataProvider extends DesignerDataProvider {
 
   // ===== 流程定义 =====
-  saveJson(data: any, onlyNodeSkip?: boolean): Promise<any>
+  saveJson(data: any): Promise<any>
   queryDef(id?: string | number): Promise<any>
   queryFlowChart(id: string | number): Promise<any>
   subprocessSummary(parentTaskId: string | number): Promise<any>

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -186,7 +187,7 @@ public class CollUtil {
      * @param list  需要合并得集合
      * @param lists 需要合并得包含多个集合得集合
      * @param <T>   List中的泛型
-     * @return List<T>
+     * @return {@code List<T>}
      * @author xiarg
      * @since 2024/5/10 15:45
      */

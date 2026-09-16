@@ -53,17 +53,7 @@ public class FlowForm implements Form {
     /**
      * 是否发布（0未发布 1已发布 9失效）
      */
-    private Integer isPublish;
-
-    /**
-     * 表单类型（0内置表单 存 form_content        1外挂表单 存form_path）
-     */
-    private Integer formType;
-
-    /**
-     * 表单路径
-     */
-    private String formPath;
+    private Integer publishStatus;
 
     /**
      * 表单内容
@@ -77,22 +67,22 @@ public class FlowForm implements Form {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -102,6 +92,6 @@ public class FlowForm implements Form {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
 }

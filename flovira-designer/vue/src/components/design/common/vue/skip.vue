@@ -12,7 +12,9 @@
               <wf-option :label="t('skip.typeReject')" value="REJECT"/>
             </wf-select>
           </wf-form-item>
-          <wf-form-item :label="t('skip.conditionLabel')" v-if="skipConditionShow" prop="skipCondition">
+          <FormConditionEditor v-if="skipConditionShow && namedMode" :rule="form.branchRule" :disabled="disabled" @apply="applyNamedRule" />
+          <wf-button v-if="skipConditionShow && fields.length && !disabled" @click="toggleNamedMode">{{ namedMode ? '使用表达式配置' : '使用字段配置' }}</wf-button>
+          <wf-form-item :label="t('skip.conditionLabel')" v-if="skipConditionShow && !namedMode" prop="skipCondition">
             <wf-input v-model="form.condition" v-if="!expressFlag" :placeholder="t('skip.conditionName')" :style="{ width: !expressFlag? '30%' : '0%' }"/>
             <wf-select v-model="form.conditionType" :placeholder="t('skip.conditionTypePlaceholder')" :style="{ width: expressFlag? '18%' : '25%', 'margin-left': '1%' }"
                        clearable @change="changeOper" @clear="handleClear">
@@ -26,7 +28,6 @@
                 <wf-option :label="t('skip.opNotLike')" value="notLike"/>
                 <wf-option :label="t('skip.opDefault')" value="default" v-if="framework ==='SPRING_BOOT'"/>
                 <wf-option label="spel" value="spel" v-if="framework ==='SPRING_BOOT'"/>
-                <wf-option label="snel" value="snel" v-if="framework ==='SOLON'"/>
             </wf-select>
             <wf-input v-model="form.conditionValue" :placeholder="getConditionDescription()" :style="{ width: expressFlag? '80%' : '43%', 'margin-left': '1%' }"/>
           </wf-form-item>
@@ -40,7 +41,9 @@
 
 <script setup lang="ts">
 
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, inject, reactive, ref, watch, type Ref } from 'vue';
+import FormConditionEditor from './FormConditionEditor.vue';
+import type { FormConditionField } from '@/data/formDefinition';
 import {getFramework} from "@/utils/auth";
 import { useI18n } from '@/i18n';
 
@@ -64,6 +67,21 @@ const props = withDefaults(defineProps<SkipProps>(), {
 
 const expressFlag = ref(false)
 const form = ref<Record<string, any>>(props.modelValue)
+const fields = inject<Ref<readonly FormConditionField[]>>('floviraConditionFields', ref([]))
+const namedMode = ref(form.value.branchRule?.mode === 'rules' || (!form.value.skipCondition && fields.value.length > 0))
+function applyNamedRule(rule: any) {
+  form.value.branchRule = rule
+  form.value.skipCondition = rule.expression
+}
+function toggleNamedMode() {
+  namedMode.value = !namedMode.value
+  if (!namedMode.value) {
+    form.value.conditionType = 'spel'
+    form.value.conditionValue = (form.value.skipCondition || '').replace(/^spel@@/, '')
+    form.value.branchRule = undefined
+    expressFlag.value = true
+  }
+}
 const framework = getFramework()
 
 const rules = reactive({
@@ -81,11 +99,6 @@ const rules = reactive({
                 {required: true, message: t('common.pleaseInput'), trigger: "change"},
                 {validator: validateSpel, trigger: ["change", "blur"]}
             ];
-        } else if (type === 'snel') {
-            return [
-                {required: true, message: t('common.pleaseInput'), trigger: "change"},
-                {validator: validateSnel, trigger: ["change", "blur"]}
-            ];
         }
         // 其他类型不作限制
         return [{required: false, message: t('common.pleaseInput'), trigger: "change"}];
@@ -93,10 +106,11 @@ const rules = reactive({
 });
 
 watch(form, n => {
+  if (namedMode.value) return;
   if (n.conditionType) {
     let skipCondition;
     skipCondition = n.conditionType + "@@";
-    if (!/^spel/.test(n.conditionType) && !/^default/.test(n.conditionType) && !/^snel/.test(n.conditionType)) {
+    if (!/^spel/.test(n.conditionType) && !/^default/.test(n.conditionType)) {
       skipCondition = skipCondition + (n.condition ? n.condition : '') + "|";
     }
     n.skipCondition = skipCondition + (n.conditionValue ? n.conditionValue : '')
@@ -105,7 +119,7 @@ watch(form, n => {
 }, {deep: true});
 
 function changeOper(obj: string) {
-  expressFlag.value = (['spel', 'default', 'snel'].includes(obj));
+  expressFlag.value = (['spel', 'default'].includes(obj));
 }
 
 function handleClear() {
@@ -118,7 +132,7 @@ function handleClear() {
     form.value.skipCondition = '';
 }
 
-if (['spel', 'default', 'snel'].includes(props.modelValue?.conditionType)) {
+if (['spel', 'default'].includes(props.modelValue?.conditionType)) {
   expressFlag.value = true;
 }
 
@@ -144,17 +158,6 @@ function validateSpel(rule: any, value: any, callback: (error?: Error) => void) 
     }
 }
 
-function validateSnel(rule: any, value: any, callback: (error?: Error) => void) {
-    value = value.replace('snel@@', '').replace('=', '').trim();
-    if (value === '' || value === undefined || value === null) {
-        callback(new Error(t('skip.snelRequired')));
-    } else if (!/^\#\{.*\}$/.test(value)) {
-        callback(new Error(t('skip.snelFormat')));
-    } else {
-        callback();
-    }
-}
-
 function getConditionDescription() {
     const type = form.value.conditionType;
     switch (type) {
@@ -162,8 +165,6 @@ function getConditionDescription() {
             return t('skip.descDefault');
         case 'spel':
             return t('skip.descSpel');
-        case 'snel':
-            return t('skip.descSnel');
         default:
             return t('common.pleaseInput');
     }

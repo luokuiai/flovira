@@ -25,12 +25,11 @@ export function createHttpProvider(apiPrefix = urlPrefix + 'flovira'): DataProvi
     },
     // ===== 流程定义（原 api/flow/definition.js） =====
     // 保存json流程定义
-    saveJson(data, onlyNodeSkip) {
+    saveJson(data) {
       return request({
         url: baseUrl + '/save-json',
         method: 'post',
-        data: data,
-        headers: { onlyNodeSkip: onlyNodeSkip }
+        data: data
       })
     },
     // 获取流程定义

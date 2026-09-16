@@ -174,14 +174,14 @@ public interface IFloviraService<T> {
      *
      * @return 集合
      */
-    FloviraQuery<T> orderByCreateTime();
+    FloviraQuery<T> orderByCreatedAt();
 
     /**
      * 更新时间设置正序排列
      *
      * @return 集合
      */
-    FloviraQuery<T> orderByUpdateTime();
+    FloviraQuery<T> orderByUpdatedAt();
 
     /**
      * 设置正序排列

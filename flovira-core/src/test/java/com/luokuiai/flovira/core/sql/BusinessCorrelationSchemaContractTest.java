@@ -28,7 +28,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * 四库业务关联字段和索引契约测试
+ * 三库业务关联字段和索引契约测试
  *
  * @author warm
  */
@@ -37,15 +37,19 @@ public class BusinessCorrelationSchemaContractTest {
     @Test
     public void shouldKeepBusinessKeyOnInstanceOnlyForEveryDatabase() throws IOException {
         List<String> scripts = Arrays.asList(
-            "../sql/mysql/flovira-v1.sql",
-            "../sql/postgresql/flovira-v1.sql",
-            "../sql/oracle/oracle-wram-flow-all.sql",
-            "../sql/sqlserver/sqlserver.sql"
+            "../sql/mysql/flovira-v1.0.0.sql",
+            "../sql/postgresql/flovira-v1.0.0.sql",
+            "../sql/oracle/flovira-v1.0.0.sql"
         );
         for (String path : scripts) {
             String sql = new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8)
                 .toLowerCase();
             String instance = tableSection(sql, "flow_instance");
+            String definition = tableSection(sql, "flow_definition");
+            assertBusinessTypeColumn(path, definition);
+            assertBusinessTypeColumn(path, instance);
+            assertTrue(path + " definition missing business_type", definition.contains("business_type"));
+            assertFalse(path + " definition contains business_id", definition.contains("business_id"));
             String task = tableSection(sql, "flow_task");
             String history = tableSection(sql, "flow_his_task");
 
@@ -68,5 +72,16 @@ public class BusinessCorrelationSchemaContractTest {
         assertTrue("missing table " + tableName, start >= 0);
         int nextTable = sql.indexOf("create table", start + 12);
         return sql.substring(start, nextTable < 0 ? sql.length() : nextTable);
+    }
+
+    private void assertBusinessTypeColumn(String path, String table) {
+        java.util.regex.Matcher column = java.util.regex.Pattern.compile(
+            "(?m)^\\s*`?business_type`?\\s+([^\\r\\n]+)").matcher(table);
+        assertTrue(path + " missing business_type column", column.find());
+        String declaration = column.group(1);
+        assertTrue(path + " business_type must have length 128",
+            declaration.matches("varchar2?\\(128\\).*"));
+        assertTrue(path + " business_type must be required", declaration.contains("not null"));
+        assertFalse(path + " business_type must have no default", declaration.contains("default"));
     }
 }

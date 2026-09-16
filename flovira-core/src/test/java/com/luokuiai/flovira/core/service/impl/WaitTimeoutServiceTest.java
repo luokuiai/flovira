@@ -30,7 +30,7 @@ import com.luokuiai.flovira.core.enums.TimeoutAction;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.service.TaskService;
 import com.luokuiai.flovira.core.service.WaitService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
@@ -304,7 +304,7 @@ public class WaitTimeoutServiceTest {
                 }
                 return defaultValue(method.getReturnType());
             });
-            final InsService insService = proxy(InsService.class, (method, args) -> {
+            final InstanceService instanceService = proxy(InstanceService.class, (method, args) -> {
                 if ("getById".equals(method.getName())) {
                     snapshotReads++;
                     return instance;
@@ -313,7 +313,7 @@ public class WaitTimeoutServiceTest {
             });
             FrameInvoker.setBeanFunction(type -> {
                 if (TaskService.class.equals(type)) return taskService;
-                if (InsService.class.equals(type)) return insService;
+                if (InstanceService.class.equals(type)) return instanceService;
                 if (WaitService.class.equals(type)) return service;
                 return null;
             });

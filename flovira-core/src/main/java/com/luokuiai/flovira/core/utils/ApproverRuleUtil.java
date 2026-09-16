@@ -1,5 +1,5 @@
 /*
- *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import com.luokuiai.flovira.core.dto.BusinessSubject;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
+import com.luokuiai.flovira.core.handler.ApproverResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +40,7 @@ import java.util.Map;
 public final class ApproverRuleUtil {
 
     public static final String EXT_CONFIG = "approverRule";
+    public static final String CARBON_COPY_EXT_CONFIG = "carbonCopyRule";
     public static final String SUBJECT_USER = "USER";
     public static final String SELECTION_RESOURCE = "RESOURCE";
     public static final String SELECTION_RELATION = "RELATION";
@@ -48,7 +50,11 @@ public final class ApproverRuleUtil {
     }
 
     public static ApproverRule read(Node node) {
-        String value = FlowEngine.nodeService().getExt(node).get(EXT_CONFIG);
+        return read(node, EXT_CONFIG);
+    }
+
+    public static ApproverRule read(Node node, String configCode) {
+        String value = FlowEngine.nodeService().getExt(node).get(configCode);
         if (StringUtils.isEmpty(value)) {
             return null;
         }
@@ -58,15 +64,26 @@ public final class ApproverRuleUtil {
     }
 
     public static List<String> resolve(Node node, FlowParams flowParams) {
-        ApproverRule rule = read(node);
+        return resolve(node, flowParams, EXT_CONFIG);
+    }
+
+    public static List<String> resolveCarbonCopy(Node node, FlowParams flowParams) {
+        return resolve(node, flowParams, CARBON_COPY_EXT_CONFIG);
+    }
+
+    private static List<String> resolve(Node node, FlowParams flowParams, String configCode) {
+        ApproverRule rule = read(node, configCode);
         if (rule == null) {
             return StringUtils.str2List(node.getPermissionFlag(), FlowCons.SPLIT_AT);
         }
 
         List<String> resolved;
+        ApproverResolver resolver = FlowEngine.approverResolver(rule.getStrategy());
         String relationType = relationType(rule);
         String selectionType = selectionType(rule);
-        if (SELECTION_EXPRESSION.equals(selectionType)) {
+        if (resolver != null) {
+            resolved = resolver.resolve(node, rule, flowParams);
+        } else if (SELECTION_EXPRESSION.equals(selectionType)) {
             resolved = Collections.singletonList(rule.getExpression());
         } else if (StringUtils.isNotEmpty(relationType)) {
             resolved = resolveRelations(rule.getSubjects(), relationType, flowParams);
@@ -92,6 +109,9 @@ public final class ApproverRuleUtil {
         if (rule == null || rule.getSchemaVersion() != ApproverRule.CURRENT_SCHEMA_VERSION
             || StringUtils.isEmpty(rule.getStrategy())) {
             throw new IllegalStateException("Unsupported approver rule");
+        }
+        if (FlowEngine.approverResolver(rule.getStrategy()) != null) {
+            return;
         }
         String selectionType = selectionType(rule);
         if (!SELECTION_RESOURCE.equals(selectionType) && !SELECTION_RELATION.equals(selectionType)
@@ -171,8 +191,8 @@ public final class ApproverRuleUtil {
 
     private static Map<String, Object> copyContext(FlowParams flowParams) {
         Map<String, Object> context = new LinkedHashMap<String, Object>();
-        if (flowParams != null && MapUtil.isNotEmpty(flowParams.getVariable())) {
-            context.putAll(flowParams.getVariable());
+        if (flowParams != null && MapUtil.isNotEmpty(flowParams.getVariables())) {
+            context.putAll(flowParams.getVariables());
         }
         return context;
     }

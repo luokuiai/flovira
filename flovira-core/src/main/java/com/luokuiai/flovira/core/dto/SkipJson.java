@@ -34,14 +34,14 @@ import java.util.Map;
 public class SkipJson {
 
     /**
-     * 当前流程节点的编码
+     * 跳转来源节点编码
      */
-    private String nowNodeCode;
+    private String sourceNodeCode;
 
     /**
-     * 下一个流程节点的编码
+     * 跳转目标节点编码
      */
-    private String nextNodeCode;
+    private String targetNodeCode;
 
     /**
      * 跳转名称
@@ -78,8 +78,8 @@ public class SkipJson {
      */
     private List<String> promptContent;
 
-    private String createBy;
+    private String createdBy;
 
-    private String updateBy;
+    private String updatedBy;
 
 }

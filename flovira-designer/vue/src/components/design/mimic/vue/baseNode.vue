@@ -13,7 +13,7 @@
           ref="nodeNameInput"
           v-model="nodeName"
           @blur="saveNodeName"/>
-      <span v-show="['between', 'subProcess', 'wait'].includes(props.type) && canEdit" class="delete-btn" @click.stop="deleteNode">✕</span>
+      <span v-show="['between', 'subProcess', 'wait', 'carbonCopy'].includes(props.type) && canEdit" class="delete-btn" @click.stop="deleteNode">✕</span>
     </div>
     <div class="bottom-section" @click="editNode" :title="displayHandler">{{ displayHandler }}</div>
   </div>
@@ -68,10 +68,23 @@ const waitKey = computed(() => {
     return ''
   }
 })
-const handler = ref(props.type === 'subProcess' ? t('subprocess.fixedTemplate') : t('baseNode.everyone'));
+const carbonCopySummary = computed(() => {
+  try {
+    const rule = props.ext?.carbonCopyRule ? JSON.parse(props.ext.carbonCopyRule) : null
+    if (!rule) return ''
+    if (rule.selectionType === 'EXPRESSION') return rule.expression || ''
+    return (rule.subjects || []).map((subject) => subject.name || subject.id).join('、')
+  } catch (_) {
+    return ''
+  }
+})
+const handler = ref(props.type === 'subProcess'
+  ? t('subprocess.fixedTemplate')
+  : props.type === 'carbonCopy' ? t('carbonCopy.unconfigured') : t('baseNode.everyone'));
 const displayHandler = computed(() => props.subprocessSummary
   ? `${props.subprocessSummary.completed}/${props.subprocessSummary.total} · ${props.subprocessSummary.status}`
-  : props.type === 'wait' ? (waitKey.value || t('wait.eventPending')) : handler.value);
+  : props.type === 'wait' ? (waitKey.value || t('wait.eventPending'))
+  : props.type === 'carbonCopy' ? (carbonCopySummary.value || handler.value) : handler.value);
 const nodeNameInput = ref<any>(null);
 const editingNodeName = ref(false);
 const emit = defineEmits<{
@@ -107,6 +120,7 @@ const DESIGN_HEADER_GRADIENT: Record<string, string> = {
   end: "linear-gradient(135deg, #f56c6c 0%, #e85c5c 100%)",
   subProcess: "linear-gradient(135deg, #9254de 0%, #7f3fc9 100%)",
   wait: "linear-gradient(135deg, #228b5e 0%, #18724b 100%)",
+  carbonCopy: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)",
 };
 
 const topSectionColor = computed(() => {
@@ -139,7 +153,7 @@ watch(
           handler.value = subjects.map(item => item.handlerName).join('、');
         });
       } else if (props.type !== 'subProcess' && props.type !== 'wait') {
-        handler.value = t('baseNode.everyone');
+        handler.value = props.type === 'carbonCopy' ? t('carbonCopy.unconfigured') : t('baseNode.everyone');
       }
     },
     { immediate: true }

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -64,7 +65,12 @@ public enum NodeType {
     /**
      * 等待节点
      */
-    WAIT(7, "wait");
+    WAIT(7, "wait"),
+
+    /**
+     * 抄送节点
+     */
+    CARBON_COPY(8, "carbonCopy");
 
     private final Integer key;
     private final String value;
@@ -123,7 +129,7 @@ public enum NodeType {
      * @return 是否工作节点
      */
     public static Boolean isWorkNode(Integer key) {
-        return isBetween(key) || isSubProcess(key) || isWait(key);
+        return isBetween(key) || isSubProcess(key) || isWait(key) || isCarbonCopy(key);
     }
 
     /**
@@ -144,6 +150,16 @@ public enum NodeType {
      */
     public static Boolean isWait(Integer key) {
         return ObjectUtil.isNotNull(key) && NodeType.WAIT.getKey().equals(key);
+    }
+
+    /**
+     * 判断是否抄送节点
+     *
+     * @param key 节点类型
+     * @return 是否抄送节点
+     */
+    public static Boolean isCarbonCopy(Integer key) {
+        return ObjectUtil.isNotNull(key) && NodeType.CARBON_COPY.getKey().equals(key);
     }
 
     /**

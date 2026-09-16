@@ -20,8 +20,8 @@ Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 
 - Java 8 source compatibility, with integration support for Java 8, 17, and 21
 - Spring Boot 2.7.18, 3.5.16, and 4.0.2
-- MyBatis, MyBatis-Plus, and Easy-Query
-- MySQL, Oracle, PostgreSQL, and SQL Server
+- MyBatis and MyBatis-Plus
+- MySQL, Oracle, and PostgreSQL
 - Apache License 2.0
 
 ## Modules
@@ -29,11 +29,12 @@ Forked from [Dromara WarmFlow](https://github.com/dromara/warm-flow).
 | Module | Description |
 | --- | --- |
 | `flovira-core` | Framework-independent and ORM-independent workflow engine core |
-| `flovira-orm` | MyBatis, MyBatis-Plus, and Easy-Query integrations |
+| `flovira-orm` | MyBatis and MyBatis-Plus integrations |
 | `flovira-plugin` | Expression, JSON, and process designer plugins |
 | `flovira-designer/vue` | Vue 3 designer package (`@luokuiai/flovira-vue-designer`) |
 | `flovira-designer/react` | React designer package (`@luokuiai/flovira-react-designer`) |
 | `flovira-designer/examples` | Vue and React integration examples |
+| `flovira-example` | Composable PostgreSQL/MySQL backends and React/Vue full-stack examples |
 
 ## Build
 
@@ -42,9 +43,14 @@ modules use a Java 17 baseline.
 
 ```bash
 ./gradlew clean build
+cd flovira-designer
 bun install
 bun run build
 ```
+
+For a runnable end-to-end matrix that combines either PostgreSQL or MySQL
+with React + Lumen, React + Ant Design, or Vue + Ant Design Vue, see
+[`flovira-example`](flovira-example/README.md).
 
 ## Maven Coordinates
 
@@ -67,6 +73,32 @@ Spring Boot 3 with MyBatis-Plus:
 <dependency>
     <groupId>com.luokuiai</groupId>
     <artifactId>flovira-mybatis-plus-sb3-starter</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+Select exactly one JSON provider. Framework and ORM starters do not select one
+automatically:
+
+```xml
+<!-- Jackson 2: Spring Boot 2 and 3 -->
+<dependency>
+    <groupId>com.luokuiai</groupId>
+    <artifactId>flovira-plugin-json-jackson</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- Jackson 3: Spring Boot 4 -->
+<dependency>
+    <groupId>com.luokuiai</groupId>
+    <artifactId>flovira-plugin-json-jackson3</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<!-- Gson: alternative for any supported framework -->
+<dependency>
+    <groupId>com.luokuiai</groupId>
+    <artifactId>flovira-plugin-json-gson</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```

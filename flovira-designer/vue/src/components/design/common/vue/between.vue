@@ -81,11 +81,10 @@
               <wf-option :label="t('between.ratioRejectCount')" value="rejectCount"/>
               <wf-option :label="t('between.ratioDefaultExpr')" value="default" v-if="framework ==='SPRING_BOOT'"/>
               <wf-option :label="t('between.ratioSpelExpr')" value="spel" v-if="framework ==='SPRING_BOOT'"/>
-              <wf-option :label="t('between.ratioSnelExpr')" value="snel" v-if="framework ==='SOLON'"/>
           </wf-select>
           <wf-input v-model="form.nodeRatioValue" :placeholder="getNodeRatioDescription()" style="width: 74%; margin-left: 1%"/>
         </wf-form-item>
-        <wf-form-item :label="t('between.rejectToNode')" prop="formCustom">
+        <wf-form-item :label="t('between.rejectToNode')" prop="anyNodeSkip">
           <template #label>
             <span v-if="form.collaborativeWay === '2'"  class="mr5" style="color: red;">*</span>{{ t('between.rejectToNode') }}
           </template>
@@ -100,45 +99,11 @@
           <div class="placeholder mt5">{{ t('between.voteRejectRequired') }}</div>
         </wf-form-item>
 
-        <!-- 自定义表单 - 卡片式单选 -->
-        <wf-form-item :label="t('between.formCustom')" prop="formCustom">
-          <div class="radio-card-group radio-card-sm">
-            <label
-              class="radio-card-item"
-              :class="{ 'is-checked': form.formCustom === 'N' }"
-              @click="!disabled && (form.formCustom = 'N')"
-            >
-              <span class="radio-card-dot"></span>
-              <span class="radio-card-text">{{ t('common.no') }}</span>
-              <wf-tooltip effect="dark" placement="top" :content="t('between.formCustomNoTip')">
-                <wf-icon :size="13" class="radio-card-tip"><svg-icon icon-class="ep:warning-filled" /></wf-icon>
-              </wf-tooltip>
-            </label>
-            <label
-              class="radio-card-item"
-              :class="{ 'is-checked': form.formCustom === 'Y' }"
-              @click="!disabled && (form.formCustom = 'Y')"
-            >
-              <span class="radio-card-dot"></span>
-              <span class="radio-card-text">{{ t('common.yes') }}</span>
-              <wf-tooltip effect="dark" placement="top" :content="t('between.formCustomYesTip')">
-                <wf-icon :size="13" class="radio-card-tip"><svg-icon icon-class="ep:warning-filled" /></wf-icon>
-              </wf-tooltip>
-            </label>
-          </div>
-        </wf-form-item>
-
-        <wf-form-item :label="t('between.formPath')" prop="formPath" v-if="form.formCustom === 'N'">
-          <wf-input v-model="form.formPath"></wf-input>
-        </wf-form-item>
-        <wf-form-item :label="t('between.formKey')" prop="formPath" v-else-if="form.formCustom === 'Y'">
-            <wf-tree-select
-                v-model="form.formPath"
-                :data="formPathList"
-                :props="{ value: 'id', label: 'name', children: 'children' }"
-                value-key="id"
-                :placeholder="t('baseInfo.categoryPlaceholder')"
-                check-strictly/>
+        <wf-form-item :label="t('between.formId')" prop="formId">
+          <wf-tree-select v-if="formOptions.length" v-model="form.formId"
+              :data="formOptions" :props="{ value: 'id', label: 'name', children: 'children' }"
+              value-key="id" :placeholder="t('between.formIdPlaceholder')" clearable check-strictly/>
+          <wf-input v-else v-model="form.formId" :placeholder="t('between.formIdPlaceholder')" maxlength="100"/>
         </wf-form-item>
         <!-- 自定义扩展点：消费方可注入额外表单项（透出 { form, disabled }） -->
         <slot name="node-form-extra" :form="form" :disabled="disabled" />
@@ -304,7 +269,7 @@ interface BetweenProps {
   /** 画布边列表 */
   skips?: any[];
   /** 自定义表单路径树 */
-  formPathList?: any[];
+  formOptions?: any[];
 }
 const props = withDefaults(defineProps<BetweenProps>(), {
   modelValue: () => ({}),
@@ -312,7 +277,7 @@ const props = withDefaults(defineProps<BetweenProps>(), {
   showWays: true,
   nodes: () => [],
   skips: () => [],
-  formPathList: () => [],
+  formOptions: () => [],
 });
 
 const tabsValue = ref("1");
@@ -370,11 +335,6 @@ const rules = reactive({
                 {required: true, message: t('common.pleaseInput'), trigger: "change"},
                 {validator: validateSpel, trigger: ["change", "blur"]}
             ];
-        }  else if (type === 'snel') {
-            return [
-                {required: true, message: t('common.pleaseInput'), trigger: "change"},
-                {validator: validateSnel, trigger: ["change", "blur"]}
-            ];
         }
         // 其他类型不作限制
         return [];
@@ -391,7 +351,7 @@ watch(() => form.value, n => {
       let nodeRatio = '';
       if (/^passCount|rejectCount/.test(n.nodeRatioType)) {
           nodeRatio = n.nodeRatioType + "=";
-      } else if (/^spel|default|snel/.test(n.nodeRatioType)) {
+      } else if (/^spel|default/.test(n.nodeRatioType)) {
           nodeRatio = n.nodeRatioType + "@@";
       }
       n.nodeRatio = nodeRatio + (n.nodeRatioValue ? n.nodeRatioValue : '')
@@ -451,17 +411,6 @@ function validateSpel(rule: any, value: any, callback: (error?: Error) => void) 
     }
 }
 
-function validateSnel(rule: any, value: any, callback: (error?: Error) => void) {
-    value = value.replace('snel@@', '').replace('=', '').trim();
-    if (value === '' || value === undefined || value === null) {
-        callback(new Error(t('skip.snelRequired')));
-    } else if (!/^\#\{.*\}$/.test(value)) {
-        callback(new Error(t('skip.snelFormat')));
-    } else {
-        callback();
-    }
-}
-
 function getNodeRatioDescription() {
     const type = form.value.nodeRatioType;
     switch (type) {
@@ -475,8 +424,6 @@ function getNodeRatioDescription() {
             return t('between.descDefault');
         case 'spel':
             return t('skip.descSpel');
-        case 'snel':
-            return t('skip.descSnel');
         default:
             return t('common.pleaseInput');
     }

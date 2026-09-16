@@ -30,27 +30,27 @@ public interface RootEntity extends Serializable {
 
     RootEntity setId(Long id);
 
-    Date getCreateTime();
+    Date getCreatedAt();
 
-    RootEntity setCreateTime(Date createTime);
+    RootEntity setCreatedAt(Date createdAt);
 
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
-    RootEntity setUpdateTime(Date updateTime);
+    RootEntity setUpdatedAt(Date updatedAt);
 
-    default String getCreateBy() {
+    default String getCreatedBy() {
         return null;
     }
 
-    default RootEntity setCreateBy(String createBy) {
+    default RootEntity setCreatedBy(String createdBy) {
         return this;
     }
 
-    default String getUpdateBy() {
+    default String getUpdatedBy() {
         return null;
     }
 
-    default RootEntity setUpdateBy(String updateBy) {
+    default RootEntity setUpdatedBy(String updatedBy) {
         return this;
     }
 
@@ -58,8 +58,8 @@ public interface RootEntity extends Serializable {
 
     RootEntity setTenantId(String tenantId);
 
-    String getDelFlag();
+    String getDeleted();
 
-    RootEntity setDelFlag(String delFlag);
+    RootEntity setDeleted(String deleted);
 
 }

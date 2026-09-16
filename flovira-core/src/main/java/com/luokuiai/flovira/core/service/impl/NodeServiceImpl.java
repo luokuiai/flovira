@@ -56,7 +56,7 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
     @Override
     public List<Node> getPublishByFlowCode(String flowCode) {
         Definition definition = FlowEngine.defService().getOne(FlowEngine.newDef()
-            .setFlowCode(flowCode).setIsPublish(PublishStatus.PUBLISHED.getKey()));
+            .setFlowCode(flowCode).setPublishStatus(PublishStatus.PUBLISHED.getKey()));
         if (ObjectUtil.isNotNull(definition)) {
             return list(FlowEngine.newNode().setDefinitionId(definition.getId()));
         }
@@ -75,8 +75,8 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
     }
 
     @Override
-    public List<Node> previousNodeList(Long definitionId, String nowNodeCode) {
-        return prefixOrSuffixNodes(definitionId, nowNodeCode, FlowCons.PREVIOUS);
+    public List<Node> previousNodeList(Long definitionId, String nodeCode) {
+        return prefixOrSuffixNodes(definitionId, nodeCode, FlowCons.PREVIOUS);
     }
 
     @Override
@@ -86,13 +86,13 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
     }
 
     @Override
-    public List<Node> suffixNodeList(Long definitionId, String nowNodeCode) {
-        return prefixOrSuffixNodes(definitionId, nowNodeCode, FlowCons.SUFFIX);
+    public List<Node> suffixNodeList(Long definitionId, String nodeCode) {
+        return prefixOrSuffixNodes(definitionId, nodeCode, FlowCons.SUFFIX);
     }
 
     @Override
-    public List<Node> suffixNodeList(String nowNodeCode, FlowCombine flowCombine) {
-        return prefixOrSuffixNodes(nowNodeCode, FlowCons.SUFFIX, flowCombine);
+    public List<Node> suffixNodeList(String nodeCode, FlowCombine flowCombine) {
+        return prefixOrSuffixNodes(nodeCode, FlowCons.SUFFIX, flowCombine);
     }
 
     @Override
@@ -129,24 +129,24 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
         return getOne(FlowEngine.newNode().setDefinitionId(definitionId).setNodeType(NodeType.END.getKey()));
     }
 
-    public List<Node> prefixOrSuffixNodes(Long definitionId, String nowNodeCode, String type) {
+    public List<Node> prefixOrSuffixNodes(Long definitionId, String nodeCode, String type) {
         FlowCombine flowCombine = new FlowCombine();
         flowCombine.setAllNodes(FlowEngine.nodeService().getByDefId(definitionId));
         flowCombine.setAllSkips(FlowEngine.skipService().getByDefId(definitionId));
-        return prefixOrSuffixNodes(nowNodeCode, type, flowCombine);
+        return prefixOrSuffixNodes(nodeCode, type, flowCombine);
     }
 
-    public List<Node> prefixOrSuffixNodes(String nowNodeCode, String type, FlowCombine flowCombine) {
+    public List<Node> prefixOrSuffixNodes(String nodeCode, String type, FlowCombine flowCombine) {
         Map<String, Node> nodeMap = StreamUtils.toMap(flowCombine.getAllNodes(), Node::getNodeCode, node -> node);
         Map<String, List<Skip>> skipMap = flowCombine.getAllSkips().stream().filter(skip -> SkipType.isPass(skip.getSkipType()))
-            .collect(Collectors.groupingBy(FlowCons.PREVIOUS.equals(type) ? Skip::getNextNodeCode : Skip::getNowNodeCode
+            .collect(Collectors.groupingBy(FlowCons.PREVIOUS.equals(type) ? Skip::getTargetNodeCode : Skip::getSourceNodeCode
                 , LinkedHashMap::new, Collectors.toList()));
 
         List<Node> prefixOrSuffixNodes = new ArrayList<>();
-        List<String> prefixOrSuffixCode = prefixOrSuffixCodes(skipMap, nowNodeCode
-            , FlowCons.PREVIOUS.equals(type) ? Skip::getNowNodeCode : Skip::getNextNodeCode);
-        for (String nodeCode : prefixOrSuffixCode) {
-            Node node = nodeMap.get(nodeCode);
+        List<String> prefixOrSuffixCode = prefixOrSuffixCodes(skipMap, nodeCode
+            , FlowCons.PREVIOUS.equals(type) ? Skip::getSourceNodeCode : Skip::getTargetNodeCode);
+        for (String relatedNodeCode : prefixOrSuffixCode) {
+            Node node = nodeMap.get(relatedNodeCode);
             if (!NodeType.isGateWay(node.getNodeType())) {
                 prefixOrSuffixNodes.add(node);
             }
@@ -165,22 +165,22 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
     }
 
     @Override
-    public List<Node> getNextNodeList(Long definitionId, String nowNodeCode, String anyNodeCode, String skipType,
+    public List<Node> getNextNodeList(Long definitionId, String currentNodeCode, String anyNodeCode, String skipType,
                                       Map<String, Object> variable) {
-        AssertUtil.isEmpty(nowNodeCode, ExceptionCons.LOST_NODE_CODE);
+        AssertUtil.isEmpty(currentNodeCode, ExceptionCons.LOST_NODE_CODE);
         // 查询当前节点
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(definitionId);
-        Node nowNode = StreamUtils.filterOne(flowCombine.getAllNodes(), t -> t.getNodeCode().equals(nowNodeCode));
+        Node nowNode = StreamUtils.filterOne(flowCombine.getAllNodes(), t -> t.getNodeCode().equals(currentNodeCode));
         // 如果是网关节点，则根据条件判断
         return getNextByCheckGateway(variable, getNextNode(nowNode, anyNodeCode, skipType, null, flowCombine),
             null, flowCombine);
     }
 
     @Override
-    public Node getNextNode(Long definitionId, String nowNodeCode, String anyNodeCode, String skipType) {
+    public Node getNextNode(Long definitionId, String currentNodeCode, String anyNodeCode, String skipType) {
         // 查询当前节点
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(definitionId);
-        Node nowNode = StreamUtils.filterOne(flowCombine.getAllNodes(), t -> t.getNodeCode().equals(nowNodeCode));
+        Node nowNode = StreamUtils.filterOne(flowCombine.getAllNodes(), t -> t.getNodeCode().equals(currentNodeCode));
         return getNextNode(nowNode, anyNodeCode, skipType, null, flowCombine);
     }
 
@@ -217,12 +217,12 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
         }
 
         // 获取跳转关系
-        List<Skip> skips = StreamUtils.filter(flowCombine.getAllSkips(), skip -> nowNode.getNodeCode().equals(skip.getNowNodeCode()));
+        List<Skip> skips = StreamUtils.filter(flowCombine.getAllSkips(), skip -> nowNode.getNodeCode().equals(skip.getSourceNodeCode()));
         AssertUtil.isNull(skips, ExceptionCons.NULL_DEST_NODE);
         Skip nextSkip = getSkipByCheck(skips, skipType);
 
         // 根据跳转查询出跳转到的那个节点
-        nextNode = StreamUtils.filterOne(flowCombine.getAllNodes(), node -> nextSkip != null && nextSkip.getNextNodeCode().equals(node.getNodeCode()));
+        nextNode = StreamUtils.filterOne(flowCombine.getAllNodes(), node -> nextSkip != null && nextSkip.getTargetNodeCode().equals(node.getNodeCode()));
         AssertUtil.isNull(nextNode, ExceptionCons.NULL_NODE_CODE);
         AssertUtil.isTrue(NodeType.isStart(nextNode.getNodeType()), ExceptionCons.FIRST_FORBID_BACK);
         if (pathWayData != null) {
@@ -238,7 +238,7 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
         // 网关节点处理
         if (NodeType.isGateWay(nextNode.getNodeType())) {
             List<Skip> skipsGateway = StreamUtils.filter(flowCombine.getAllSkips()
-                , skip -> nextNode.getNodeCode().equals(skip.getNowNodeCode()));
+                , skip -> nextNode.getNodeCode().equals(skip.getSourceNodeCode()));
             if (CollUtil.isEmpty(skipsGateway)) {
                 return null;
             }
@@ -264,9 +264,9 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
             }
 
             AssertUtil.isEmpty(skipsGateway, ExceptionCons.NULL_CONDITION_VALUE_NODE);
-            List<String> nextNodeCodes = StreamUtils.toList(skipsGateway, Skip::getNextNodeCode);
+            List<String> targetNodeCodes = StreamUtils.toList(skipsGateway, Skip::getTargetNodeCode);
             List<Node> nextNodes = StreamUtils.filter(flowCombine.getAllNodes()
-                , node -> nextNodeCodes.contains(node.getNodeCode()));
+                , node -> targetNodeCodes.contains(node.getNodeCode()));
             AssertUtil.isEmpty(nextNodes, ExceptionCons.NOT_NODE_DATA);
             if (pathWayData != null) {
                 pathWayData.getPathWayNodes().addAll(nextNodes);
@@ -335,12 +335,12 @@ public class NodeServiceImpl extends FloviraServiceImpl<FlowNodeDao<Node>, Node>
         if (CollUtil.isNotEmpty(skipList)) {
             for (Skip skip : skipList) {
                 if (SkipType.isPass(skip.getSkipType())) {
-                    String nextNodeCode = supplier.apply(skip);
+                    String targetNodeCode = supplier.apply(skip);
                     // 避免重复添加
-                    if (!result.contains(nextNodeCode)) {
-                        result.add(nextNodeCode);
+                    if (!result.contains(targetNodeCode)) {
+                        result.add(targetNodeCode);
                     }
-                    prefixOrSuffixCodesRecursive(skipMap, nextNodeCode, supplier, visited, result);
+                    prefixOrSuffixCodesRecursive(skipMap, targetNodeCode, supplier, visited, result);
                 }
             }
         }

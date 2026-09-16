@@ -7,39 +7,39 @@
     <resultMap type="com.luokuiai.flovira.orm.entity.FlowSkip" id="FlowSkipResult">
         <result property="id" column="id"/>
         <result property="definitionId" column="definition_id"/>
-        <result property="nowNodeCode" column="now_node_code"/>
-        <result property="nowNodeType" column="now_node_type"/>
-        <result property="nextNodeCode" column="next_node_code"/>
-        <result property="nextNodeType" column="next_node_type"/>
+        <result property="sourceNodeCode" column="source_node_code"/>
+        <result property="sourceNodeType" column="source_node_type"/>
+        <result property="targetNodeCode" column="target_node_code"/>
+        <result property="targetNodeType" column="target_node_type"/>
         <result property="skipName" column="skip_name"/>
         <result property="skipType" column="skip_type"/>
         <result property="skipCondition" column="skip_condition"/>
         <result property="coordinate" column="coordinate"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-        <result property="delFlag" column="del_flag"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="deleted" column="deleted"/>
         <result property="tenantId" column="tenant_id"/>
-        <result property="createBy" column="create_by"/>
-        <result property="updateBy" column="update_by"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
     </resultMap>
 
     <sql id="selectVo">
         select t.id,
                t.definition_id,
-               t.now_node_code,
-               t.now_node_type,
-               t.next_node_code,
-               t.next_node_type,
+               t.source_node_code,
+               t.source_node_type,
+               t.target_node_code,
+               t.target_node_type,
                t.skip_name,
                t.skip_type,
                t.skip_condition,
                t.coordinate,
-               t.create_time,
-               t.update_time,
-               t.del_flag,
+               t.created_at,
+               t.updated_at,
+               t.deleted,
                t.tenant_id,
-               t.create_by,
-               t.update_by
+               t.created_by,
+               t.updated_by
         from flow_skip t
     </sql>
 
@@ -57,12 +57,12 @@
         <where>
             <if test="entity.id != null">and t.id = #{entity.id}</if>
             <if test="entity.definitionId != null">and t.definition_id = #{entity.definitionId}</if>
-            <if test="entity.nowNodeCode != null">and t.now_node_code = #{entity.nowNodeCode}</if>
-            <if test="entity.nowNodeType != null">and t.now_node_type = #{entity.nowNodeType}</if>
-            <if test="entity.nextNodeCode != null and entity.nextNodeCode != ''">and t.next_node_code =
-                #{entity.nextNodeCode}
+            <if test="entity.sourceNodeCode != null">and t.source_node_code = #{entity.sourceNodeCode}</if>
+            <if test="entity.sourceNodeType != null">and t.source_node_type = #{entity.sourceNodeType}</if>
+            <if test="entity.targetNodeCode != null and entity.targetNodeCode != ''">and t.target_node_code =
+                #{entity.targetNodeCode}
             </if>
-            <if test="entity.nextNodeType != null">and t.next_node_type = #{entity.nextNodeType}</if>
+            <if test="entity.targetNodeType != null">and t.target_node_type = #{entity.targetNodeType}</if>
             <if test="entity.skipName != null and entity.skipName != ''">and t.skip_name = #{entity.skip}</if>
             <if test="entity.skipType != null and entity.skipType != ''">and t.skip_type =
                 #{entity.skipType}
@@ -70,12 +70,12 @@
             <if test="entity.skipCondition != null and entity.skipCondition != ''">and t.skip_condition
                 =#{skipCondition}
             </if>
-            <if test="entity.createTime != null">and t.create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and t.update_time = #{entity.updateTime}</if>
-            <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+            <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
+            <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
-            <if test="entity.updateBy != null and entity.updateBy != ''">and t.update_by = #{entity.updateBy}</if>
-            <if test="entity.createBy != null and entity.createBy != ''">and t.create_by = #{entity.createBy}</if>
+            <if test="entity.updatedBy != null and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
+            <if test="entity.createdBy != null and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
         </where>
     </sql>
 
@@ -112,40 +112,40 @@
         insert into flow_skip(
         id,
         definition_id,
-        now_node_code,
-        now_node_type,
-        next_node_code,
-        next_node_type,
+        source_node_code,
+        source_node_type,
+        target_node_code,
+        target_node_type,
         skip_name,
         skip_type,
         skip_condition,
         coordinate,
-        create_time,
-        update_time,
-        del_flag,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         )
         values
         <foreach collection="list" item="item" separator=",">
             (
             #{item.id},
             #{item.definitionId},
-            #{item.nowNodeCode},
-            #{item.nowNodeType},
-            #{item.nextNodeCode},
-            #{item.nextNodeType},
+            #{item.sourceNodeCode},
+            #{item.sourceNodeType},
+            #{item.targetNodeCode},
+            #{item.targetNodeType},
             #{item.skipName},
             #{item.skipType},
             #{item.skipCondition},
             #{item.coordinate},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             )
         </foreach>
     </sql>
@@ -154,39 +154,39 @@
         insert into flow_skip(
         id,
         definition_id,
-        now_node_code,
-        now_node_type,
-        next_node_code,
-        next_node_type,
+        source_node_code,
+        source_node_type,
+        target_node_code,
+        target_node_type,
         skip_name,
         skip_type,
         skip_condition,
         coordinate,
-        create_time,
-        update_time,
-        del_flag,
+        created_at,
+        updated_at,
+        deleted,
         tenant_id,
-        create_by,
-        update_by
+        created_by,
+        updated_by
         )
         <foreach collection="list" item="item" separator=" union all ">
             select
             #{item.id},
             #{item.definitionId},
-            #{item.nowNodeCode},
-            #{item.nowNodeType},
-            #{item.nextNodeCode},
-            #{item.nextNodeType},
+            #{item.sourceNodeCode},
+            #{item.sourceNodeType},
+            #{item.targetNodeCode},
+            #{item.targetNodeType},
             #{item.skipName},
             #{item.skipType},
             #{item.skipCondition},
             #{item.coordinate},
-            #{item.createTime},
-            #{item.updateTime},
-            #{item.delFlag},
+            #{item.createdAt},
+            #{item.updatedAt},
+            #{item.deleted},
             #{item.tenantId},
-            #{item.createBy},
-            #{item.updateBy}
+            #{item.createdBy},
+            #{item.updatedBy}
             from dual
         </foreach>
     </sql>
@@ -197,14 +197,14 @@
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
     <select id="selectById" resultMap="FlowSkipResult">
         <include refid="selectVo"/>
         where t.id = #{id}
-        <if test="entity.delFlag != null  and entity.delFlag != ''">and t.del_flag = #{entity.delFlag}</if>
+        <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
     </select>
 
@@ -213,38 +213,38 @@
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">id,</if>
             <if test="definitionId != null">definition_id,</if>
-            <if test="nowNodeCode != null and nowNodeCode != ''">now_node_code,</if>
-            <if test="nowNodeType != null">now_node_type,</if>
-            <if test="nextNodeCode != null and nextNodeCode != ''">next_node_code,</if>
-            <if test="nextNodeType != null">next_node_type,</if>
+            <if test="sourceNodeCode != null and sourceNodeCode != ''">source_node_code,</if>
+            <if test="sourceNodeType != null">source_node_type,</if>
+            <if test="targetNodeCode != null and targetNodeCode != ''">target_node_code,</if>
+            <if test="targetNodeType != null">target_node_type,</if>
             <if test="skipName != null and skipName != ''">skip_name,</if>
             <if test="skipType != null">skip_type,</if>
             <if test="skipCondition != null and skipCondition != ''">skip_condition,</if>
             <if test="coordinate != null and coordinate != ''">coordinate,</if>
-            <if test="createTime != null">create_time,</if>
-            <if test="updateTime != null">update_time,</if>
-            <if test="delFlag != null and delFlag != ''">del_flag,</if>
+            <if test="createdAt != null">created_at,</if>
+            <if test="updatedAt != null">updated_at,</if>
+            <if test="deleted != null and deleted != ''">deleted,</if>
             <if test="tenantId != null and tenantId != ''">tenant_id,</if>
-            <if test="createBy != null and createBy != ''">create_by,</if>
-            <if test="updateBy != null and updateBy != ''">update_by,</if>
+            <if test="createdBy != null and createdBy != ''">created_by,</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="id != null">#{id},</if>
             <if test="definitionId != null">#{definitionId},</if>
-            <if test="nowNodeCode != null and nowNodeCode != ''">#{nowNodeCode},</if>
-            <if test="nowNodeType != null">#{nowNodeType},</if>
-            <if test="nextNodeCode != null and nextNodeCode != ''">#{nextNodeCode},</if>
-            <if test="nextNodeType != null">#{nextNodeType},</if>
+            <if test="sourceNodeCode != null and sourceNodeCode != ''">#{sourceNodeCode},</if>
+            <if test="sourceNodeType != null">#{sourceNodeType},</if>
+            <if test="targetNodeCode != null and targetNodeCode != ''">#{targetNodeCode},</if>
+            <if test="targetNodeType != null">#{targetNodeType},</if>
             <if test="skipName != null and skipName != ''">#{skipName},</if>
             <if test="skipType != null">#{skipType},</if>
             <if test="skipCondition != null and skipCondition != ''">#{skipCondition},</if>
             <if test="coordinate != null and coordinate != ''">#{coordinate},</if>
-            <if test="createTime != null">#{createTime},</if>
-            <if test="updateTime != null">#{updateTime},</if>
-            <if test="delFlag != null and delFlag != ''">#{delFlag},</if>
+            <if test="createdAt != null">#{createdAt},</if>
+            <if test="updatedAt != null">#{updatedAt},</if>
+            <if test="deleted != null and deleted != ''">#{deleted},</if>
             <if test="tenantId != null and tenantId != ''">#{tenantId},</if>
-            <if test="createBy != null and createBy != ''">#{createBy},</if>
-            <if test="updateBy != null and updateBy != ''">#{updateBy}</if>
+            <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">#{updatedBy}</if>
         </trim>
     </insert>
 
@@ -252,21 +252,21 @@
         update flow_skip
         <trim prefix="SET" suffixOverrides=",">
             <if test="definitionId != null">definition_id = #{definitionId},</if>
-            <if test="nowNodeCode != null and nowNodeCode != ''">now_node_code = #{nowNodeCode},</if>
-            <if test="nowNodeType != null">now_node_type = #{nowNodeType},</if>
-            <if test="nextNodeCode != null and nextNodeCode != ''">next_node_code = #{nextNodeCode},</if>
-            <if test="nextNodeType != null">next_node_type = #{nextNodeType},</if>
+            <if test="sourceNodeCode != null and sourceNodeCode != ''">source_node_code = #{sourceNodeCode},</if>
+            <if test="sourceNodeType != null">source_node_type = #{sourceNodeType},</if>
+            <if test="targetNodeCode != null and targetNodeCode != ''">target_node_code = #{targetNodeCode},</if>
+            <if test="targetNodeType != null">target_node_type = #{targetNodeType},</if>
             <if test="skipName != null and skipName != ''">skip_name = #{skipName},</if>
             <if test="skipType != null">skip_type = #{skipType},</if>
             <if test="skipCondition != null and skipCondition != ''">skip_condition = #{skipCondition},</if>
             <if test="coordinate != null and coordinate != ''">coordinate = #{coordinate},</if>
-            <if test="createTime != null">create_time = #{createTime},</if>
-            <if test="updateTime != null">update_time = #{updateTime},</if>
-            <if test="createBy != null and createBy != ''">create_by = #{createBy},</if>
-            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            <if test="createdAt != null">created_at = #{createdAt},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+            <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
+            <if test="updatedBy != null and updatedBy != ''">updated_by = #{updatedBy},</if>
         </trim>
         where id = #{id}
-        <if test="delFlag != null  and delFlag != ''">and del_flag = #{delFlag}</if>
+        <if test="deleted != null  and deleted != ''">and deleted = #{deleted}</if>
         <if test="tenantId != null  and tenantId != ''">and tenant_id = #{tenantId}</if>
     </update>
 
@@ -279,10 +279,10 @@
 
     <update id="updateByIdLogic">
         update flow_skip
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id = #{id}
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -296,13 +296,13 @@
 
     <update id="updateByIdsLogic">
         update flow_skip
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where id in
         <foreach item="id" collection="ids" open="(" separator="," close=")">
             #{id}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 
@@ -312,34 +312,34 @@
         <where>
             <if test="id != null">and id = #{id}</if>
             <if test="definitionId != null">and definition_id = #{definitionId}</if>
-            <if test="nowNodeCode != null and nowNodeCode != ''">and now_node_code = #{nowNodeCode}</if>
-            <if test="nowNodeType != null">and now_node_type = #{nowNodeType}</if>
-            <if test="nextNodeCode != null and nextNodeCode != ''">and next_node_code = #{nextNodeCode}</if>
-            <if test="nextNodeType != null">and next_node_type = #{nextNodeType}</if>
+            <if test="sourceNodeCode != null and sourceNodeCode != ''">and source_node_code = #{sourceNodeCode}</if>
+            <if test="sourceNodeType != null">and source_node_type = #{sourceNodeType}</if>
+            <if test="targetNodeCode != null and targetNodeCode != ''">and target_node_code = #{targetNodeCode}</if>
+            <if test="targetNodeType != null">and target_node_type = #{targetNodeType}</if>
             <if test="skipName != null and skipName != ''">and skip_name = #{skipName}</if>
             <if test="skipType != null">and skip_type = #{skipType}</if>
             <if test="coordinate != null and coordinate != ''">and coordinate = #{coordinate}</if>
             <if test="skipCondition != null and skipCondition != ''">and skip_condition = #{skipCondition}</if>
-            <if test="createTime != null">and create_time = #{createTime}</if>
-            <if test="updateTime != null">and update_time = #{updateTime}</if>
+            <if test="createdAt != null">and created_at = #{createdAt}</if>
+            <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
         </where>
     </delete>
 
     <update id="updateLogic">
         update flow_skip
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         <where>
             <if test="entity.id != null">and id = #{entity.id}</if>
             <if test="entity.definitionId != null">and definition_id = #{entity.definitionId}</if>
-            <if test="entity.nowNodeCode != null and entity.nowNodeCode != ''">and now_node_code =
-                #{entity.nowNodeCode}
+            <if test="entity.sourceNodeCode != null and entity.sourceNodeCode != ''">and source_node_code =
+                #{entity.sourceNodeCode}
             </if>
-            <if test="entity.nowNodeType != null">and now_node_type = #{entity.nowNodeType}</if>
-            <if test="entity.nextNodeCode != null and nextNodeCode != ''">and next_node_code =
-                #{entity.nextNodeCode}
+            <if test="entity.sourceNodeType != null">and source_node_type = #{entity.sourceNodeType}</if>
+            <if test="entity.targetNodeCode != null and targetNodeCode != ''">and target_node_code =
+                #{entity.targetNodeCode}
             </if>
-            <if test="entity.nextNodeType != null">and next_node_type = #{entity.nextNodeType}</if>
+            <if test="entity.targetNodeType != null">and target_node_type = #{entity.targetNodeType}</if>
             <if test="entity.skipName != null and entity.skipName != ''">and skip_name = #{entity.skipName}</if>
             <if test="entity.skipType != null">and skip_type = #{entity.skipType}</if>
             <if test="entity.coordinate != null and entity.coordinate != ''">and coordinate = #{entity.coordinate}
@@ -347,10 +347,10 @@
             <if test="entity.skipCondition != null and entity.skipCondition != ''">and skip_condition =
                 #{entity.skipCondition}
             </if>
-            <if test="entity.createTime != null">and create_time = #{entity.createTime}</if>
-            <if test="entity.updateTime != null">and update_time = #{entity.updateTime}</if>
+            <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
+            <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag =
+            <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}
             </if>
         </where>
@@ -366,13 +366,13 @@
 
     <update id="updateSkipByDefIdsLogic">
         update flow_skip
-        set del_flag = #{logicDeleteValue}
+        set deleted = #{logicDeleteValue}
         where definition_id in
         <foreach item="definitionId" collection="defIds" open="(" separator="," close=")">
             #{definitionId}
         </foreach>
         <if test="entity.tenantId != null  and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
-        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and del_flag = #{logicNotDeleteValue}
+        <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted = #{logicNotDeleteValue}
         </if>
     </update>
 

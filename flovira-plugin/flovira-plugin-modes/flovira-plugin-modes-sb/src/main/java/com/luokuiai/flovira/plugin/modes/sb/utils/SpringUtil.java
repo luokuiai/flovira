@@ -21,6 +21,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Collection;
+
 /**
  * @author PMB
  */
@@ -52,5 +55,11 @@ public class SpringUtil implements ApplicationContextAware {
         return getApplicationContext().getBean(clazz);
     }
 
-}
+    /**
+     * 通过 class 获取全部 Bean
+     */
+    public static <M> Collection<M> getBeans(Class<M> clazz) {
+        return new ArrayList<M>(getApplicationContext().getBeansOfType(clazz).values());
+    }
 
+}

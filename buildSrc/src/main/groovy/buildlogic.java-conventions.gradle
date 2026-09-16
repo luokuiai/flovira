@@ -78,5 +78,6 @@ tasks.withType(Jar) {
 
 tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'
-    failOnError = false
+    options.addBooleanOption('Xdoclint:all,-missing', true)
+    options.quiet()
 }

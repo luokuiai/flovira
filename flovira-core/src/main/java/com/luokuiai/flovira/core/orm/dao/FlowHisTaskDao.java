@@ -59,8 +59,8 @@ public interface FlowHisTaskDao<T extends HisTask> extends FloviraDao<T> {
      * 根据任务id和协作类型查询
      *
      * @param taskId
-     * @param cooperateTypes
+     * @param cooperationTypes
      * @return
      */
-    List<T> listByTaskIdAndCooperateTypes(Long taskId, Integer[] cooperateTypes);
+    List<T> listByTaskIdAndCooperationTypes(Long taskId, Integer[] cooperationTypes);
 }

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -42,7 +43,7 @@ public interface SkipService extends IFloviraService<Skip> {
      * 根据流程定义id查询节点跳转线
      *
      * @param definitionId 流程定义id
-     * @return List<Skip>
+     * @return {@code List<Skip>}
      */
     List<Skip> getByDefId(Long definitionId);
 
@@ -50,8 +51,8 @@ public interface SkipService extends IFloviraService<Skip> {
      * 根据流程定义id和节点编码查询节点跳转线
      *
      * @param definitionId 流程定义id
-     * @param nowNodeCode  其实节点编码
-     * @return List<Skip>
+     * @param sourceNodeCode  跳转来源节点编码
+     * @return {@code List<Skip>}
      */
-    List<Skip> getByDefIdAndNowNodeCode(Long definitionId, String nowNodeCode);
+    List<Skip> getByDefIdAndSourceNodeCode(Long definitionId, String sourceNodeCode);
 }

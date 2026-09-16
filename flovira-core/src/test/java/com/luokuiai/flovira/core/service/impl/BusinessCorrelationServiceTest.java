@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,18 +18,27 @@ package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
+import com.luokuiai.flovira.core.exception.FlowException;
+import com.luokuiai.flovira.core.service.DefService;
 import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.dto.DefJson;
+import com.luokuiai.flovira.core.dto.NodeJson;
+import com.luokuiai.flovira.core.dto.SkipJson;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
+import com.luokuiai.flovira.core.entity.Skip;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.orm.dao.FlowHisTaskDao;
+import com.luokuiai.flovira.core.orm.dao.FlowDefinitionDao;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
-import com.luokuiai.flovira.core.service.InsService;
+import com.luokuiai.flovira.core.service.InstanceService;
+import com.luokuiai.flovira.core.service.NodeService;
+import com.luokuiai.flovira.core.service.SkipService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +46,7 @@ import org.junit.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -59,22 +70,143 @@ public class BusinessCorrelationServiceTest {
         FlowEngine.jsonConvert = new EmptyJsonConvert();
     }
 
-    @Test
-    public void shouldUseFlowCodeAsDefaultBusinessType() {
-        Definition definition = TestEntityFactory.create(Definition.class).setFlowCode("PURCHASE");
+    @Test(expected = FlowException.class)
+    public void shouldRejectSavingDefinitionWithoutBusinessType() {
+        new DefServiceImpl().save(TestEntityFactory.create(Definition.class));
+    }
 
-        assertEquals("PURCHASE", InsServiceImpl.defaultBusinessType(definition));
+    @Test(expected = FlowException.class)
+    public void shouldRejectBatchSavingBlankBusinessType() {
+        new DefServiceImpl().saveBatch(Collections.singletonList(
+            TestEntityFactory.create(Definition.class).setBusinessType("  ")));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectClearingBusinessTypeOnUpdate() {
+        new DefServiceImpl().updateById(TestEntityFactory.create(Definition.class)
+            .setId(1L).setBusinessType(""));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectFullDesignSaveWithoutBusinessType() {
+        new DefServiceImpl().saveDef(new DefJson().setId(1L).setFlowCode("PURCHASE"));
     }
 
     @Test
-    public void shouldPersistExplicitBusinessType() throws Exception {
+    public void shouldSaveDefinitionTogetherWithNodesAndSkips() {
+        FlowEngine.setNewDef(() -> TestEntityFactory.create(Definition.class));
+        FlowEngine.setNewNode(() -> TestEntityFactory.create(Node.class));
+        FlowEngine.setNewSkip(() -> TestEntityFactory.create(Skip.class));
+        final List<String> calls = new ArrayList<>();
+        DefService definitions = proxy(DefService.class, (method, args) -> {
+            if ("updateById".equals(method.getName())) {
+                Definition definition = (Definition) args[0];
+                assertEquals("更新后的流程", definition.getFlowName());
+                assertEquals("PURCHASE_ORDER", definition.getBusinessType());
+                assertEquals("采购", definition.getCategory());
+                assertEquals("", definition.getFormId());
+                calls.add("definition");
+                return true;
+            }
+            return defaultValue(method.getReturnType());
+        });
+        NodeService nodes = proxy(NodeService.class, (method, args) -> {
+            if ("getExt".equals(method.getName())) return Collections.emptyMap();
+            if ("remove".equals(method.getName())) {
+                assertEquals(Long.valueOf(1L), ((Node) args[0]).getDefinitionId());
+                calls.add("removeNodes");
+            } else if ("saveBatch".equals(method.getName())) {
+                assertEquals(2, ((List<?>) args[0]).size());
+                calls.add("nodes");
+            }
+            return defaultValue(method.getReturnType());
+        });
+        SkipService skips = proxy(SkipService.class, (method, args) -> {
+            if ("remove".equals(method.getName())) {
+                assertEquals(Long.valueOf(1L), ((Skip) args[0]).getDefinitionId());
+                calls.add("removeSkips");
+            } else if ("saveBatch".equals(method.getName())) {
+                assertEquals(1, ((List<?>) args[0]).size());
+                calls.add("skips");
+            }
+            return defaultValue(method.getReturnType());
+        });
+        FrameInvoker.setBeanFunction(type -> DefService.class.equals(type) ? definitions
+            : NodeService.class.equals(type) ? nodes : SkipService.class.equals(type) ? skips : null);
+        NodeJson start = new NodeJson().setNodeCode("start").setNodeType(0)
+            .setSkipList(Collections.singletonList(new SkipJson().setSourceNodeCode("start")
+                .setTargetNodeCode("end").setSkipType("PASS")));
+        NodeJson end = new NodeJson().setNodeCode("end").setNodeType(2);
+        new DefServiceImpl().saveDef(new DefJson().setId(1L).setFlowCode("PURCHASE")
+            .setFlowName("更新后的流程").setBusinessType("PURCHASE_ORDER").setCategory("采购")
+            .setVersion("1").setNodeList(Arrays.asList(start, end)));
+        assertEquals(Arrays.asList("definition", "removeNodes", "removeSkips", "nodes", "skips"), calls);
+    }
+
+    @Test
+    public void shouldAllowStatusOnlyDefinitionUpdate() {
+        final Definition[] updated = new Definition[1];
+        FlowDefinitionDao<Definition> dao = proxy(FlowDefinitionDao.class, (method, args) -> {
+            if ("updateById".equals(method.getName())) {
+                updated[0] = (Definition) args[0];
+                return 1;
+            }
+            return defaultValue(method.getReturnType());
+        });
+        Definition patch = TestEntityFactory.create(Definition.class).setId(1L).setPublishStatus(1);
+        new DefServiceImpl().setDao(dao).updateById(patch);
+        assertSame(patch, updated[0]);
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectMissingDefinitionBusinessType() {
+        Definition definition = TestEntityFactory.create(Definition.class).setFlowCode("PURCHASE");
+        InstanceServiceImpl.requireBusinessType(definition);
+    }
+
+    @Test
+    public void shouldUseDefinitionBusinessType() {
+        Definition definition = TestEntityFactory.create(Definition.class)
+            .setFlowCode("PURCHASE").setBusinessType("PURCHASE_ORDER");
+
+        assertEquals("PURCHASE_ORDER", InstanceServiceImpl.requireBusinessType(definition));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectEmptyDefinitionBusinessType() {
+        InstanceServiceImpl.requireBusinessType(TestEntityFactory.create(Definition.class)
+            .setFlowCode("PURCHASE").setBusinessType(""));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectStartByCodeWithoutDefinitionBusinessType() {
+        definitionWithoutBusinessType();
+        new InstanceServiceImpl().start("1001", FlowParams.build().flowCode("PURCHASE"));
+    }
+
+    @Test(expected = FlowException.class)
+    public void shouldRejectStartByIdWithoutDefinitionBusinessType() {
+        definitionWithoutBusinessType();
+        new InstanceServiceImpl().startByDefinitionId("1001", 1L, FlowParams.build());
+    }
+
+    private void definitionWithoutBusinessType() {
+        Definition definition = TestEntityFactory.create(Definition.class).setId(1L).setFlowCode("PURCHASE");
+        DefService service = proxy(DefService.class, (method, args) -> definition);
+        FrameInvoker.setBeanFunction(type -> DefService.class.equals(type) ? service : null);
+    }
+
+    @Test
+    public void shouldPersistDefinitionBusinessType() throws Exception {
         Node node = TestEntityFactory.create(Node.class).setDefinitionId(1L).setNodeType(1)
             .setNodeCode("APPROVE").setNodeName("审批");
-        Method method = InsServiceImpl.class.getDeclaredMethod("setStartInstance", Node.class,
+        Method method = InstanceServiceImpl.class.getDeclaredMethod("setStartInstance", Node.class,
             String.class, String.class, FlowParams.class);
         method.setAccessible(true);
 
-        Instance instance = (Instance) method.invoke(new InsServiceImpl(), node, "PURCHASE_ORDER", "1001",
+        Definition definition = TestEntityFactory.create(Definition.class).setBusinessType("PURCHASE_ORDER");
+        Instance instance = (Instance) method.invoke(new InstanceServiceImpl(), node,
+            InstanceServiceImpl.requireBusinessType(definition), "1001",
             new FlowParams().handler("starter"));
 
         assertEquals("PURCHASE_ORDER", instance.getBusinessType());
@@ -94,7 +226,7 @@ public class BusinessCorrelationServiceTest {
             return defaultValue(method.getReturnType());
         });
 
-        List<Instance> result = new InsServiceImpl().setDao(dao).listByBusinessKey("PURCHASE_ORDER", "1001");
+        List<Instance> result = new InstanceServiceImpl().setDao(dao).listByBusinessKey("PURCHASE_ORDER", "1001");
 
         assertSame(expected, result.get(0));
         assertEquals("PURCHASE_ORDER", criteria[0].getBusinessType());
@@ -111,9 +243,9 @@ public class BusinessCorrelationServiceTest {
         final List<Instance> instances = Arrays.asList(
             TestEntityFactory.create(Instance.class).setId(11L),
             TestEntityFactory.create(Instance.class).setId(12L));
-        InsService insService = proxy(InsService.class, (method, args) ->
+        InstanceService instanceService = proxy(InstanceService.class, (method, args) ->
             "listByBusinessKey".equals(method.getName()) ? instances : defaultValue(method.getReturnType()));
-        FrameInvoker.setBeanFunction(type -> InsService.class.equals(type) ? insService : null);
+        FrameInvoker.setBeanFunction(type -> InstanceService.class.equals(type) ? instanceService : null);
         FlowTaskDao<Task> taskDao = proxy(FlowTaskDao.class, (method, args) -> {
             if ("listByInsIds".equals(method.getName())) {
                 taskIds[0] = (List<Long>) args[0];

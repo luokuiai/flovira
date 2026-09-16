@@ -5,8 +5,8 @@
 
 ## 待拍板（未来再议）
 
-- [ ] **npm publish**：发布 `@luokuiai/flovira-vue-designer` 到 npm（需 `@dromara` 组织凭证 / 权限）。
-- [ ] **CI**：前端库构建 / 发布纳入 CI 流水线（当前为手动 `npm publish`）。
+- [ ] **npm Trusted Publisher**：确认 `@luokuiai/flovira-vue-designer` 在 npm 上配置了本仓库发布 workflow。
+- [x] **CI**：前端包已接入 `.github/workflows/publish-npm.yml`，版本 tag 触发发布。
 - [ ] **剔除 Element Plus 硬依赖（JS/依赖/适配器层已完成，仅剩样式层）**：⚠️ 原描述「尚未开始大规模实施」已滞后。
       实际（见 `.codex` 9.5 + 实测复核）：路线 C 已全程落地——5 取舍点已拍板（Q1=antd 4.x、Q2=form-create 暂留 EP）；
       Phase1 命令式 UI 收口（ElMessage/Box/Notification/Loading + ClickOutside → `src/ui/uiAdapter`）+ Phase2 28 组件中性化（`<el-*>` → `<wf-*>`）+ Phase3 antdv 适配器 + 主入口 bundle 级移除 EP（主 bundle `flovira-designer.es.js` grep element-plus = 0）+ 依赖治理（EP/antdv/naive 均为可选 peer、`dependencies` 清空）均已完成，并已补 naive 适配器。

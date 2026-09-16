@@ -1,6 +1,7 @@
 <template>
-  <div class="wf-designer-shell wf-designer-shell--workbench" :style="headerDiv">
+  <div class="wf-designer-shell wf-designer-shell--workbench" :data-appearance="props.appearance" :style="headerDiv">
     <!-- 顶部导航栏（抽为 FlowDesignerHeader 子组件；状态仍由容器持有，props 入 / 事件出） -->
+    <slot v-if="props.toolbar !== false" name="toolbar" v-bind="toolbarContext">
     <FlowDesignerHeader
       :flow-name="logicJson.flowName"
       :active-step="activeStep"
@@ -13,38 +14,23 @@
       @redo="undoOrRedo(false)"
       @clear="clear()"
       @download-image="downLoad"
-      @download-json="downJson"
-      @save="saveJsonModel"
     >
       <!-- 仅转发消费方实际提供的具名插槽；未提供时由子组件渲染默认内容（保留默认回退） -->
       <template v-if="$slots['header-left']" #header-left="s"><slot name="header-left" v-bind="s" /></template>
       <template v-if="$slots['header-center']" #header-center="s"><slot name="header-center" v-bind="s" /></template>
-      <template v-if="$slots['header-actions']" #header-actions="s"><slot name="header-actions" v-bind="s" /></template>
+      <template v-if="$slots['header-actions']" #header-actions><slot name="header-actions" v-bind="toolbarContext" /></template>
     </FlowDesignerHeader>
+    </slot>
 
     <wf-header class="wf-designer-body" :style="headerStyle">
       <!-- 画布工具栏（抽为 FlowDesignerToolbar 子组件；画布操作仍由容器持有，props 入 / 事件出） -->
       <BaseInfo :style="baseInfoStyle" ref="baseInfoRef" v-if="!onlyDesignShow" v-show="activeStep === 0"
-                :logic-json="logicJson" :category-list="categoryList" :form-path-list="formPathList"
+                :logic-json="logicJson" :category-list="categoryList" :form-options="formOptions"
                 :definition-id="definitionId" :disabled="disabled"
-                @update:flow-name="handleFlowNameUpdate" @update:model-value="handleModelValueUpdate"
+                @update:flow-name="handleFlowNameUpdate"
                 @validate-error="handleBaseInfoValidateError"/>
 
-      <!-- 自定义拖拽侧边栏：仅经典模式流程设计页签显示 + 延迟显示避免与 LogicFlow DOM 冲突。
-           #sidebar 插槽可整体替换内置面板（透出命令式 dragInNode + lf / disabled）；
-           paletteNodes 可仅自定义内置面板的节点列表（任一分组不传用内置默认）。 -->
       <div class="wf-design-workspace" v-show="activeStep === 1">
-        <template v-if="sidebarVisible">
-          <slot name="sidebar" :drag-in-node="handleDragInNode" :lf="lf" :disabled="disabled">
-            <DiagramSidebar
-              class="diagram-sidebar"
-              :flow-nodes="paletteNodes?.flowNodes"
-              :gateway-nodes="paletteNodes?.gatewayNodes"
-              @dragInNode="handleDragInNode"
-            />
-          </slot>
-        </template>
-
         <div class="wf-canvas-stage">
           <div class="container" ref="containerRef"></div>
           <FlowDesignerToolbar
@@ -63,7 +49,7 @@
         <PropertySetting ref="propertySettingRef" :node="nodeClick" :lf="lf" :disabled="disabled"
                          display-mode="panel"
                          :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips"
-                         :form-path-list="formPathList" @visibility-change="handlePropertyVisibilityChange">
+                         :form-options="formOptions" @visibility-change="handlePropertyVisibilityChange">
           <!-- 属性面板插槽透传：FlowDesigner → PropertySetting → 节点属性子组件（start/between/gateway/end/skip）。
                消费方可用 #node-form-extra（透出 { form, disabled }）等具名插槽往节点属性抽屉注入自定义表单项。
                透传全部插槽：节点子组件未声明的插槽自动忽略，header-*/logo 等不会渲染到属性面板。 -->
@@ -97,30 +83,26 @@
 <script setup lang="ts">
 import { getUiAdapter } from '@/ui/uiAdapter'
 import PropertySetting from '@/components/design/common/vue/propertySetting.vue'
-import { designerResourceItems, queryDef, saveJson } from "@/api/flow/definition";
+import { designerResourceItems, queryDef } from "@/api/flow/definition";
 import { resourcesToTree } from '@/data/contracts';
 import {
     getPreviousNodes,
-    isClassics, isGateWay,
+    isGateWay,
     json2LogicFlowJson,
     logicFlowJsonToFlovira
 } from "@/components/design/common/js/tool";
-import {computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties} from "vue";
+import {computed, getCurrentInstance, nextTick, onMounted, onUnmounted, provide, ref, watch, type CSSProperties} from "vue";
 import BaseInfo from "@/components/design/common/vue/baseInfo.vue";
-import initClassicsData from "@/components/design/classics/initClassicsData.json";
 import initMimicData from "@/components/design/mimic/initMimicData.json";
 import {addBetweenNode, addGatewayNode, gatewayAddNode, removeNode} from "@/components/design/mimic/js/mimic";
 import EdgeTooltip from "@/components/design/mimic/vue/EdgeTooltip.vue";
-import DiagramSidebar from "@/components/design/common/vue/DiagramSidebar.vue";
 import FlowDesignerHeader from "@/components/design/FlowDesignerHeader.vue";
 import FlowDesignerToolbar from "@/components/design/FlowDesignerToolbar.vue";
 import { useLogicFlowCanvas } from '@/composables/useLogicFlowCanvas';
 import { useI18n } from '@/i18n';
 import type {
   FlowDesignerProps,
-  FlowDesignerSavedPayload,
   FlowDesignerReadyPayload,
-  FlowDesignerBeforeSavePayload,
   FlowDesignerChangePayload,
   FlowDesignerValidateErrorPayload,
   FlowDesignerNodeClickPayload,
@@ -135,6 +117,8 @@ defineOptions({ name: 'FlowDesigner' });
 
 /** props 定义见 @/designer/types（公共类型，消费方可直接 import 复用）。 */
 const props = withDefaults(defineProps<FlowDesignerProps>(), {
+  appearance: 'standalone',
+  toolbar: true,
   definitionId: null,
   initialJson: null,
   disabled: false,
@@ -144,23 +128,20 @@ const props = withDefaults(defineProps<FlowDesignerProps>(), {
   extraExtensions: () => [],
   lfOptions: () => ({}),
 });
+provide('floviraConditionFields', computed(() => props.conditionFields || []));
 /**
  * 对外事件：
- * - close：设计器请求关闭（保存成功后自动触发，宿主据此关闭弹窗 / 返回列表）
- * - saved：保存成功回传当前定义 id、后端返回数据（如新建后的 definitionId）与本次保存的流程 json
+ * - close：设计器请求关闭；保存不自动关闭页面
  * - ready：画布初始化完成，透出底层 LogicFlow 实例，便于高级定制（自定义事件 / 主题 / 扩展）
- * - before-save：保存提交前（同步），可改写 json 或取消本次保存
  * - change：画布图数据变更（基于 LogicFlow history:change，初次渲染不触发），带惰性 getter
- * - dirty：未保存状态翻转（首次变更 false→true，保存成功 / resetDirty true→false）
- * - validate-error：基础信息表单校验未通过（保存 / 切步骤 / 命令式 validate 触发），透出来源与无效字段
+ * - dirty：未保存状态翻转（首次变更 false→true，resetDirty true→false）
+ * - validate-error：基础信息表单校验未通过（切步骤 / 命令式 validate 触发），透出来源与无效字段
  * - node-click：画布节点被点击，透出节点 id / type / data 与 lf
  * - update:json：受控 json 回写（配合 v-model:json，仅 json prop 受控时派发）
  */
 const emit = defineEmits<{
   (e: 'close'): void;
-  (e: 'saved', payload: FlowDesignerSavedPayload): void;
   (e: 'ready', payload: FlowDesignerReadyPayload): void;
-  (e: 'before-save', payload: FlowDesignerBeforeSavePayload): void;
   (e: 'change', payload: FlowDesignerChangePayload): void;
   (e: 'dirty', dirty: boolean): void;
   (e: 'validate-error', payload: FlowDesignerValidateErrorPayload): void;
@@ -181,11 +162,10 @@ const skipConditionShow = ref(true);
 const nodes = ref<any[]>([]);
 const skips = ref<any[]>([]);
 const categoryList = ref<any[]>([]);
-const formPathList = ref<any[]>([]);
+const formOptions = ref<any[]>([]);
 // 画布容器 DOM（LogicFlow 挂载点），交给 useLogicFlowCanvas 管理
 const containerRef = ref<HTMLElement>();
 // 控制侧边栏显示：延迟到画布初始化完成后显示，避免与 LogicFlow DOM 初始化冲突
-const sidebarVisible = ref(false);
 
 // 数据加载态：初始流程定义加载中（queryDef 在途）；isEmpty：加载完成但无可用定义数据（如 definitionId 失效）
 const loading = ref(false);
@@ -221,8 +201,8 @@ function markPristine() {
   }
 }
 
-// 记录当前一次基础信息校验的来源（save / step / api），供 BaseInfo 校验失败时归因 validate-error
-const validateSource = ref<'save' | 'step' | 'api'>('save');
+// 记录当前一次基础信息校验的来源（step / api），供 BaseInfo 校验失败时归因 validate-error
+const validateSource = ref<'step' | 'api'>('api');
 
 /** BaseInfo 校验失败回调：透出来源 + 无效字段（fields 随 UI 适配器，best-effort）。 */
 function handleBaseInfoValidateError(fields?: Record<string, any>) {
@@ -259,10 +239,6 @@ const {
   getBaseInfo,
   bindEvents: initEvent,
   onReady: (lfInstance) => {
-    // LogicFlow 完全初始化后，再显示自定义拖拽侧边栏（避免 DOM 操作冲突）
-    if (isClassics(logicJson.value.modelValue)) {
-      sidebarVisible.value = true;
-    }
     // 画布渲染完成：以当前内容为「干净」基线，并在下一 tick 开放变更追踪
     // （跳过初始渲染同步触发的 history:change，避免一打开就被标记为 dirty）
     markPristine();
@@ -319,7 +295,7 @@ const tooltipPosition = ref({ x: 0, y: 0 });
 const tooltipEdge = ref({});
 
 const handleOptionClick = (item: any) => {
-  if (item.icon === "between" || item.icon === "subProcess" || item.icon === "wait") {
+  if (item.icon === "between" || item.icon === "subProcess" || item.icon === "wait" || item.icon === "carbonCopy") {
     addBetweenNode(lf.value, item.tooltipEdge, item.icon, item.label);
   } else {
     addGatewayNode(lf.value, item.tooltipEdge, item.icon);
@@ -338,7 +314,7 @@ async function handleStepClick(index: number) {
   activeStep.value = index;
 
   if (index === 1) {
-    handleModelValueUpdate()
+    ensureCanvas()
   }
 }
 
@@ -368,15 +344,15 @@ onMounted(() => {
 
 async function loadDesignerTrees() {
   try {
-    const [categories, formPaths] = await Promise.all([
+    const [categories, forms] = await Promise.all([
       designerResourceItems({ resourceType: 'CATEGORY', pageNum: 1, pageSize: 1000 }),
-      designerResourceItems({ resourceType: 'FORM_PATH', pageNum: 1, pageSize: 1000 }),
+      designerResourceItems({ resourceType: 'FORM', pageNum: 1, pageSize: 1000 }),
     ]);
     categoryList.value = resourcesToTree(categories);
-    formPathList.value = resourcesToTree(formPaths);
+    formOptions.value = resourcesToTree(forms);
   } catch (_) {
     categoryList.value = [];
-    formPathList.value = [];
+    formOptions.value = [];
   }
 }
 
@@ -390,14 +366,14 @@ function applyDefinition(data: any) {
   loading.value = false;
   isEmpty.value = !data;
   jsonString.value = data;
-  if (data?.isPublish && data.isPublish !== 0) {
+  if (data?.publishStatus && data.publishStatus !== 0) {
     disabled.value = true;
   }
   if (jsonString.value) {
     logicJson.value = json2LogicFlowJson(jsonString.value);
     if (!logicJson.value.nodes || logicJson.value.nodes.length === 0) {
-      // 空流程：回退到内置初始模板（经典 / 仿钉钉）
-      let initData = isClassics(logicJson.value.modelValue) ? initClassicsData : initMimicData;
+      // 空流程：回退到内置初始模板
+      const initData = initMimicData;
       logicJson.value = {
         ...logicJson.value,
         ...initData
@@ -451,22 +427,17 @@ function handleFlowNameUpdate(newName: string) {
   logicJson.value.flowName = newName; // 更新父组件中的流程名称
 }
 
-function handleModelValueUpdate() {
-  // 原设计器模型
-  const modeOrg = logicJson.value.modelValue;
+function ensureCanvas() {
   // 获取基础信息
   getBaseInfo();
-  const modeNew = logicJson.value.modelValue;
 
-  if (!lf.value || modeOrg !== modeNew) {
-    // 先隐藏侧边栏，等 initLogicFlow 完成后再显示
-    sidebarVisible.value = false;
+  if (!lf.value) {
     // 重新渲染期间关闭变更追踪：忽略初始渲染触发的 history:change（onReady 后下一 tick 重新开放）
     canvasReady.value = false;
     nextTick(() => {
       if (!jsonString.value.nodeList || jsonString.value.nodeList.length === 0) {
         // 读取本地文件/initData.json文件，并将数据转换json对象
-        let initData = isClassics(logicJson.value.modelValue) ? initClassicsData : initMimicData;
+        const initData = initMimicData;
         logicJson.value = {
           ...logicJson.value,
           ...initData
@@ -477,56 +448,10 @@ function handleModelValueUpdate() {
   }
 }
 
-async function saveJsonModel() {
-  const loadingInstance = getUiAdapter().loading({ fullscreen: true, text: t('flowDesigner.saving') })
-  if (!onlyDesignShow.value) {
-    validateSource.value = 'save';
-    let validate = await proxy.$refs.baseInfoRef.validate();
-    if (!validate) {
-      loadingInstance.close();
-      return;
-    }
-  }
-  // 装配本次提交的流程 json（基础信息 + 画布图数据 → flovira 结构）。与命令式 getFlowJson 同一来源，避免重复装配逻辑。
-  let jsonString = getFlowJson();
-
-  // before-save 钩子（同步）：消费方可改写本次提交的 json，或取消保存。
-  // 异步逻辑不会被等待——setJson / preventDefault 须在处理函数同步执行期间调用。
-  let saveCancelled = false;
-  emit('before-save', {
-    id: definitionId.value,
-    json: jsonString,
-    onlyDesignShow: onlyDesignShow.value,
-    setJson: (next: string) => { if (typeof next === 'string') jsonString = next; },
-    preventDefault: () => { saveCancelled = true; },
-  });
-  if (saveCancelled) {
-    loadingInstance.close();
-    return;
-  }
-
-  saveJson(jsonString, onlyDesignShow.value).then(response => {
-    if (response.code === 200) {
-      // $modal 由宿主（如 ruoyi 体系 plugins）提供；npm 组件库消费场景可能未注册，做降级避免报错
-      if (proxy.$modal && proxy.$modal.msgSuccess) {
-        proxy.$modal.msgSuccess(t('flowDesigner.saveSuccess'));
-      }
-      // 保存成功：复位未保存标记（dirty → false，必要时 emit('dirty', false)）
-      markPristine();
-      // 通知宿主保存成功（向后兼容加法）：回传当前定义 id、后端返回数据（如新建后的 definitionId）与本次保存的流程 json，
-      // 宿主据此可实现「保存→修改/预览」闭环；不影响既有 close 行为。
-      emit('saved', { id: definitionId.value, data: response.data, json: jsonString });
-      // 延迟500ms后关闭页面
-        setTimeout(() => {
-            emit('close')
-        }, 500)
-    }
-  }).finally(() => {
-    nextTick(() => {
-      loadingInstance.close();
-    });
-  });
-}
+const toolbarContext = computed(() => ({
+  disabled: disabled.value, dirty: dirty.value,
+  activeStep: activeStep.value, steps: steps.value, goToStep: handleStepClick,
+}));
 
 // —— 移动端触摸事件桥接 / initMenu / register / use 已抽到 useLogicFlowCanvas ——
 function initEvent() {
@@ -536,95 +461,68 @@ function initEvent() {
   // 初始渲染同步触发的 history:change 由 canvasReady 守卫忽略（见 markDirty / onReady）。
   eventCenter.on('history:change', markDirty)
 
-  if (!isClassics(logicJson.value.modelValue)) {
-    // 更新节点名称
-    eventCenter.on('update:nodeName', (data) => {
-      if (disabled.value) return;
-      lf.value.updateText(data.id, data.nodeName)
-      lf.value.setProperties(data.id, {
-        nodeName: data.nodeName
-      })
+  // 更新节点名称
+  eventCenter.on('update:nodeName', (data) => {
+    if (disabled.value) return;
+    lf.value.updateText(data.id, data.nodeName)
+    lf.value.setProperties(data.id, {
+      nodeName: data.nodeName
     })
+  })
 
-    // 网关节点单击事件
-    eventCenter.on('node:click', (args) => {
-      nodeClick.value = args.data
-      emitNodeClick(args.data)
-      // 只读态不响应网关「加节点」
-      if (isGateWay(nodeClick.value.type) && !disabled.value) {
-        gatewayAddNode(lf.value, nodeClick.value);
-      }
-    })
+  // 网关节点单击事件
+  eventCenter.on('node:click', (args) => {
+    nodeClick.value = args.data
+    emitNodeClick(args.data)
+    // 只读态不响应网关「加节点」
+    if (isGateWay(nodeClick.value.type) && !disabled.value) {
+      gatewayAddNode(lf.value, nodeClick.value);
+    }
+  })
 
-    eventCenter.on('edit:node', (args) => {
-      if (args.click) {
-        nodeClick.value = lf.value.getNodeModelById(args.id)
-        let graphData = lf.value.getGraphData()
-        nodes.value = graphData['nodes']
-        skips.value = graphData['edges']
-        proxy.$nextTick(() => {
-          propertySettingRef.value.show()
-        })
-      }
-    })
-
-    // 单击边
-    eventCenter.on('show:EdgeSetting', (args) => {
-      nodeClick.value = lf.value.getEdgeModelById(args.id)
-      const nodeModel = lf.value.getNodeModelById(nodeClick.value.sourceNodeId);
-      skipConditionShow.value = ['serial', 'inclusive'].includes(nodeModel['type'])
-      let graphData = lf.value.getGraphData()
-      nodes.value = graphData['nodes']
-      skips.value = graphData['edges']
-      proxy.$nextTick(() => {
-        propertySettingRef.value.show(['serial', 'inclusive'].includes(nodeModel['type']))
-      })
-    });
-
-    // 鼠标进入边
-    eventCenter.on('show:EdgeTooltip', (args) => {
-      // 只读态不弹出边「+」加节点菜单
-      if (disabled.value) return;
-      tooltipVisible.value = true;
-      tooltipPosition.value = { x: args.e.clientX, y: args.e.clientY };
-      tooltipEdge.value = lf.value.getEdgeModelById(args.id)
-    });
-    // 鼠标离开边
-    eventCenter.on('hide:EdgeTooltip', () => {
-      tooltipVisible.value = false;
-    });
-    // 删除节点事件
-    eventCenter.on('delete:node', (args) => {
-      if (disabled.value) return;
-      const nodeModel = lf.value.getNodeModelById(args.id)
-      removeNode(lf.value, nodeModel)
-    })
-  } else {
-    // 中间节点双击事件
-    eventCenter.on('node:click', (args) => {
-      nodeClick.value = args.data
-      emitNodeClick(args.data)
+  eventCenter.on('edit:node', (args) => {
+    if (args.click) {
+      nodeClick.value = lf.value.getNodeModelById(args.id)
       let graphData = lf.value.getGraphData()
       nodes.value = graphData['nodes']
       skips.value = graphData['edges']
       proxy.$nextTick(() => {
         propertySettingRef.value.show()
       })
-    })
+    }
+  })
 
-    // 边双击事件
-    eventCenter.on('edge:click  ', (args) => {
-      nodeClick.value = args.data
-      const nodeModel = lf.value.getNodeModelById(nodeClick.value.sourceNodeId);
-      skipConditionShow.value = ['serial', 'inclusive'].includes(nodeModel['type'])
-      let graphData = lf.value.getGraphData()
-      nodes.value = graphData['nodes']
-      skips.value = graphData['edges']
-      proxy.$nextTick(() => {
-        propertySettingRef.value.show(['serial', 'inclusive'].includes(nodeModel['type']))
-      })
+  // 单击边
+  eventCenter.on('show:EdgeSetting', (args) => {
+    nodeClick.value = lf.value.getEdgeModelById(args.id)
+    const nodeModel = lf.value.getNodeModelById(nodeClick.value.sourceNodeId);
+    skipConditionShow.value = ['serial', 'inclusive'].includes(nodeModel['type'])
+    let graphData = lf.value.getGraphData()
+    nodes.value = graphData['nodes']
+    skips.value = graphData['edges']
+    proxy.$nextTick(() => {
+      propertySettingRef.value.show(['serial', 'inclusive'].includes(nodeModel['type']))
     })
-  }
+  });
+
+  // 鼠标进入边
+  eventCenter.on('show:EdgeTooltip', (args) => {
+    // 只读态不弹出边「+」加节点菜单
+    if (disabled.value) return;
+    tooltipVisible.value = true;
+    tooltipPosition.value = { x: args.e.clientX, y: args.e.clientY };
+    tooltipEdge.value = lf.value.getEdgeModelById(args.id)
+  });
+  // 鼠标离开边
+  eventCenter.on('hide:EdgeTooltip', () => {
+    tooltipVisible.value = false;
+  });
+  // 删除节点事件
+  eventCenter.on('delete:node', (args) => {
+    if (disabled.value) return;
+    const nodeModel = lf.value.getNodeModelById(args.id)
+    removeNode(lf.value, nodeModel)
+  })
 
   eventCenter.on('edge:add', (args) => {
     let graphData = lf.value.getGraphData()
@@ -675,7 +573,7 @@ function getFlowJson(): string {
  * 校验流程结构（命令式 API）。
  * 内置检查：≥1 开始节点（type=start）、≥1 结束节点（type=end）、无孤立节点（多节点时存在未连任何边的节点）；
  * 再追加调用消费方的 props.structureValidator（如有），合并错误信息。
- * 不自动拦截保存——消费方可在 before-save 里据返回的 valid 决定是否 preventDefault()。
+ * 消费方根据 valid 决定是否执行自己的业务操作。
  */
 function validateStructure(): FlowStructureValidateResult {
   const errors: string[] = [];
@@ -701,13 +599,12 @@ function validateStructure(): FlowStructureValidateResult {
  * 对外暴露命令式 API（FlowDesignerInstance）。
  *
  * 消费方两种用法：
- * 1) 模板 ref：<FlowDesigner ref="designerRef" />，designerRef.value.save() ...
- * 2) 组合式（推荐）：const { designerRef, save, getFlowJson } = useFlowDesigner()
+ * 1) 模板 ref：<FlowDesigner ref="designerRef" />，designerRef.value.getFlowJson() ...
+ * 2) 组合式（推荐）：const { designerRef, validate, getFlowJson } = useFlowDesigner()
  *
- * 让宿主无需依赖内部按钮，即可程序化触发保存 / 缩放 / 导出，并可拿到底层 LogicFlow 做高级定制。
+ * 让宿主无需依赖内部按钮，即可程序化校验 / 缩放 / 导出，并可拿到底层 LogicFlow 做高级定制。
  */
 defineExpose({
-  save: saveJsonModel,
   validate,
   getGraphData,
   getFlowJson,
@@ -948,55 +845,10 @@ html.dark .steps-tabs {
   background: var(--wf-primary-dark);
 }
 
-/* ========== 保存按钮 ========== */
-.save-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--wf-primary) !important;
-  border: none !important;
-  color: #fff !important;
-  font-weight: 500;
-  font-size: 14px;
-  padding: 9px 22px !important;
-  border-radius: 10px !important;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.28);
-  transition: all 0.2s ease !important;
-}
-
-.save-btn:hover {
-  background: var(--wf-primary-dark) !important;
-}
-
-/* Element Plus 会把按钮默认插槽内容包进一层 span，
-   导致 .save-btn 上的 gap 作用不到「图标 + 文字」之间。
-   这里让该包裹层成为 flex 容器，恢复图标与文字的间距与垂直居中。 */
-.save-btn > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.save-btn .save-icon {
-  width: 16px;
-  height: 16px;
-}
-
 /* ========== 暗黑模式适配（CSS 变量驱动） ========== */
 html.dark .design-header {
   background: var(--wf-bg-white);
   border-bottom-color: var(--wf-border-color);
-}
-
-/* 暗黑模式：保存按钮统一主色，扁平 */
-html.dark .save-btn,
-html.dark .toolbar-save-btn {
-  background: var(--wf-primary) !important;
-  box-shadow: none !important;
-}
-html.dark .save-btn:hover,
-html.dark .toolbar-save-btn:hover {
-  background: var(--wf-primary-dark) !important;
 }
 
 /* 工具栏区域（el-header 第二行）暗黑模式 */
@@ -1068,21 +920,6 @@ html.dark .logo-text {
   margin-right: 0;
 }
 
-/* ========== 工具栏内保存按钮 ========== */
-.toolbar-save-btn {
-  background: var(--wf-primary) !important;
-  border: none !important;
-  color: #fff !important;
-  font-weight: 500;
-  border-radius: 8px !important;
-  box-shadow: none;
-  transition: background-color 0.2s ease !important;
-}
-
-.toolbar-save-btn:hover {
-  background: var(--wf-primary-dark) !important;
-}
-
 /* ========== 响应式适配：平板端 (<= 1024px) ========== */
 @media (max-width: 1024px) {
   .design-header {
@@ -1122,11 +959,6 @@ html.dark .logo-text {
     padding: 6px 12px;
   }
 
-  /* 保存按钮缩小 */
-  .save-btn {
-    padding: 8px 16px !important;
-    font-size: 13px;
-  }
 
   .toolbar-group {
     gap: 2px;
@@ -1207,18 +1039,7 @@ html.dark .logo-text {
     border-radius: 6px;
   }
 
-  /* 保存按钮更小 */
-  .save-btn {
-    padding: 6px 10px !important;
-    font-size: 12px;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
-  }
 
-  .save-btn .save-icon {
-    width: 14px;
-    height: 14px;
-  }
 
   /* 工具栏：单行显示，居右布局 */
   .design-toolbar {
@@ -1290,18 +1111,7 @@ html.dark .logo-text {
     display: none; /* 超小屏隐藏图标省空间 */
   }
 
-  /* 保存按钮极小 */
-  .save-btn {
-    padding: 4px 7px !important;
-    font-size: 11px;
-    gap: 2px;
-    border-radius: 6px !important;
-  }
 
-  .save-btn .save-icon {
-    width: 12px;
-    height: 12px;
-  }
 
   /* 隐藏工具栏分隔线，节省空间 */
   .toolbar-group {
@@ -1466,12 +1276,8 @@ html.dark .logo-text {
   padding: 0;
 }
 
-.wf-designer-shell--workbench .save-btn {
-  height: 34px;
-  padding: 0 var(--wf-space, 12px) !important;
-  border-radius: var(--wf-radius, 8px) !important;
-  box-shadow: none;
-}
+
+
 
 .wf-designer-shell--workbench .wf-designer-body {
   box-sizing: border-box;
@@ -1637,14 +1443,7 @@ html.dark .design-toolbar--canvas {
     font-size: var(--wf-font-size-sm, 12px);
   }
 
-  .wf-designer-shell--workbench .save-btn {
-    width: 34px;
-    padding: 0 !important;
-  }
 
-  .wf-designer-shell--workbench .save-btn span span {
-    display: none;
-  }
 
   .wf-designer-shell--workbench .wf-designer-body {
     border: 0;
@@ -1660,5 +1459,31 @@ html.dark .design-toolbar--canvas {
     height: 100%;
     min-height: 0;
   }
+}
+/* 卡片外壳统一由根容器负责，工具栏隐藏时仍保持完整四角；不影响内部控件。 */
+.wf-designer-shell--workbench[data-appearance] {
+  padding: 0;
+  border: 1px solid var(--wf-border-light, #e4e7ed);
+  border-radius: var(--wf-radius, 8px);
+  box-shadow: var(--wf-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.wf-designer-shell--workbench[data-appearance] > .design-header {
+  border: 0;
+  border-bottom: 1px solid var(--wf-border-lighter, #ebeef5);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.wf-designer-shell--workbench[data-appearance] > .wf-designer-body {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.wf-designer-shell--workbench[data-appearance='embedded'] {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 </style>

@@ -1,5 +1,5 @@
 /*
- *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 节点审批人规则。
@@ -40,4 +41,5 @@ public class ApproverRule {
     private String relationType;
     private List<BusinessSubject> subjects = new ArrayList<BusinessSubject>();
     private String expression;
+    private Map<String, Object> config;
 }

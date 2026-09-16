@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -35,7 +36,9 @@ public enum UserType {
 
     TRANSFER("2", "待办任务的转办人权限"),
 
-    DEPUTE("3", "待办任务的委托人权限");
+    DEPUTE("3", "待办任务的委托人权限"),
+
+    CARBON_COPY("4", "抄送接收人");
 
     private final String key;
     private final String value;

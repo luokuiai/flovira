@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 package com.luokuiai.flovira.core.service;
 
 import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.dto.FormChangeRecord;
 import com.luokuiai.flovira.core.entity.HisTask;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Task;
@@ -38,17 +40,17 @@ public interface HisTaskService extends IFloviraService<HisTask> {
      * 根据任务id和协作类型查询
      *
      * @param taskId         任务id
-     * @param cooperateTypes 协作类型集合
-     * @return List<HisTask>
+     * @param cooperationTypes 协作类型集合
+     * @return {@code List<HisTask>}
      */
-    List<HisTask> listByTaskIdAndCooperateTypes(Long taskId, Integer... cooperateTypes);
+    List<HisTask> listByTaskIdAndCooperationTypes(Long taskId, Integer... cooperationTypes);
 
     /**
      * 根据实例Id和节点编码查询
      *
      * @param instanceId 流程实例id
      * @param nodeCodes  节点编码集合
-     * @return List<HisTask>
+     * @return {@code List<HisTask>}
      */
     List<HisTask> getByInsAndNodeCodes(Long instanceId, List<String> nodeCodes);
 
@@ -135,6 +137,16 @@ public interface HisTaskService extends IFloviraService<HisTask> {
      * @return 历史记录集合
      */
     List<HisTask> getByInsId(Long instanceId);
+
+    /**
+     * 获取审批节点产生的表单字段变更。
+     *
+     * @param instanceId 流程实例id
+     * @return 按办理完成时间排列的表单变更记录
+     */
+    default List<FormChangeRecord> getFormChanges(Long instanceId) {
+        throw new UnsupportedOperationException("Form change query is not implemented");
+    }
 
     /**
      * 根据业务类型和业务id查询历史任务

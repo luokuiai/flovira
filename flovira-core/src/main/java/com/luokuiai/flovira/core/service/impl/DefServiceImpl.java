@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,6 +21,8 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.constant.ExceptionCons;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowCombine;
+import com.luokuiai.flovira.core.dto.WorkflowPackage;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Node;
@@ -53,11 +56,37 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definition>, Definition> implements DefService {
 
+    @Override
+    public WorkflowPackage exportPackage(Long definitionId) {
+        return FlowEngine.transactionExecutor().execute(() -> new WorkflowPackageTransfer(this).exportPackage(definitionId));
+    }
+
+    @Override
+    public WorkflowImportResult importPackage(WorkflowPackage workflowPackage, Map<String, String> externalFormReferences) {
+        return FlowEngine.transactionExecutor().execute(() ->
+            new WorkflowPackageTransfer(this).importPackage(workflowPackage, externalFormReferences));
+    }
+
 
     @Override
     public DefService setDao(FlowDefinitionDao<Definition> floviraDao) {
         this.floviraDao = floviraDao;
         return this;
+    }
+
+    @Override
+    public void insertFill(Definition definition) {
+        AssertUtil.isEmpty(definition.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
+        super.insertFill(definition);
+    }
+
+    @Override
+    public void updateFill(Definition definition) {
+        // 部分更新允许不传业务类型；显式传入空串不能被 ORM 静默忽略。
+        if (definition.getBusinessType() != null) {
+            AssertUtil.isEmpty(definition.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
+        }
+        super.updateFill(definition);
     }
 
     @Override
@@ -105,12 +134,15 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     }
 
     @Override
-    public void saveDef(DefJson defJson, boolean onlyNodeSkip) {
+    public void saveDef(DefJson defJson) {
         if (ObjectUtil.isNull(defJson)) {
             return;
         }
+        AssertUtil.isEmpty(defJson.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
         FlowCombine flowCombine = DefJson.copyCombine(defJson);
         Definition definition = flowCombine.getDefinition();
+        // 保存完整设计时，空表单引用表示清除绑定，不能被 ORM 的非空更新策略忽略。
+        definition.setFormId(StringUtils.emptyDefault(definition.getFormId(), ""));
         Long id = definition.getId();
         // 如果是新增的流程定义
         if (ObjectUtil.isNull(id)) {
@@ -127,9 +159,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         if (ObjectUtil.isNull(id)) {
             FlowEngine.defService().save(definition);
         } else {
-            if (!onlyNodeSkip) {
-                FlowEngine.defService().updateById(definition);
-            }
+            FlowEngine.defService().updateById(definition);
             // 删除所有节点和连线
             FlowEngine.nodeService().remove(FlowEngine.newNode().setDefinitionId(id));
             FlowEngine.skipService().remove(FlowEngine.newSkip().setDefinitionId(id));
@@ -152,7 +182,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
 
     @Override
     public String exportJson(Long id) {
-        return FlowEngine.jsonConvert.objToStr(queryDesign(id).setIsPublish(null));
+        return FlowEngine.jsonConvert.objToStr(queryDesign(id).setPublishStatus(null));
     }
 
     @Override
@@ -162,7 +192,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         definition.setNodeList(nodeList);
         List<Skip> skips = FlowEngine.skipService().getByDefId(id);
         Map<String, List<Skip>> flowSkipMap = skips.stream()
-            .collect(Collectors.groupingBy(Skip::getNowNodeCode));
+            .collect(Collectors.groupingBy(Skip::getSourceNodeCode));
         nodeList.forEach(flowNode -> flowNode.setSkipList(flowSkipMap.get(flowNode.getNodeCode())));
         return definition;
     }
@@ -210,7 +240,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     @Override
     public boolean removeDef(List<Long> ids) {
         ids.forEach(id -> {
-            List<Instance> instances = FlowEngine.insService().getByDefId(id);
+            List<Instance> instances = FlowEngine.instanceService().getByDefId(id);
             AssertUtil.isNotEmpty(instances, ExceptionCons.EXIST_START_TASK);
         });
         FlowEngine.nodeService().deleteNodeByDefIds(ids);
@@ -229,11 +259,11 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         // 已发布流程定义，改为已失效或者未发布状态
         List<Long> otherDefIds = definitions.stream()
             .filter(item -> !Objects.equals(definition.getId(), item.getId())
-                && PublishStatus.PUBLISHED.getKey().equals(item.getIsPublish()))
+                && PublishStatus.PUBLISHED.getKey().equals(item.getPublishStatus()))
             .map(Definition::getId)
             .collect(Collectors.toList());
         if (CollUtil.isNotEmpty(otherDefIds)) {
-            List<Instance> instanceList = FlowEngine.insService().listByDefIds(otherDefIds);
+            List<Instance> instanceList = FlowEngine.instanceService().listByDefIds(otherDefIds);
             if (CollUtil.isNotEmpty(instanceList)) {
                 // 已发布已使用过的流程定义
                 Set<Long> useDefIds = StreamUtils.toSet(instanceList, Instance::getDefinitionId);
@@ -252,16 +282,16 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
 
         Definition flowDefinition = FlowEngine.newDef();
         flowDefinition.setId(id);
-        flowDefinition.setIsPublish(PublishStatus.PUBLISHED.getKey());
+        flowDefinition.setPublishStatus(PublishStatus.PUBLISHED.getKey());
         return updateById(flowDefinition);
     }
 
     @Override
     public boolean unPublish(Long id) {
-        List<Instance> instances = FlowEngine.insService().getByDefId(id);
+        List<Instance> instances = FlowEngine.instanceService().getByDefId(id);
         AssertUtil.isNotEmpty(instances, ExceptionCons.EXIST_START_TASK);
         Definition definition = FlowEngine.newDef().setId(id);
-        definition.setIsPublish(PublishStatus.UNPUBLISHED.getKey());
+        definition.setPublishStatus(PublishStatus.UNPUBLISHED.getKey());
         return updateById(definition);
     }
 
@@ -309,7 +339,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     @Override
     public Definition getPublishByFlowCode(String flowCode) {
         return FlowEngine.defService().getOne(FlowEngine.newDef()
-            .setFlowCode(flowCode).setIsPublish(PublishStatus.PUBLISHED.getKey()));
+            .setFlowCode(flowCode).setPublishStatus(PublishStatus.PUBLISHED.getKey()));
     }
 
     private String getNewVersion(Definition definition) {
@@ -327,7 +357,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
                         highestVersion = version;
                     }
                 } catch (NumberFormatException e) {
-                    long timestamp = otherDef.getCreateTime().getTime();
+                    long timestamp = otherDef.getCreatedAt().getTime();
                     if (timestamp > latestTimestamp) {
                         latestTimestamp = timestamp;
                         latestNonPositiveVersion = otherDef.getVersion();
@@ -353,7 +383,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         // 节点校验
         List<Node> allNodes = flowCombine.getAllNodes();
         List<Skip> allSkips = flowCombine.getAllSkips();
-        Map<String, List<Skip>> skipMap = StreamUtils.groupByKey(allSkips, Skip::getNowNodeCode);
+        Map<String, List<Skip>> skipMap = StreamUtils.groupByKey(allSkips, Skip::getSourceNodeCode);
         allNodes.forEach(node -> {
             node.setSkipList(skipMap.get(node.getNodeCode()));
             skipMap.remove(node.getNodeCode());

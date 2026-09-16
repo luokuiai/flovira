@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -45,6 +46,13 @@ public final class NodeConfigValidator {
                 if (previousNodeCode != null) {
                     throw new IllegalStateException("Duplicate waitKey " + waitKey + " on nodes "
                         + previousNodeCode + " and " + node.getNodeCode());
+                }
+            }
+            if (NodeType.isCarbonCopy(node.getNodeType())) {
+                if (ApproverRuleUtil.read(node, ApproverRuleUtil.CARBON_COPY_EXT_CONFIG) == null
+                    && StringUtils.isEmpty(node.getPermissionFlag())) {
+                    throw new IllegalStateException("Carbon copy recipients are required on node "
+                        + node.getNodeCode());
                 }
             }
             NodeTimeoutConfig timeoutConfig = TimeoutConfigUtil.read(node);

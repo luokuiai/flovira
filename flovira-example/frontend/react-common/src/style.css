@@ -1,0 +1,17 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f3f6fb; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, select { font: inherit; }
+.example-shell { max-width: 1500px; margin: 0 auto; padding: 24px; }
+.example-header, .toolbar, .task { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.example-header h1 { margin: 4px 0 20px; }
+.eyebrow { color: #586a8a; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+.card { background: white; border: 1px solid #dde4ef; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 18px rgba(23, 32, 51, .05); }
+.designer-card { min-height: 640px; }
+.example-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.message { border-radius: 8px; padding: 10px 14px; }
+.error { color: #9f1239; background: #fff1f2; }
+.success { color: #166534; background: #f0fdf4; }
+.task { border-top: 1px solid #edf0f5; padding: 10px 0; }
+pre { max-height: 420px; overflow: auto; background: #111827; color: #d1fae5; padding: 14px; border-radius: 8px; }
+@media (max-width: 800px) { .example-grid { grid-template-columns: 1fr; } .example-header, .toolbar { align-items: stretch; flex-direction: column; } }

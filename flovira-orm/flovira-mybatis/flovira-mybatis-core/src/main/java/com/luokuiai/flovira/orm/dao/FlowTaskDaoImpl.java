@@ -53,8 +53,8 @@ public class FlowTaskDaoImpl extends FloviraDaoImpl<FlowTask> implements FlowTas
     @Override
     public int deleteByInsIds(List<Long> instanceIds) {
         FlowTask entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
-            return getMapper().updateByInsIdsLogic(instanceIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDelFlag());
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
+            return getMapper().updateByInsIdsLogic(instanceIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
         }
         return getMapper().deleteByInsIds(instanceIds, entity);
     }

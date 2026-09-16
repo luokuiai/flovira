@@ -15,6 +15,8 @@
  */
 package com.luokuiai.flovira.core.invoker;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.function.Function;
 
 /**
@@ -27,6 +29,8 @@ public class FrameInvoker<M> {
     public static FrameInvoker frameInvoker = new FrameInvoker<>();
 
     private Function<Class<M>, M> beanFunction;
+
+    private Function<Class<M>, Collection<M>> beansFunction;
 
     private Function<String, String> cfgFunction;
 
@@ -48,6 +52,19 @@ public class FrameInvoker<M> {
             return (M) frameInvoker.beanFunction.apply(tClass);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    public static <M> void setBeansFunction(Function<Class<M>, Collection<M>> function) {
+        frameInvoker.beansFunction = function;
+    }
+
+    public static <M> Collection<M> getBeans(Class<M> tClass) {
+        try {
+            Collection<M> beans = (Collection<M>) frameInvoker.beansFunction.apply(tClass);
+            return beans == null ? Collections.<M>emptyList() : beans;
+        } catch (Exception e) {
+            return Collections.emptyList();
         }
     }
 

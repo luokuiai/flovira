@@ -1,13 +1,16 @@
 import { describe, expect, test } from 'vitest'
 import {
   approverStrategyOptions,
+  addGatewayBranch,
   createInitialDefinition,
+  createId,
   createNode,
   DEFAULT_DESIGNER_CAPABILITIES,
   deleteNode,
   filterNodeTypes,
   getSubprocessConfig,
   getApproverRule,
+  getCarbonCopyRule,
   getTimeoutConfig,
   getWaitConfig,
   insertNodeAfter,
@@ -15,6 +18,7 @@ import {
   serializeDefinition,
   setSubprocessConfig,
   setApproverRule,
+  setCarbonCopyRule,
   setTimeoutConfig,
   setWaitConfig,
   updateNode,
@@ -22,6 +26,38 @@ import {
 } from './model'
 
 describe('Flovira definition model', () => {
+  test('restores legacy vote rules without replacing their runtime values', () => {
+    for (const nodeRatio of ['75', 'passCount=3', 'spel@@#{#passNum > 2}']) {
+      const node = { ...createNode('1'), nodeRatio }
+      const rule = getApproverRule(node)
+      expect(rule.config?.approvalMode).toBe('VOTE')
+      const saved = setApproverRule(node, 'USER', [], '', undefined, 'RESOURCE', rule.config)
+      expect(saved.nodeRatio).toBe(nodeRatio)
+    }
+    expect(getApproverRule({ ...createNode('1'), nodeRatio: '100' }).config?.approvalMode).toBe('COUNTERSIGN')
+  })
+
+  test('adds a sibling branch at the common continuation of nested branches', () => {
+    const initial = createInitialDefinition()
+    const start = initial.nodeList.find((node) => node.nodeType === '0')!
+    const outer = insertNodeAfter(initial, start.nodeCode, '3')
+    const split = outer.nodeList.find((node) => node.nodeType === '3')!
+    const branch = outer.nodeList.find((node) => node.nodeName === '分支一')!
+    const nested = insertNodeAfter(outer, branch.nodeCode, '4')
+    const updated = addGatewayBranch(nested, split.nodeCode)
+    const added = updated.nodeList.find((node) => !nested.nodeList.some((old) => old.nodeCode === node.nodeCode))!
+    expect(added.skipList[0].targetNodeCode).toBe(initial.nodeList.find((node) => node.nodeType === '1')!.nodeCode)
+  })
+
+  test('creates UUID identifiers for persisted workflow elements', () => {
+    const first = createId('node')
+    const second = createId('skip')
+
+    expect(first).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(second).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+    expect(first).not.toBe(second)
+  })
+
   test('filters node and approver controls using host capabilities', () => {
     const capabilities = {
       ...DEFAULT_DESIGNER_CAPABILITIES,
@@ -61,7 +97,7 @@ describe('Flovira definition model', () => {
     const subprocess = inserted.nodeList.find((node) => node.nodeType === '6')!
 
     expect(start.nodeCode).not.toBe(subprocess.nodeCode)
-    expect(inserted.nodeList.find((node) => node.nodeCode === start.nodeCode)?.skipList[0].nextNodeCode)
+    expect(inserted.nodeList.find((node) => node.nodeCode === start.nodeCode)?.skipList[0].targetNodeCode)
       .toBe(subprocess.nodeCode)
 
     const removed = deleteNode(inserted, subprocess.nodeCode)
@@ -100,7 +136,7 @@ describe('Flovira definition model', () => {
   test('round trips the shared semantic approver rule', () => {
     const node = setApproverRule(createNode('1'), 'ROLE', [
       { id: 'role:finance', type: 'ROLE', name: '财务角色' },
-    ])
+    ], '', undefined, 'RESOURCE', { tenantScope: 'current' })
 
     expect(getApproverRule(node)).toEqual({
       schemaVersion: 1,
@@ -109,8 +145,30 @@ describe('Flovira definition model', () => {
       relationType: undefined,
       subjects: [{ id: 'role:finance', type: 'ROLE', name: '财务角色' }],
       expression: '',
+      config: { tenantScope: 'current' },
     })
     expect(JSON.parse(String(node.ext))).toContainEqual(expect.objectContaining({ code: 'approverRule' }))
+  })
+
+  test('round trips and validates carbon copy recipients', () => {
+    const source = createInitialDefinition()
+    const approval = source.nodeList.find((node) => node.nodeType === '1')!
+    let definition = insertNodeAfter(source, approval.nodeCode, '8')
+    const carbonCopy = definition.nodeList.find((node) => node.nodeType === '8')!
+
+    expect(validateDefinition(definition).issues).toContainEqual(expect.objectContaining({
+      code: 'CARBON_COPY_REQUIRED',
+    }))
+
+    const configured = setCarbonCopyRule(carbonCopy, 'USER', [
+      { id: 'user:auditor', type: 'USER', name: '审计员' },
+    ])
+    definition = updateNode(definition, carbonCopy.nodeCode, configured)
+
+    expect(getCarbonCopyRule(configured).subjects).toEqual([
+      { id: 'user:auditor', type: 'USER', name: '审计员' },
+    ])
+    expect(validateDefinition(definition).issues.some((issue) => issue.code === 'CARBON_COPY_REQUIRED')).toBe(false)
   })
 
   test('validates a 128 business-node definition without truncation', () => {
@@ -181,4 +239,15 @@ describe('Flovira definition model', () => {
     expect(source.nodeList.find((node) => node.nodeCode === approval.nodeCode)?.nodeName)
       .toBe('审批节点')
   })
+})
+
+
+test('drops the legacy designer mode without changing business extension keys', () => {
+  const legacy = { ...createInitialDefinition(), modelValue: 'CLASSICS', ext: '{"modelValue":"business"}' }
+  const normalized = normalizeDefinition(legacy)
+  expect(normalized).not.toHaveProperty('modelValue')
+  const saved = JSON.parse(serializeDefinition(legacy))
+  expect(saved).not.toHaveProperty('modelValue')
+  expect(saved.ext).toBe(legacy.ext)
+  expect(legacy.modelValue).toBe('CLASSICS')
 })

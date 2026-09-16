@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/lerna/schemas/lerna-schema.json",
+  "version": "1.0.0-alpha.1",
+  "packages": ["vue", "react", "react-adapters/*"],
+  "command": {
+    "version": {
+      "allowBranch": ["main"],
+      "forcePublish": true,
+      "gitTagVersion": true,
+      "message": "chore(release): v%s",
+      "push": true
+    }
+  }
+}

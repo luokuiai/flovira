@@ -1,25 +1,27 @@
-# AGENTS.md - flovira-designer 模块规则
+# Designer workspace instructions
 
-> 本文件只写 `flovira-designer` 的差异化规则。通用规范以仓库根 [`../AGENTS.md`](../AGENTS.md) 为准。
+Follow [root AGENTS.md](../AGENTS.md). This file contains only frontend-specific rules.
 
-## 模块职责
+## Scope
 
-- `vue/`：Vue 3 设计器组件库，npm 包 `@luokuiai/flovira-vue-designer`。
-- `react/`：React 设计器组件库，npm 包 `@luokuiai/flovira-react-designer`。
-- `examples/`：通过 Bun `workspace:*` 消费上述包的集成示例。
+- `vue`: `@luokuiai/flovira-vue-designer`.
+- `react`: `@luokuiai/flovira-react-designer`.
+- `react-adapters`: optional UI framework adapters; do not import their framework dependencies into the React core.
+- `examples`: consuming applications using Bun `workspace:*` dependencies.
 
-两个组件库只共享仓库工作区，不合并 npm 包、框架依赖或公共 API。后端只提供设计器 API，本模块不得重新引入 WebJar、内嵌页面或后端静态资源打包链路。
+Vue and React share a workspace, not framework dependencies or a combined package API. The backend exposes APIs only; do not restore bundled designer pages, WebJars or static-resource packaging.
 
-## 改动规则
+## Changes
 
-- 复用各框架现有实现和交互语义，不要求 Vue 与 React 内部代码同构。
-- 变更流程定义 JSON、节点属性或 API 路径时，同时核对 `flovira-plugin-ui` 和 core 的数据契约。
-- 公共导出、组件属性、事件、样式入口和 npm 包名属于对外契约，优先用兼容性增加方式演进。
-- 包管理和工作区命令统一使用 Bun；不要在子目录新增独立 lockfile。
+- Reuse each framework's established implementation and interactions. Internal Vue / React structures need not be identical.
+- Use a single workflow design model; do not expose classic / mimic mode switching.
+- Shared workflow JSON, node properties and API paths must match core and UI backend contracts.
+- Public exports, props, events, styles and package names are contracts. Follow root compatibility rules and current user authorization.
+- Use Bun and the workspace lockfile. Do not add independent child lockfiles.
+- Forms use opaque string `formId` references and may come from Flovira-managed forms or host resource callbacks. Keep form rendering host-integrated and do not restore `form_custom` or designer mode switching.
 
-## 聚焦验证
+## Verification and publishing
 
-```bash
-bun run build:designer
-bun run build:demos
-```
+From `flovira-designer` run relevant tests, `rtk bun run build:designer` and `rtk bun run build:demos`. Verify affected UI interactions in a consuming example.
+
+npm publishing uses Lerna fixed versioning and GitHub Actions Trusted Publishing. Follow the release and tagging section in root `AGENTS.md`: manually align workspace versions on `release-<VERSION>`, validate, merge into `main`, create an annotated tag, and merge back into `develop`. Do not use `bun run release` for this process or publish individual packages manually. See `docs/releasing.md` for the publishing prerequisites and exact push order.

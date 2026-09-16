@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -19,14 +20,7 @@ import com.luokuiai.flovira.core.entity.Form;
 
 import java.util.List;
 
-/**
- * 流程表单Dao接口，不同的orm扩展包实现它
- *
- * @author vanlin
- * @className FlowFormDao
- * @description
- * @since 2024/8/19 10:24
- */
+/** 流程表单 DAO，由 ORM 扩展实现。 @author vanlin @since 2024/8/19 10:24 */
 public interface FlowFormDao<T extends Form> extends FloviraDao<T> {
     List<T> queryByCodeList(List<String> formCodeList);
 }

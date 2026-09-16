@@ -74,6 +74,6 @@ public interface FlowHisTaskMapper extends FloviraMapper<FlowHisTask> {
         , @Param("entity") FlowHisTask entity, @Param("logicDeleteValue") String logicDeleteValue
         , @Param("logicNotDeleteValue") String logicNotDeleteValue);
 
-    List<FlowHisTask> listByTaskIdAndCooperateTypes(@Param("cooperateTypes") Integer[] cooperateTypes
+    List<FlowHisTask> listByTaskIdAndCooperationTypes(@Param("cooperationTypes") Integer[] cooperationTypes
         , @Param("entity") FlowHisTask entity);
 }

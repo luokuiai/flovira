@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 package com.luokuiai.flovira.orm.dao;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowFormDao;
 import com.luokuiai.flovira.orm.entity.FlowForm;
@@ -26,8 +28,8 @@ import java.util.List;
 
 /**
  * @author vanlin
- * @className FlowFormDaoImpl
- * @description
+ * 流程表单DAO实现
+ *
  * @since 2024-12-9 15:54
  */
 public class FlowFormDaoImpl extends FloviraDaoImpl<FlowForm> implements FlowFormDao<FlowForm> {
@@ -40,6 +42,9 @@ public class FlowFormDaoImpl extends FloviraDaoImpl<FlowForm> implements FlowFor
     public List<FlowForm> queryByCodeList(List<String> formCodeList) {
         LambdaQueryWrapper<FlowForm> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(FlowForm::getFormCode, formCodeList);
+        if (FlowEngine.tenantHandler() != null) {
+            queryWrapper.eq(FlowForm::getTenantId, FlowEngine.tenantHandler().getTenantId());
+        }
         return getMapper().selectList(queryWrapper);
     }
 

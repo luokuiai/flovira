@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -47,17 +48,17 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
 
     @Override
     public int deleteByTaskIds(List<Long> taskIdList) {
-        return getMapper().delete(new LambdaQueryWrapper<FlowUser>().in(FlowUser::getAssociated, taskIdList));
+        return getMapper().delete(new LambdaQueryWrapper<FlowUser>().in(FlowUser::getTaskId, taskIdList));
     }
 
     @Override
-    public List<FlowUser> listByAssociatedAndTypes(List<Long> associatedList, String[] types) {
+    public List<FlowUser> listByTaskIdsAndTypes(List<Long> taskIds, String[] types) {
         LambdaQueryWrapper<FlowUser> queryWrapper = new LambdaQueryWrapper<>();
-        if (CollUtil.isNotEmpty(associatedList)) {
-            if (associatedList.size() == 1) {
-                queryWrapper.eq(FlowUser::getAssociated, associatedList.get(0));
+        if (CollUtil.isNotEmpty(taskIds)) {
+            if (taskIds.size() == 1) {
+                queryWrapper.eq(FlowUser::getTaskId, taskIds.get(0));
             } else {
-                queryWrapper.in(FlowUser::getAssociated, associatedList);
+                queryWrapper.in(FlowUser::getTaskId, taskIds);
             }
         }
         queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, Arrays.asList(types));
@@ -65,9 +66,9 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
     }
 
     @Override
-    public List<FlowUser> listByProcessedBys(Long associated, List<String> processedBys, String[] types) {
+    public List<FlowUser> listByProcessedBys(Long taskId, List<String> processedBys, String[] types) {
         LambdaQueryWrapper<FlowUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ObjectUtil.isNotNull(associated), FlowUser::getAssociated, associated);
+        queryWrapper.eq(ObjectUtil.isNotNull(taskId), FlowUser::getTaskId, taskId);
         if (CollUtil.isNotEmpty(processedBys)) {
             if (processedBys.size() == 1) {
                 queryWrapper.eq(FlowUser::getProcessedBy, processedBys.get(0));
@@ -75,7 +76,7 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
                 queryWrapper.in(FlowUser::getProcessedBy, processedBys);
             }
         }
-        queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, types);
+        queryWrapper.in(ArrayUtil.isNotEmpty(types), FlowUser::getType, Arrays.asList(types));
         return getMapper().selectList(queryWrapper);
     }
 }

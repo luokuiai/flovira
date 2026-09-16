@@ -51,12 +51,7 @@
             class="demo-table"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'model'">
-                <a-tag :color="isClassics(record.modelValue) ? 'green' : 'blue'">
-                  {{ isClassics(record.modelValue) ? '经典模式' : '仿钉钉模式' }}
-                </a-tag>
-              </template>
-              <template v-else-if="column.key === 'action'">
+              <template v-if="column.key === 'action'">
                 <a-button type="link" size="small" @click="onEdit(record)">修改</a-button>
                 <a-button type="link" size="small" @click="onPreview(record)">预览</a-button>
                 <a-button type="link" size="small" @click="onExport(record)">导出JSON</a-button>
@@ -85,15 +80,16 @@
             :key="designKey"
             v-model:json="modelJson"
             v-bind="designProps"
-            @saved="onSaved"
             @close="onClose"
             @ready="onDesignerReady"
-            @before-save="onBeforeSave"
             @change="onDesignerChange"
             @dirty="onDesignerDirty"
             @validate-error="onValidateError"
             @node-click="onNodeClick"
           >
+            <template #header-actions="{ disabled }">
+              <button :disabled="disabled || saving" @click="saveDesign">{{ saving ? '保存中…' : '保存' }}</button>
+            </template>
             <!-- ① node-form-extra 插槽透传验证：仅扩展验证模式注入，证明 FlowDesigner→PropertySetting→节点子组件 链路打通 -->
             <template #node-form-extra="{ form, disabled }">
               <wf-form-item v-if="designMode === 'validate' && form" label="扩展字段(验证)：">
@@ -152,6 +148,7 @@ import { FlowDesigner, useFlowJson, useFlowDesigner } from '@luokuiai/flovira-vu
 import { RectNode, RectNodeModel } from '@logicflow/core'
 import { Control } from '@logicflow/extension'
 import { listFlows, getFlowJsonString, removeFlow, clearFlows } from './demoProvider'
+import { getDataProvider } from '@luokuiai/flovira-vue-designer'
 
 // 顶部「用法」代码片段：演示第三方 3 步集成（与 ep-demo 仅适配器不同）
 const usageCode = `// main.ts
@@ -164,21 +161,20 @@ setDataProvider(myProvider)       // ② 注入数据源（自定义后端 / moc
 app.use(Antd).use(FloviraDesigner)   // ③ 注册后模板里直接用 <FlowDesigner />`
 
 // ===== 组件库扩展能力验证夹具：端到端验证本轮新增的 ①②③ props / slot =====
-// ② initialJson：脱后端直接喂 flovira 定义对象（经典模式 开始→部门审批→结束），组件不再调用 queryDef
+// ② initialJson：脱后端直接喂 flovira 定义对象（开始→部门审批→结束），组件不再调用 queryDef
 const validateInitialJson = {
   flowName: '扩展能力验证流程（initialJson 脱后端驱动）',
-  modelValue: 'CLASSICS',
   flowCode: 'validate_ext_flow',
   version: '1',
-  isPublish: 0,
+  publishStatus: 0,
   nodeList: [
     {
       nodeType: 0, nodeCode: 'node_start', nodeName: '开始', nodeRatio: '0', coordinate: '180,260|180,260',
-      skipList: [{ id: 'skip_1', nowNodeCode: 'node_start', nextNodeCode: 'node_approve', skipName: '', skipType: 'PASS' }]
+      skipList: [{ id: 'skip_1', sourceNodeCode: 'node_start', targetNodeCode: 'node_approve', skipName: '', skipType: 'PASS' }]
     },
     {
       nodeType: 1, nodeCode: 'node_approve', nodeName: '部门审批', nodeRatio: '0', coordinate: '430,260|430,260',
-      skipList: [{ id: 'skip_2', nowNodeCode: 'node_approve', nextNodeCode: 'node_end', skipName: '', skipType: 'PASS' }]
+      skipList: [{ id: 'skip_2', sourceNodeCode: 'node_approve', targetNodeCode: 'node_end', skipName: '', skipType: 'PASS' }]
     },
     { nodeType: 2, nodeCode: 'node_end', nodeName: '结束', nodeRatio: '0', coordinate: '680,260|680,260' }
   ]
@@ -209,15 +205,6 @@ const validateOnRegister = (lf) => {
   }
   window.__WF_VALIDATE_ON_REGISTER__ = ok
   console.log('[validate] onRegister 调用，lf.register =', typeof lf?.register, 'registered =', ok)
-}
-// ④ paletteNodes：自定义经典模式左侧拖拽面板节点（重命名基础节点 + 传空数组隐藏网关组），验证覆盖生效
-const validatePaletteNodes = {
-  flowNodes: [
-    { type: 'start', label: '开始(自定义)' },
-    { type: 'between', label: '审批(自定义)', properties: { collaborativeWay: '1' } },
-    { type: 'end', label: '结束(自定义)' }
-  ],
-  gatewayNodes: []
 }
 
 // ⑨ useFlowDesigner（命令式 API，空安全）+ useFlowJson（流程 json 响应式只读视图）
@@ -286,13 +273,6 @@ function onDesignerDirty(d) {
   window.__WF_VALIDATE_DIRTY__ = !!d
   console.log('[validate] dirty 翻转 =', d)
 }
-// ⑦ @before-save：保存提交前可改写 json / 取消保存（同步事件）
-function onBeforeSave(payload) {
-  if (designMode.value === 'showcase') logEvent('before-save', `json 长度 ${payload?.json?.length || 0}`)
-  if (designMode.value !== 'validate') return
-  window.__WF_VALIDATE_BEFORE_SAVE__ = !!(payload && typeof payload.setJson === 'function' && typeof payload.preventDefault === 'function')
-  console.log('[validate] before-save，json 长度 =', payload && payload.json && payload.json.length)
-}
 // ⑧ @validate-error：基础信息校验失败（保存 / 切步骤 / 命令式 validate 触发），透出来源与无效字段
 function onValidateError(payload) {
   if (designMode.value === 'showcase') logEvent('validate-error', `source=${payload?.source}`)
@@ -302,9 +282,8 @@ function onValidateError(payload) {
 
 const columns = [
   { title: '流程名称', dataIndex: 'flowName', key: 'flowName', ellipsis: true },
-  { title: '设计器模型', key: 'model', width: 140 },
   { title: '流程ID', dataIndex: 'id', key: 'id', ellipsis: true },
-  { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', width: 190 },
+  { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 190 },
   { title: '操作', key: 'action', width: 300 }
 ]
 
@@ -320,15 +299,12 @@ const designModeText = computed(() => {
   if (designMode.value === 'create') return '新建流程'
   if (designMode.value === 'edit') return '修改流程'
   if (designMode.value === 'showcase') return '集成案例 · 右侧实时面板（useFlowJson 实时 JSON + 事件日志 + useFlowDesigner 命令式工具条）'
-  if (designMode.value === 'validate') return '扩展能力验证 · initialJson + node-form-extra 插槽 + customNodes/extraExtensions/lfOptions + onBeforeUse/onRegister 钩子 + paletteNodes + before-save/change/dirty/validate-error/node-click 事件 + useFlowJson + v-model:json'
+  if (designMode.value === 'validate') return '扩展能力验证 · initialJson + node-form-extra 插槽 + customNodes/extraExtensions/lfOptions + onBeforeUse/onRegister 钩子 + change/dirty/validate-error/node-click 事件 + useFlowJson + v-model:json'
   return '预览流程（只读）'
 })
 
 function rowKey(row) {
   return row.id
-}
-function isClassics(modelValue) {
-  return modelValue === 'CLASSICS'
 }
 
 function refresh() {
@@ -370,7 +346,6 @@ function onShowcase() {
     lfOptions: validateLfOptions,
     onBeforeUse: validateOnBeforeUse,
     onRegister: validateOnRegister,
-    paletteNodes: validatePaletteNodes,
     structureValidator: showcaseStructureValidator
   })
 }
@@ -395,7 +370,6 @@ function onValidateExt() {
     lfOptions: validateLfOptions,
     onBeforeUse: validateOnBeforeUse,
     onRegister: validateOnRegister,
-    paletteNodes: validatePaletteNodes
   })
 }
 function backToList() {
@@ -403,10 +377,30 @@ function backToList() {
   refresh()
 }
 
-function onSaved(payload) {
-  const id = (payload && (payload.data || payload.id)) || ''
-  message.success('保存成功，流程ID：' + id)
+const saving = ref(false)
+async function saveDesign() {
+  const designer = designerRef.value
+  if (!designer || saving.value || designProps.value.disabled) return
+  saving.value = true
+  try {
+    if (!await designer.validate()) return
+    const result = designer.validateStructure()
+    if (!result.valid) { message.error(result.errors.join('；')); return }
+    const json = designer.getFlowJson()
+    const response = await getDataProvider().saveJson(json)
+    if (response.code !== 200) throw new Error(response.msg || '保存失败')
+    if (designer.getFlowJson() === json) {
+      designer.resetDirty()
+      backToList()
+    }
+    message.success('保存成功，流程ID：' + (response.data || ''))
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : String(error))
+  } finally {
+    saving.value = false
+  }
 }
+
 function onClose() {
   backToList()
 }

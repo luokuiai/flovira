@@ -27,7 +27,7 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 
 /**
- * 四库子流程表结构契约测试
+ * 三库子流程表结构契约测试
  *
  * @author warm
  */
@@ -36,10 +36,9 @@ public class SubprocessSchemaContractTest {
     @Test
     public void shouldProvideRequiredTablesAndIndexesForEveryDatabase() throws IOException {
         List<String> scripts = Arrays.asList(
-            "../sql/mysql/flovira-v1.sql",
-            "../sql/postgresql/flovira-v1.sql",
-            "../sql/oracle/oracle-wram-flow-all.sql",
-            "../sql/sqlserver/sqlserver.sql"
+            "../sql/mysql/flovira-v1.0.0.sql",
+            "../sql/postgresql/flovira-v1.0.0.sql",
+            "../sql/oracle/flovira-v1.0.0.sql"
         );
         for (String path : scripts) {
             String sql = new String(Files.readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8)

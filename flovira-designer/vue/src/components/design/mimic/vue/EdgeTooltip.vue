@@ -34,6 +34,7 @@ const options = [
   { icon: 'between', label: t('edgeTooltip.approval') },
   { icon: 'subProcess', label: t('sidebar.subprocess') },
   { icon: 'wait', label: t('sidebar.wait') },
+  { icon: 'carbonCopy', label: t('sidebar.carbonCopy') },
   { icon: 'serial', label: t('sidebar.serial') },
   { icon: 'parallel', label: t('sidebar.parallel') },
   { icon: 'inclusive', label: t('sidebar.inclusive') },

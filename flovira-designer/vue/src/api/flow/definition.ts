@@ -6,8 +6,8 @@ import { unwrapData, type DesignerResourceItem, type DesignerResourceQuery } fro
 // 业务方可通过 setDataProvider 注入自定义后端 / mock，实现数据层与具体后端解耦。
 
 // 保存json流程定义
-export function saveJson(data: any, onlyNodeSkip?: boolean): Promise<any> {
-  return getDataProvider().saveJson(data, onlyNodeSkip)
+export function saveJson(data: any): Promise<any> {
+  return getDataProvider().saveJson(data)
 }
 
 // 获取流程定义

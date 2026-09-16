@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -43,22 +44,22 @@ public class FlowDefinition implements Definition {
     /**
      * 创建时间
      */
-    private Date createTime;
+    private Date createdAt;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private Date updatedAt;
 
     /**
      * 创建人
      */
-    private String createBy;
+    private String createdBy;
 
     /**
      * 更新人
      */
-    private String updateBy;
+    private String updatedBy;
 
     /**
      * 租户ID
@@ -68,7 +69,7 @@ public class FlowDefinition implements Definition {
     /**
      * 删除标记
      */
-    private String delFlag;
+    private String deleted;
 
     /**
      * 流程编码
@@ -81,14 +82,14 @@ public class FlowDefinition implements Definition {
     private String flowName;
 
     /**
-     * 设计器模型（CLASSICS经典模型 MIMIC仿钉钉模型）
-     */
-    private String modelValue;
-
-    /**
      * 流程类别
      */
     private String category;
+
+    /**
+     * 业务类型
+     */
+    private String businessType;
 
     /**
      * 流程版本
@@ -98,17 +99,12 @@ public class FlowDefinition implements Definition {
     /**
      * 是否发布（0未开启 1开启）
      */
-    private Integer isPublish;
+    private Integer publishStatus;
 
     /**
-     * 审批表单是否自定义（Y是 N否）
+     * 外部业务表单标识，由业务系统解析，不是页面路径
      */
-    private String formCustom;
-
-    /**
-     * 审批表单路径
-     */
-    private String formPath;
+    private String formId;
 
     /**
      * 流程激活状态（0挂起 1激活）

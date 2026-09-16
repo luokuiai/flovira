@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -18,7 +19,7 @@ package com.luokuiai.flovira.core.entity;
 import java.util.Date;
 
 /**
- * 流程表单 flow_form
+ * 流程表单 flow_form。
  *
  * @author vanlin
  * @since 2024/8/19 9:59
@@ -32,28 +33,28 @@ public interface Form extends RootEntity {
     Form setId(Long id);
 
     @Override
-    Date getCreateTime();
+    Date getCreatedAt();
 
     @Override
-    Form setCreateTime(Date createTime);
+    Form setCreatedAt(Date createdAt);
 
     @Override
-    Date getUpdateTime();
+    Date getUpdatedAt();
 
     @Override
-    Form setUpdateTime(Date updateTime);
+    Form setUpdatedAt(Date updatedAt);
 
     @Override
-    String getCreateBy();
+    String getCreatedBy();
 
     @Override
-    Form setCreateBy(String createBy);
+    Form setCreatedBy(String createdBy);
 
     @Override
-    String getUpdateBy();
+    String getUpdatedBy();
 
     @Override
-    Form setUpdateBy(String updateBy);
+    Form setUpdatedBy(String updatedBy);
 
     @Override
     String getTenantId();
@@ -62,15 +63,11 @@ public interface Form extends RootEntity {
     Form setTenantId(String tenantId);
 
     @Override
-    String getDelFlag();
+    String getDeleted();
 
     @Override
-    Form setDelFlag(String delFlag);
+    Form setDeleted(String deleted);
 
-    /**
-     * 获取表单编码
-     * @return 表单编码
-     */
     String getFormCode();
 
     Form setFormCode(String formCode);
@@ -83,27 +80,14 @@ public interface Form extends RootEntity {
 
     Form setVersion(String version);
 
-    /**
-     * 是否发布（0未发布 1已发布 9失效）
-     */
-    Integer getIsPublish();
+    /** 是否发布（0未发布 1已发布 9失效）。 */
+    Integer getPublishStatus();
 
-    Form setIsPublish(Integer isPublish);
-
-    /**
-     * 表单类型（0内置表单 存 form_content        1外挂表单 存form_path）
-     */
-    Integer getFormType();
-
-    Form setFormType(Integer formType);
+    Form setPublishStatus(Integer publishStatus);
 
     String getFormContent();
 
     Form setFormContent(String formContent);
-
-    String getFormPath();
-
-    Form setFormPath(String formPath);
 
     String getExt();
 

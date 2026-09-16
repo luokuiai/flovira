@@ -47,32 +47,32 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
     @Override
     public int deleteByTaskIds(List<Long> taskIdList) {
         FlowUser entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDelFlag())) {
+        if (StringUtils.isNotEmpty(entity.getDeleted())) {
             return getMapper().updateByTaskIdsLogic(taskIdList, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(),
-                entity.getDelFlag());
+                entity.getDeleted());
         }
         return getMapper().deleteByTaskIds(taskIdList, entity);
     }
 
     @Override
-    public List<FlowUser> listByAssociatedAndTypes(List<Long> associatedList, String[] types) {
+    public List<FlowUser> listByTaskIdsAndTypes(List<Long> taskIds, String[] types) {
         String dataSourceType = FlowEngine.dataSourceType();
-        if (CollUtil.isNotEmpty(associatedList) && associatedList.size() == 1) {
-            return getMapper().listByAssociatedAndTypes(types, null
-                , TenantDeleteUtil.getEntity(newEntity()).setAssociated(associatedList.get(0)), dataSourceType);
+        if (CollUtil.isNotEmpty(taskIds) && taskIds.size() == 1) {
+            return getMapper().listByTaskIdsAndTypes(types, null
+                , TenantDeleteUtil.getEntity(newEntity()).setTaskId(taskIds.get(0)), dataSourceType);
         }
-        return getMapper().listByAssociatedAndTypes(types, associatedList
+        return getMapper().listByTaskIdsAndTypes(types, taskIds
             , TenantDeleteUtil.getEntity(newEntity()), dataSourceType);
     }
 
     @Override
-    public List<FlowUser> listByProcessedBys(Long associated, List<String> processedBys, String[] types) {
+    public List<FlowUser> listByProcessedBys(Long taskId, List<String> processedBys, String[] types) {
         String dataSourceType = FlowEngine.dataSourceType();
         if (CollUtil.isNotEmpty(processedBys) && processedBys.size() == 1) {
             return getMapper().listByProcessedBys(types, null, TenantDeleteUtil
-                .getEntity(newEntity()).setAssociated(associated).setProcessedBy(processedBys.get(0)), dataSourceType);
+                .getEntity(newEntity()).setTaskId(taskId).setProcessedBy(processedBys.get(0)), dataSourceType);
         }
         return getMapper().listByProcessedBys(types, processedBys
-            , TenantDeleteUtil.getEntity(newEntity()).setAssociated(associated), dataSourceType);
+            , TenantDeleteUtil.getEntity(newEntity()).setTaskId(taskId), dataSourceType);
     }
 }

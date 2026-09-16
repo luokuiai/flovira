@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -27,6 +28,7 @@ import com.luokuiai.flovira.core.utils.page.Page;
 import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
 import com.luokuiai.flovira.core.dto.BusinessSubject;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
+import com.luokuiai.flovira.ui.dto.FormContentRequest;
 import com.luokuiai.flovira.ui.service.FloviraService;
 import com.luokuiai.flovira.ui.vo.*;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,22 +83,22 @@ public class FloviraController {
      * 保存流程json字符串
      *
      * @param defJson 流程数据集合
-     * @return ApiResult<Void>
+     * @return {@code ApiResult<Void>}
      * @throws Exception 异常
      * @author xiarg
      * @since 2024/10/29 16:31
      */
     @PostMapping("/save-json")
     @Transactional(rollbackFor = Exception.class)
-    public ApiResult<Void> saveJson(@RequestBody DefJson defJson, @RequestHeader("onlyNodeSkip") boolean onlyNodeSkip) throws Exception {
-        return FloviraService.saveJson(defJson, onlyNodeSkip);
+    public ApiResult<Void> saveJson(@RequestBody DefJson defJson) throws Exception {
+        return FloviraService.saveJson(defJson);
     }
 
     /**
      * 获取流程定义数据(包含节点和跳转)
      *
      * @param id 流程定义id
-     * @return ApiResult<DefVo>
+     * @return {@code ApiResult<DefVo>}
      * @author xiarg
      * @since 2024/10/29 16:31
      */
@@ -109,7 +111,7 @@ public class FloviraController {
      * 获取流程图
      *
      * @param id 流程实例id
-     * @return ApiResult<DefJson>
+     * @return {@code ApiResult<DefJson>}
      */
     @GetMapping("/query-flow-chart/{id}")
     public ApiResult<DefJson> queryFlowChart(@PathVariable("id") Long id) {
@@ -139,28 +141,20 @@ public class FloviraController {
         return FloviraService.subprocessHistory(runId, childId);
     }
 
-    /**
-     * 读取表单内容
-     *
-     * @param id
-     * @return
-     */
+    /** 读取 Flovira 管理的表单内容。 */
     @GetMapping("/form-content/{id}")
     public ApiResult<String> getFormContent(@PathVariable("id") Long id) {
         return FloviraService.getFormContent(id);
     }
 
-    /**
-     * 保存表单内容,该接口不需要系统实现
-     *
-     * @param flowDto
-     * @return
-     */
+    /** 保存 Flovira 管理的表单内容。 */
     @Transactional(rollbackFor = Exception.class)
     @PostMapping("/form-content")
-    public ApiResult<Void> saveFormContent(@RequestBody FlowDto flowDto) {
-        return FloviraService.saveFormContent(flowDto);
+    public ApiResult<Void> saveFormContent(@RequestBody FormContentRequest request) {
+        return FloviraService.saveFormContent(request);
     }
+
+
 
 
     /**
@@ -169,7 +163,7 @@ public class FloviraController {
      * @param taskId 当前任务id
      * @return {@link ApiResult< FlowDto >}
      * @author liangli
-     * @date 2024/8/21 17:08
+     * Date: 2024/8/21 17:08
      **/
     @GetMapping(value = "/execute/load/{taskId}")
     public ApiResult<FlowDto> load(@PathVariable("taskId") Long taskId) {

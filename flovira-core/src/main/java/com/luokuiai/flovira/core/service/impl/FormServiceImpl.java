@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -32,18 +33,15 @@ import com.luokuiai.flovira.core.utils.page.Page;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 流程表单Service业务层处理
- *
- * @author vanlin
- * @since 2024/8/19 10:07
- */
+/** 流程表单 Service 实现。 @author vanlin @since 2024/8/19 10:07 */
 public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form> implements FormService {
-
-    public static final Logger LOGGER = LoggerFactory.getLogger(FormServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FormServiceImpl.class);
 
     @Override
     public FormService setDao(FlowFormDao<Form> floviraDao) {
@@ -53,46 +51,81 @@ public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form>
 
     @Override
     public boolean publish(Long id) {
-        Form form = getById(id);
-        AssertUtil.isTrue(form.getIsPublish().equals(PublishStatus.PUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_PUBLISH);
-        form.setIsPublish(PublishStatus.PUBLISHED.getKey());
+        Form form = requireForm(id);
+        AssertUtil.isTrue(PublishStatus.PUBLISHED.getKey().equals(form.getPublishStatus()),
+            ExceptionCons.FORM_ALREADY_PUBLISH);
+        form.setPublishStatus(PublishStatus.PUBLISHED.getKey());
         return updateById(form);
     }
 
     @Override
     public boolean unPublish(Long id) {
-        Form form = getById(id);
-        List<Node> nodes = FlowEngine.nodeService().list(FlowEngine.newNode().setFormPath("" + form.getId()));
+        Form form = requireForm(id);
+        String formId = String.valueOf(form.getId());
+        Node nodeQuery = FlowEngine.newNode().setFormId(formId);
+        Definition definitionQuery = FlowEngine.newDef().setFormId(formId);
+        String tenantId = currentTenantId();
+        if (tenantId != null) {
+            nodeQuery.setTenantId(tenantId);
+            definitionQuery.setTenantId(tenantId);
+        }
+        List<Node> nodes = FlowEngine.nodeService().list(nodeQuery);
         AssertUtil.isNotEmpty(nodes, ExceptionCons.EXIST_USE_FORM);
-        List<Definition> definitions = FlowEngine.defService().list(FlowEngine.newDef().setFormPath("" + form.getId()));
+        List<Definition> definitions = FlowEngine.defService().list(definitionQuery);
         AssertUtil.isNotEmpty(definitions, ExceptionCons.EXIST_USE_FORM);
-        AssertUtil.isTrue(form.getIsPublish().equals(PublishStatus.UNPUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_UN_PUBLISH);
-        form.setIsPublish(PublishStatus.UNPUBLISHED.getKey());
+        AssertUtil.isTrue(PublishStatus.UNPUBLISHED.getKey().equals(form.getPublishStatus()),
+            ExceptionCons.FORM_ALREADY_UN_PUBLISH);
+        form.setPublishStatus(PublishStatus.UNPUBLISHED.getKey());
         return updateById(form);
     }
 
     @Override
     public boolean save(Form form) {
+        applyTenant(form);
         form.setVersion(getNewVersion(form));
         return super.save(form);
     }
 
     @Override
+    public boolean updateById(Form form) {
+        requireForm(form.getId());
+        applyTenant(form);
+        return super.updateById(form);
+    }
+
+    @Override
+    public boolean removeById(Serializable id) {
+        Form form = requireForm((Long) id);
+        return remove(form);
+    }
+
+    @Override
+    public boolean removeByIds(Collection<? extends Serializable> ids) {
+        boolean removed = true;
+        for (Serializable id : ids) {
+            removed = removeById(id) && removed;
+        }
+        return removed;
+    }
+
+    @Override
     public boolean copyForm(Long id) {
-        Form form = ClassUtil.clone(getById(id));
-        AssertUtil.isTrue(ObjectUtil.isNull(form), ExceptionCons.NOT_FOUNT_DEF);
-        FlowEngine.dataFillHandler().idFill(form.setId(null));
-        form.setVersion(getNewVersion(form))
-            .setIsPublish(PublishStatus.UNPUBLISHED.getKey())
-            .setCreateTime(null)
-            .setUpdateTime(null);
-        return save(form);
+        Form source = requireForm(id);
+        Form form = ClassUtil.clone(source);
+        AssertUtil.isTrue(ObjectUtil.isNull(form), ExceptionCons.NOT_FOUND_FORM);
+        form.setId(null)
+            .setVersion(getNewVersion(form))
+            .setPublishStatus(PublishStatus.UNPUBLISHED.getKey())
+            .setCreatedAt(null)
+            .setUpdatedAt(null);
+        return super.save(form);
     }
 
     @Override
     public Form getByCode(String formCode, String formVersion) {
-        List<Form> list = list(FlowEngine.newForm().setFormCode(formCode).setVersion(formVersion));
-        AssertUtil.isTrue(CollUtil.isEmpty(list), ExceptionCons.NOT_FOUNT_TASK);
+        Form query = applyTenant(FlowEngine.newForm().setFormCode(formCode).setVersion(formVersion));
+        List<Form> list = list(query);
+        AssertUtil.isTrue(CollUtil.isEmpty(list), ExceptionCons.NOT_FOUND_FORM);
         AssertUtil.isTrue(list.size() > 1, ExceptionCons.FORM_NOT_ONE);
         return list.get(0);
     }
@@ -100,47 +133,65 @@ public class FormServiceImpl extends FloviraServiceImpl<FlowFormDao<Form>, Form>
     @Override
     public Form getById(Long id) {
         AssertUtil.isNull(id, ExceptionCons.ID_EMPTY);
-        return super.getById(id);
+        return getOne(applyTenant(FlowEngine.newForm().setId(id)));
     }
 
     @Override
     public Page<Form> publishedPage(String formName, Integer pageNum, Integer pageSize) {
-        return page(FlowEngine.newForm().setFormName(formName).setIsPublish(1),
-            Page.<Form>pageOf(pageNum, pageSize));
+        Form query = applyTenant(FlowEngine.newForm().setFormName(formName)
+            .setPublishStatus(PublishStatus.PUBLISHED.getKey()));
+        List<Form> forms = list(query, orderById());
+        int current = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int size = pageSize == null || pageSize < 1 ? 10 : pageSize;
+        int from = Math.min((current - 1) * size, forms.size());
+        int to = Math.min(from + size, forms.size());
+        Page<Form> result = new Page<Form>(new ArrayList<Form>(forms.subList(from, to)), forms.size());
+        result.setPageNum(current);
+        result.setPageSize(size);
+        return result;
     }
 
     @Override
     public boolean saveContent(Long id, String formContent) {
-        Form form = getById(id);
-        AssertUtil.isTrue(form.getIsPublish().equals(PublishStatus.PUBLISHED.getKey()), ExceptionCons.FORM_ALREADY_PUBLISH);
-
+        Form form = requireForm(id);
+        AssertUtil.isTrue(PublishStatus.PUBLISHED.getKey().equals(form.getPublishStatus()),
+            ExceptionCons.FORM_ALREADY_PUBLISH);
         form.setFormContent(formContent);
         return updateById(form);
     }
 
-    private String getNewVersion(Form form) {
-        List<String> formCodeList = Collections.singletonList(form.getFormCode());
-        List<Form> forms = getDao().queryByCodeList(formCodeList);
-        int highestVersion = 0;
+    private Form requireForm(Long id) {
+        Form form = getById(id);
+        AssertUtil.isNull(form, ExceptionCons.NOT_FOUND_FORM);
+        return form;
+    }
 
+    private Form applyTenant(Form form) {
+        String tenantId = currentTenantId();
+        if (tenantId != null) {
+            form.setTenantId(tenantId);
+        }
+        return form;
+    }
+
+    private String currentTenantId() {
+        return FlowEngine.tenantHandler() == null ? null : FlowEngine.tenantHandler().getTenantId();
+    }
+
+    private String getNewVersion(Form form) {
+        List<Form> forms = getDao().queryByCodeList(Collections.singletonList(form.getFormCode()));
+        int highestVersion = 0;
         for (Form otherForm : forms) {
-            if (form.getFormCode().equals(otherForm.getFormCode())) {
-                try {
-                    int version = Integer.parseInt(otherForm.getVersion());
-                    if (version > highestVersion) {
-                        highestVersion = version;
-                    }
-                } catch (NumberFormatException e) {
-                    LOGGER.error("版本格式化异常 - {}", e.getLocalizedMessage());
-                }
+            if (!form.getFormCode().equals(otherForm.getFormCode())) {
+                continue;
+            }
+            try {
+                highestVersion = Math.max(highestVersion, Integer.parseInt(otherForm.getVersion()));
+            } catch (NumberFormatException e) {
+                LOGGER.warn("忽略非数字表单版本 - formCode: {}, version: {}", form.getFormCode(),
+                    otherForm.getVersion());
             }
         }
-
-        String version = "1";
-        if (highestVersion > 0) {
-            version = String.valueOf(highestVersion + 1);
-        }
-
-        return version;
+        return String.valueOf(highestVersion + 1);
     }
 }

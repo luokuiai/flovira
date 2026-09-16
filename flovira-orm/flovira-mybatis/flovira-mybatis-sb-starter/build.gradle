@@ -12,6 +12,7 @@ dependencies {
     api libs.org.springframework.spring.tx
     api project(':flovira-plugin-modes-sb')
     testImplementation libs.junit.junit
+    testImplementation project(':flovira-plugin-json-jackson')
     testImplementation libs.org.postgresql.postgresql
     testImplementation libs.org.testcontainers.postgresql
 }

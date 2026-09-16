@@ -8,11 +8,10 @@ const config = JSON.stringify({
   allowEmpty: false,
 })
 
-function definition(modelValue: string) {
+function definition() {
   return {
     flowCode: 'parent',
     flowName: 'Parent',
-    modelValue,
     nodeList: [{
       nodeType: 6,
       nodeCode: 'subprocess',
@@ -26,9 +25,8 @@ function definition(modelValue: string) {
 }
 
 describe('subprocess designer conversion', () => {
-  for (const modelValue of ['CLASSICS', 'MIMIC']) {
-    test(`round trips fixed subprocess config in ${modelValue}`, () => {
-      const graph = json2LogicFlowJson(definition(modelValue))
+    test('round trips fixed subprocess config', () => {
+      const graph = json2LogicFlowJson(definition())
       expect(graph.nodes[0].type).toBe('subProcess')
       expect(graph.nodes[0].properties.ext.subprocessConfig).toBe(config)
 
@@ -37,5 +35,4 @@ describe('subprocess designer conversion', () => {
       const ext = JSON.parse(saved.nodeList[0].ext)
       expect(ext).toEqual([{ code: 'subprocessConfig', value: config }])
     })
-  }
 })

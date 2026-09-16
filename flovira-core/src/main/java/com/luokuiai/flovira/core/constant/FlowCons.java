@@ -31,8 +31,6 @@ public class FlowCons {
     public static final String SPLIT_VERTICAL = "\\|";
     public static final String DEFAULT = "default";
     public static final String SPEL = "spel";
-    public static final String SNEL = "snel";
-
     public static final Pattern LISTENER_PATTERN = Pattern.compile("^([^()]*)(.*)$");
 
     /**
@@ -61,15 +59,6 @@ public class FlowCons {
     public static final String SNOWID19 = "SnowId19";
 
 
-    /**
-     * 表单自定义状态
-     * 内置表单
-     */
-    public static final String FORM_CUSTOM_Y = "Y";
-    /**
-     * 外挂表单路径
-     */
-    public static final String FORM_CUSTOM_N = "N";
 
     /**
      * 表单数据

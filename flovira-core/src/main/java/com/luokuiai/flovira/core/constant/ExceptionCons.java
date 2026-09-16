@@ -72,6 +72,7 @@ public class ExceptionCons {
     public static final String NULL_BUSINESS_ID = "业务id为空!";
 
     public static final String NULL_BUSINESS_TYPE = "业务类型为空!";
+    public static final String NULL_DEFINITION_BUSINESS_TYPE = "流程定义的业务类型为空!";
 
     public static final String NULL_FLOW_CODE = "流程编码缺失!";
 
@@ -122,6 +123,8 @@ public class ExceptionCons {
     public static final String FORM_ALREADY_UN_PUBLISH = "当前表单状态未发布";
 
     public static final String FORM_NOT_ONE = "表单数据错误, 请联系管理员排查!";
+
+    public static final String NOT_FOUND_FORM = "流程表单不存在!";
 
     public static final String ID_EMPTY = "ID不能为空";
 

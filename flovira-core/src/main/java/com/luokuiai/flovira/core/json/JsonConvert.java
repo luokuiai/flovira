@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -37,7 +38,7 @@ public interface JsonConvert {
      * 将字符串转为bean
      *
      * @param jsonStr json字符串
-     * @param clazz   Class<T>
+     * @param clazz   {@code Class<T>}
      * @return T
      */
     <T> T strToBean(String jsonStr, Class<T> clazz);
@@ -47,7 +48,7 @@ public interface JsonConvert {
      * 将字符串转为集合
      *
      * @param jsonStr json字符串
-     * @return List<T>
+     * @return {@code List<T>}
      */
     <T> List<T> strToList(String jsonStr);
 
