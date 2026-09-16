@@ -142,6 +142,22 @@ rtk bun run build
 - Existing session authorization persists; do not repeatedly ask for already-authorized actions.
 - Reading, searching, local builds / tests, scoped edits and git status / diff are allowed during relevant tasks.
 
+## Release and tagging
+
+Follow the release-branch process shared with `lumen-design`. See [docs/releasing.md](docs/releasing.md) for commands and project-specific publishing prerequisites.
+
+- Start only when the user explicitly supplies the target version and requests a release. A request to publish that version authorizes the complete standard sequence below, including local release-branch deletion; do not ask again between steps. Respect narrower requests such as preparation without pushing.
+- Pause for a dirty worktree, merge conflicts, failed validation, an existing target version or tag, publishing failures requiring code or metadata changes, or any required deviation. Never overwrite published versions or move, replace, or force-push published tags.
+- Start from clean, up-to-date `develop` and create `release-<VERSION>`. This release branch name is an explicit exception to ordinary branch naming.
+- Manually align designer workspace manifests, `lerna.json`, Vue / React / adapter package versions, private example versions, and internal Flovira dependency ranges. Regenerate `bun.lock`, verify frozen installation, and check for stale owned versions. Do not change third-party dependency versions as part of a version bump. Maven versions come from `-PreleaseVersion=<VERSION>`; do not rename SQL baselines for package releases.
+- Run the frontend checks and demo builds, and the backend release check with the target version. Inspect the publishing workflows and registry / tag availability before any release mutation. The npm publisher must support the merge-commit tagging process; resolve an incompatible publishing configuration before tagging or pushing.
+- Do not use `bun run release` for this process: its Lerna configuration allows only `main` and automatically commits, tags, and pushes. Stage only version-related files and commit with `Bumped version number to <VERSION>`, an explicit exception to ordinary commit naming. Do not push the release branch unless explicitly requested.
+- Update `main`, merge the release branch with `--no-ff`, and create an annotated `v<VERSION>` tag on that merge commit. Verify its target and all publishable package versions. Lightweight tags are not allowed.
+- Update `develop` and merge the same release branch back with `--no-ff`. Push `main`, the exact release tag, then `develop`, in that order. Never use `git push --tags`.
+- The shared tag triggers both Maven Central and npm publishing. Current Maven tags support stable `X.Y.Z` and `X.Y.Z-alpha.N` only. npm prereleases use `next`; stable releases use `latest`. These workflows do not create a GitHub Release.
+- Verify both tag-triggered workflows and the published artifacts / npm dist-tags; one successful workflow is not complete publication. For transient failures, rerun the failed workflow without retagging. Code or metadata fixes after publication require a new version and tag. Do not assume a manual workflow trigger exists without inspecting its configuration.
+- Only after all three pushes and publication verification succeed, return to `develop` and delete the local release branch with `git branch -d`. Remote branch deletion requires separate authorization if the release branch was explicitly pushed.
+
 ## Responses
 
 Be concise and concrete. Explain changes and verification, link useful files, and report uncertainty or incomplete work honestly. Do not claim failed or unrun checks passed.

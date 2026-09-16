@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -16,6 +17,7 @@ concurrency:
 jobs:
   publish:
     name: Publish npm packages
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -47,7 +49,7 @@ jobs:
       - name: Run checks
         run: bun run check
 
-      - name: Publish packages from tag
+      - name: Publish unpublished packages
         run: >-
-          bunx lerna@10.0.1 publish from-git --no-private --no-verify-access --yes
+          bunx lerna@10.0.1 publish from-package --no-private --no-verify-access --yes
           --dist-tag latest --pre-dist-tag next
