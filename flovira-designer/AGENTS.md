@@ -24,4 +24,4 @@ Vue and React share a workspace, not framework dependencies or a combined packag
 
 From `flovira-designer` run relevant tests, `rtk bun run build:designer` and `rtk bun run build:demos`. Verify affected UI interactions in a consuming example.
 
-npm publishing uses Lerna fixed versioning. The authorized release flow runs `bun run release` on `main`, updates all designer and adapter versions, and pushes a version tag. GitHub Actions publishes public packages through npm Trusted Publishing. Do not manually release only one package or trigger publishing without authorization.
+npm publishing uses Lerna fixed versioning and GitHub Actions Trusted Publishing. Follow the release and tagging section in root `AGENTS.md`: manually align workspace versions on `release-<VERSION>`, validate, merge into `main`, create an annotated tag, and merge back into `develop`. Do not use `bun run release` for this process or publish individual packages manually. See `docs/releasing.md` for the publishing prerequisites and exact push order.

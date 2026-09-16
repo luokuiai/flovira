@@ -1,41 +1,39 @@
 # Flovira Designer
 
-Flovira 的前端设计器工作区。Vue 与 React 实现共享仓库目录和示例管理，但作为独立 npm 包发布，不合并运行时依赖或公共 API；React 的具体 UI 框架集成由可选适配包提供。
+The frontend workspace for Flovira. Vue and React are published as independent npm packages, with separate runtime dependencies and public APIs. Optional adapter packages integrate the React designer with UI libraries.
 
-| 目录 | npm 包 / 用途 |
+| Directory | npm package / purpose |
 | --- | --- |
 | [`vue`](./vue) | `@luokuiai/flovira-vue-designer` |
 | [`react`](./react) | `@luokuiai/flovira-react-designer` |
 | [`react-adapters/lumen`](./react-adapters/lumen) | `@luokuiai/flovira-react-adapter-lumen` |
 | [`react-adapters/antd`](./react-adapters/antd) | `@luokuiai/flovira-react-adapter-antd` |
-| [`examples/vue-element-plus`](./examples/vue-element-plus) | Vue + Element Plus 示例，端口 5180 |
-| [`examples/vue-antdv`](./examples/vue-antdv) | Vue + Ant Design Vue 示例，端口 5181 |
-| [`examples/vue-naive`](./examples/vue-naive) | Vue + Naive UI 示例，端口 5182 |
-| [`examples/react`](./examples/react) | React 默认 UI 示例，端口 5183 |
-| [`examples/react-lumen`](./examples/react-lumen) | React + Lumen UI 示例，端口 5184 |
-| [`examples/react-antd`](./examples/react-antd) | React + Ant Design 示例，端口 5185 |
+| [`examples/vue-element-plus`](./examples/vue-element-plus) | Vue + Element Plus example, port 5180 |
+| [`examples/vue-antdv`](./examples/vue-antdv) | Vue + Ant Design Vue example, port 5181 |
+| [`examples/vue-naive`](./examples/vue-naive) | Vue + Naive UI example, port 5182 |
+| [`examples/react`](./examples/react) | React default UI example, port 5183 |
+| [`examples/react-lumen`](./examples/react-lumen) | React + Lumen UI example, port 5184 |
+| [`examples/react-antd`](./examples/react-antd) | React + Ant Design example, port 5185 |
 
-后端 `flovira-plugin-ui-*` 模块仅提供设计器 API，不再打包设计器网页或静态资源。宿主应用应安装对应 npm 包并自行集成、构建和部署。
+The backend `flovira-plugin-ui-*` modules provide designer APIs only. Host applications install the appropriate npm package and handle frontend integration, builds, and deployment.
 
-## 构建
+## Build
 
-在仓库根目录执行：
+From the repository root:
 
 ```bash
+cd flovira-designer
 bun install
 bun run build:designer
 bun run build:demos
 ```
 
-也可以使用 `bun run build` 一次构建全部 npm 包和示例。
+Use `bun run build` from this workspace to build all packages and examples, or `bun run check` to run tests and library builds.
 
-## 发布
+## Release
 
-在 `main` 分支执行 `bun run release`，由 Lerna 同步公开包的版本、创建并推送 `vX.Y.Z` tag。tag 会触发 GitHub Actions，通过 npm Trusted Publishing 发布：
+Follow the [release procedure](../docs/releasing.md): create `release-<VERSION>` from `develop`, update and validate versions manually, merge into `main`, create an annotated version tag, and merge back into `develop`. Push `main`, the exact tag, then `develop`.
 
-- `@luokuiai/flovira-vue-designer`
-- `@luokuiai/flovira-react-designer`
-- `@luokuiai/flovira-react-adapter-lumen`
-- `@luokuiai/flovira-react-adapter-antd`
+Do not use `bun run release` for this process. GitHub Actions publishes unpublished manifest versions using `lerna publish from-package`. Prereleases use the npm `next` dist-tag; stable releases use `latest`. The same tag also triggers backend Maven publication.
 
-四个 npm 包需要在 npm 网站分别配置本仓库 `.github/workflows/publish-npm.yml` 为 Trusted Publisher。
+Configure `.github/workflows/publish-npm.yml` as a Trusted Publisher separately for each of the four public npm packages listed above. Manual npm publication is available from `main` only.

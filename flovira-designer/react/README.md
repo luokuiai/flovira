@@ -1,10 +1,12 @@
 # @luokuiai/flovira-react-designer
 
-Flovira 的 React 审批流程设计器。组件直接读写 Flovira `nodeList/skipList` JSON，不依赖路由、Vue、Tailwind、LogicFlow 或固定后端地址。
+An embeddable React approval-flow designer for Flovira. It reads and writes Flovira `nodeList/skipList` JSON without depending on routing, Vue, Tailwind, LogicFlow, or a fixed backend URL.
 
 ```bash
 bun add @luokuiai/flovira-react-designer react react-dom
 ```
+
+## Quick start
 
 ```tsx
 import { useRef, useState, type ReactNode } from 'react'
@@ -29,17 +31,25 @@ export function ProcessEditor({
   const designer = useRef<ReactFlowDesignerRef>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
   async function submit() {
     const editor = designer.current
     if (!editor || busy) return
     const result = editor.validate()
-    if (!result.valid) { setError(result.issues.map(issue => issue.message).join('；')); return }
+    if (!result.valid) {
+      setError(result.issues.map(issue => issue.message).join('; '))
+      return
+    }
     const json = editor.getFlowJson()
     setBusy(true)
     setError('')
     try {
-      const response = await fetch('/api/flows/leave', { method: 'PUT', body: json })
-      if (!response.ok) throw new Error('提交失败')
+      const response = await fetch('/api/flows/leave', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: json,
+      })
+      if (!response.ok) throw new Error('Submission failed')
       if (editor.getFlowJson() === json) editor.resetDirty()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
@@ -49,100 +59,64 @@ export function ProcessEditor({
   }
 
   return (
-    <ReactFlowDesigner
-      ref={designer}
-      defaultValue={{ flowCode: 'leave', flowName: '请假审批', nodeList: [] }}
-      capabilities={capabilities}
-      queryResources={queryResources}
-      renderApproverEditor={renderApproverEditor}
-      renderToolbar={({ defaultToolbar, disabled }) => <div>
-        {defaultToolbar}
-        <button disabled={disabled || busy} onClick={submit}>提交业务配置</button>
-        {error && <p role="alert">{error}</p>}
-      </div>}
-    />
+    <div style={{ height: 'calc(100dvh - 64px)' }}>
+      <ReactFlowDesigner
+        ref={designer}
+        defaultValue={{ flowCode: 'leave', flowName: 'Leave approval', nodeList: [] }}
+        capabilities={capabilities}
+        queryResources={queryResources}
+        renderApproverEditor={renderApproverEditor}
+        renderToolbar={({ defaultToolbar, disabled }) => <div>
+          {defaultToolbar}
+          <button disabled={disabled || busy} onClick={submit}>Submit configuration</button>
+          {error && <p role="alert">{error}</p>}
+        </div>}
+      />
+    </div>
   )
 }
 ```
 
-## API
+The endpoint in this example belongs to the host application; replace it with your own persistence API.
 
-- `value` / `defaultValue`: Flovira 定义对象或 JSON 字符串，分别用于受控和非受控模式。
-- `onChange`: 返回最新定义、JSON 和 dirty 状态。
-- `appearance`: `standalone`（默认）显示圆角卡片；`embedded` 去掉外层边框、圆角和阴影，嵌入业务容器。只控制外壳，不改变内部控件或工具栏；父容器需提供高度。
-- `capabilities`: 宿主从后端加载后传入的设计器能力和办理人策略；不传时使用内置默认值。
-- `queryResources`: 宿主提供的资源查询函数，用于默认列表选择器和子流程等数据；提供自定义选择器时可自行加载业务数据。
-- `renderApproverEditor`: 注入业务办理人编辑器。回调会收到当前节点、策略、完整 `rule`、只读状态以及 `onChange` / `onRuleChange`；可渲染组织树、表格或任意业务配置。
-- `renderNode`: 自定义节点卡片渲染器。
-- `ui`: 可选 UI Adapter，按需替换 Button、Input、Select、Checkbox、RadioGroup、Field、Tooltip、DropdownMenu、Drawer 和 Dialog；未传入的控件继续使用默认实现。
-- ref: `getDefinition`、`getFlowJson`、`importJson`、`validate`、`undo`、`redo`、缩放和定位命令。
+## Designer API
 
-设计器不提供保存、发布按钮、方法或回调。业务自行定义按钮和提交接口。
-`toolbar={false}` 隐藏顶栏；`renderToolbar({ defaultToolbar, disabled, dirty })` 可替换或组合默认顶栏。
+- `value` / `defaultValue`: a Flovira definition object or JSON string for controlled / uncontrolled usage.
+- `onChange`: receives the latest definition, JSON, and dirty state.
+- `appearance`: `standalone` (default) displays a rounded card; `embedded` removes the outer border, radius, and shadow. Internal controls and toolbar are unchanged.
+- `capabilities`: designer capabilities and approver strategies loaded by the host; built-in defaults apply when omitted.
+- `queryResources`: host resource loader for default selectors and subprocesses. Custom selectors may load their own data.
+- `renderApproverEditor`: custom approver configuration. Receives the current node, strategy, complete `rule`, read-only state, `onChange`, and `onRuleChange`; may render organization trees, tables, or other business controls.
+- `renderNode`: custom node card renderer.
+- `ui`: optional UI adapter for Button, Input, Select, Checkbox, RadioGroup, Field, Tooltip, DropdownMenu, Drawer, and Dialog. Unspecified controls use the defaults.
+- Ref methods include `getDefinition`, `getFlowJson`, `importJson`, `validate`, `undo`, `redo`, zoom, and positioning commands.
 
-业务按钮通过 ref 调用 `validate()` 和 `getFlowJson()`，自行处理请求、加载状态、错误与跳转。
-成功后由业务调用 `resetDirty()`；如果允许请求期间继续编辑，应先确认当前 JSON 仍与提交快照一致，
-避免清除后续修改。组合表单与流程时，同样由业务统一校验、取数和提交。
+### Host-owned actions
 
-完整迁移由后端流程包方法负责，设计器不内置 JSON 导入/导出按钮。
-子流程候选项仅在点击“选择流程”后查询，每页 20 条，支持关键词搜索和“加载更多”。
-宿主 `queryResources` 须处理 `keyword`、`pageNum`、`pageSize` 并返回匹配总数 `total`；
-未加载到的已选流程仍按编码回显，不会因分页、搜索或请求失败丢失。
-前端可使用 `parseWorkflowPackage` 解析包 JSON，用 `getPackageDefinition` 取得根流程或子流程，
-直接传给 `FlowPreview` / `ReactFlowDesigner`；`getPackageForm` 和 `parsePackageFormContent`
-提供表单元数据及内容给宿主渲染器。详见[流程包接入说明](../../docs/workflow-packages.md)。
+The designer has no save or publish buttons, methods, or callbacks. The host defines its actions and submission API. Set `toolbar={false}` to hide the top toolbar, or use `renderToolbar({ defaultToolbar, disabled, dirty })` to replace or compose it.
 
-默认 UI 使用包内作用域 CSS，消费方只需引入 `style.css`，不需要安装或配置 Tailwind。UI Adapter 使用 `onPress`、`onValueChange` 和 `onCheckedChange` 等语义事件，便于对接 Ant Design、Arco Design、MUI 或业务组件库。
+Call `validate()` and `getFlowJson()` through the ref. Handle requests, loading, errors, and navigation in the host. Call `resetDirty()` after success; if editing remains enabled during submission, first compare the current JSON with the submitted snapshot so subsequent edits remain dirty. Forms and workflow design can be validated and submitted together.
 
-办理人类型不在 React 包中枚举。设计器直接渲染宿主传入的
-`approverStrategies`。`selectionType` 描述运行时解析语义；`editorType` 独立描述设计器交互：
-`NONE` 不展示配置、`INLINE` 在 Drawer 内展示、`DIALOG` 展示 `+` 并打开适配器 Dialog。
-`multiple` 控制单选或多选，`editorKey` 用于让宿主定位对应业务编辑器。自定义编辑器可以通过
-`ApproverRule.config` 保存供业务解析器消费的结构化配置。
+### Container height
 
-`resultCardinality` 描述策略解析为具体人员后的数量范围，而不是选择器选择数量：
-`EXACTLY_ONE`、`ONE_OR_MORE`、`ZERO_OR_ONE` 或 `ZERO_OR_MORE`。附加选项可用
-`condition: MULTIPLE | EMPTY | ALWAYS` 声明展示条件。设计器因此会对直接单选的具体人员隐藏
-多人和无人策略，对直接多选人员只展示多人策略，对可能解析出 0 到多人的分组同时展示两者。
-内置能力还提供“审批人与提交人为同一人时”选项，默认值包括本人审批、跳过或由其他人审批、
-转交部门负责人；接入方可在自己的策略 `options` 中替换或移除它。
+The designer fills 100% of its parent, with no fixed or minimum height. Provide an explicit parent height. In flex layouts, use `flex: 1; min-height: 0` for the content area within a height-constrained ancestor. The canvas scrolls internally rather than growing the host as nodes are added.
 
-每种策略还可以声明 `options`。设计器会将这些选项渲染为 RadioGroup，并按 `code` 写入
-`ApproverRule.config`，适合配置仅对部分类型有意义的多人或无人审批策略：
+## Resources and workflow packages
 
-```ts
-{
-  code: 'GROUP',
-  name: '分组',
-  selectionType: 'RESOURCE',
-  resourceType: 'GROUP',
-  multiple: false,
-  editorType: 'DIALOG',
-  options: [
-    {
-      code: 'emptyPolicy',
-      name: '无人审批策略',
-      defaultValue: 'FAIL',
-      nodeTypes: ['1'],
-      condition: 'EMPTY',
-      choices: [
-        { value: 'FAIL', label: '阻止提交' },
-        { value: 'TO_ADMIN', label: '转交管理员' },
-      ],
-    },
-  ],
-  resultCardinality: 'ZERO_OR_MORE',
-}
-```
+Subprocess candidates load when the selector opens, with keyword search and pages of 20 items. The host's `queryResources` must handle `keyword`, `pageNum`, and `pageSize`, and return the matching `total`. Selected workflows remain visible by code even when absent from the loaded page or after a failed request.
 
-提交人、指定人员、指定角色等业务策略及对应的人员解析器均由接入方后端配置。
+Complete workflow transfer uses backend workflow-package methods. The designer has no built-in JSON import/export buttons. Use `parseWorkflowPackage` to parse package JSON, then `getPackageDefinition` to extract the root workflow or a subprocess for `FlowPreview` / `ReactFlowDesigner`. `getPackageForm` and `parsePackageFormContent` expose form metadata and content for host renderers. See [workflow package integration](../../docs/workflow-packages.md).
 
-官方适配包：
+## UI adapters and approver strategies
+
+The default UI uses package-scoped CSS. Import `style.css`; Tailwind is not required. Adapter events use semantic names such as `onPress`, `onValueChange`, and `onCheckedChange`.
+
+Official adapters:
 
 - `@luokuiai/flovira-react-adapter-lumen`
 - `@luokuiai/flovira-react-adapter-antd`
 
-Adapter 可以完整传入，也可以只覆盖需要统一的控件，其余控件自动回退到默认实现：
+Pass a complete adapter or override individual controls; unspecified controls fall back to the defaults:
 
 ```tsx
 import { antdDesignerUi } from '@luokuiai/flovira-react-adapter-antd'
@@ -151,43 +125,71 @@ import '@luokuiai/flovira-react-adapter-antd/style.css'
 <ReactFlowDesigner ui={antdDesignerUi} />
 ```
 
-## 容器高度
+The React package does not enumerate business approver types. It renders host-provided `approverStrategies`. `selectionType` describes runtime resolution semantics; `editorType` independently controls interaction: `NONE` hides configuration, `INLINE` renders inside the drawer, and `DIALOG` shows an add button that opens the adapter dialog.
 
-设计器高度为父容器的 `100%`，不设置固定高度或最小高度。宿主必须提供明确的容器高度，
-例如 `<div style={{ height: 'calc(100dvh - 64px)' }}><ReactFlowDesigner /></div>`。
-嵌入 flex 布局时，为承载区域设置 `flex: 1; min-height: 0`，并确保外层有明确高度。
-画布在组件内部滚动，不会因流程节点增多而撑高宿主。
+`multiple` controls selector multiplicity; `editorKey` identifies a host editor. Custom editors may store structured resolver configuration in `ApproverRule.config`.
 
-## 条件分支配置
+`resultCardinality` describes the number of resolved people, not selected resources: `EXACTLY_ONE`, `ONE_OR_MORE`, `ZERO_OR_ONE`, or `ZERO_OR_MORE`. Options may declare `condition: MULTIPLE | EMPTY | ALWAYS`. Direct single-person selection hides multiple-person and empty-result policies; direct multi-person selection shows the multiple-person policy; groups that may resolve to zero or more people show both.
 
-标准表单可用 `fields` / `items` 描述对象和数组，调用 `getFormConditionFields` 转换为可读条件字段。
-明细组选择“任一条 / 所有条满足以下全部条件”，整组条件匹配同一行；普通字段范围另提供数组数量。
-接入方式和条件语义见[嵌套表单字段与流程条件](../../docs/form-field-conditions.md)。
+Built-in capabilities also include policies for an approver who is the submitter: self-approval, skipping or using another approver, and transferring to a department manager. Hosts may replace or remove these strategy options.
 
-条件分支使用独立条件卡片：点击卡片配置规则，卡片下方的「＋」添加审批、等待、子流程或嵌套分支，不会为了表示条件自动创建审批任务。组内条件为「且」，条件组之间为「或」；条件分支的「其他条件」为兜底，多选分支的「始终进入」为无条件执行，并行分支无需条件。
+Strategy `options` render as radio groups and write their values into `ApproverRule.config` under the option code:
 
-流程通过字符串 `formId` 引用业务表单，可选择 Flovira 管理的版本化表单，也可由接入方提供。开始节点配置流程表单，审批节点可覆盖表单，留空则继承。提供 `queryResources({ resourceType: 'FORM', ... })` 可加载业务表单选项；未提供资源回调时可直接填写表单标识。旧 `formCustom` 与模式切换逻辑不再使用。
+```ts
+{
+  code: 'GROUP',
+  name: 'Group',
+  selectionType: 'RESOURCE',
+  resourceType: 'GROUP',
+  multiple: false,
+  editorType: 'DIALOG',
+  options: [{
+    code: 'emptyPolicy',
+    name: 'No approver policy',
+    defaultValue: 'FAIL',
+    nodeTypes: ['1'],
+    condition: 'EMPTY',
+    choices: [
+      { value: 'FAIL', label: 'Block submission' },
+      { value: 'TO_ADMIN', label: 'Transfer to administrator' },
+    ],
+  }],
+  resultCardinality: 'ZERO_OR_MORE',
+}
+```
 
-业务字段来自接入方的表单。通过 `queryConditionFields` 回调获取，可读取 `definition.formId`；组件不绑定表单接口。打开条件配置时加载，支持加载提示、失败重试，并忽略关闭或切换分支后的过期响应。例如：
+The host backend configures business strategies such as submitter, specified users, and roles, together with their resolvers.
+
+## Forms and branch conditions
+
+Standard forms describe objects and arrays with `fields` / `items`. Use `getFormConditionFields` to produce readable condition fields. Detail groups match any row or all rows satisfying every condition in that group; array counts are also available. See [nested form fields and conditions](../../docs/form-field-conditions.md).
+
+Each branch has a condition card. Click it to configure rules; the add button below it inserts approval, wait, subprocess, or nested branch nodes. A condition card does not create an approval task. Conditions within a group use AND; groups use OR. Conditional branches have a fallback, inclusive branches may be unconditional, and parallel branches do not need conditions.
+
+Forms use opaque string `formId` references and may be Flovira-managed versioned forms or host-provided forms. The start node selects the workflow form; approval nodes may override it or inherit by leaving the reference empty. Supply `queryResources({ resourceType: 'FORM', ... })` for form options, or enter form identifiers directly when no resource callback is provided.
+
+Load business fields through `queryConditionFields`, using `definition.formId` if needed. The designer does not bind to a form endpoint. Fields load when condition configuration opens, with loading feedback, retry on failure, and stale-response protection:
 
 ```tsx
 <ReactFlowDesigner
   queryConditionFields={async ({ definition, node, branch }) => {
     const fields = await loadYourFormFields(definition)
-    return fields.map((field) => ({
+    return fields.map(field => ({
       code: field.code,
       label: field.label,
-      type: field.type, // STRING、NUMBER 或 BOOLEAN
+      type: field.type, // STRING, NUMBER, or BOOLEAN
     }))
   }}
 />
 ```
 
-可视化规则默认编译为 `spel@@#{...}`，执行端需要启用已有的 Spring SpEL 条件策略；使用其他条件引擎时，通过 `compileBranchConditions(groups)` 属性返回对应的条件表达式。字段编码默认支持字母、数字和下划线，且不能以数字开头。规则元数据保存在分支父节点的 `ext.branchConditions` 条目，运行表达式仍保存在连线 `skipCondition`，不增加数据库字段。已有表达式不自动转换或覆盖，可继续通过「表达式」模式编辑；回调成功返回空字段时仍可使用表达式模式；也可通过 `conditionFields` 直接传入已有字段，回调优先。尚未配置完整的新增条件分支会使流程校验失败。
+Visual rules compile to `spel@@#{...}` by default and require the Spring SpEL condition strategy at runtime. Supply `compileBranchConditions(groups)` for another expression engine. Simple field codes support letters, digits, and underscores, but cannot start with a digit.
 
-## 只读流程预览
+Rule metadata is stored in the parent branch node's `ext.branchConditions`; runtime expressions remain in connection `skipCondition`. No additional database fields are required. Existing expressions are not automatically converted or overwritten and remain editable in expression mode. Expression mode is also available when the field loader returns an empty list. Static `conditionFields` may be supplied directly; the callback takes precedence. Incomplete new conditional branches fail validation.
 
-`FlowPreview` 用于业务详情页或弹窗：节点使用统一 40 像素的类型色纯色圆角方块与白色图标，当前节点以小圆点标记，名称统一显示在卡片顶部。所有节点均可悬浮或键盘聚焦查看完整名称与办理人。支持并行分支、汇合、自动适应容器、缩放和拖动画布空白处平移。
+## Read-only preview
+
+Use `FlowPreview` on detail pages or in dialogs. Nodes use compact, type-colored rounded squares with white icons; current nodes have a dot indicator. Hover or keyboard focus reveals full names and handlers. The preview supports parallel branches, joins, auto-fit, zoom, and panning on empty canvas space.
 
 ```tsx
 import { FlowPreview, type FloviraDefinition } from '@luokuiai/flovira-react-designer'
@@ -200,41 +202,37 @@ export function ProcessProgress({ definition }: { definition: FloviraDefinition 
       height={280}
       currentNodeCodes={['manager_review', 'finance_review']}
       completedNodeCodes={['start']}
-      nodeHandlers={{ manager_review: ['张三'], finance_review: ['李四', '王五'] }}
+      nodeHandlers={{ manager_review: ['Alex'], finance_review: ['Sam', 'Jordan'] }}
     />
   )
 }
 ```
 
-示例中的节点编号和姓名需替换为实例的实际数据。组件不发起后端请求；传入新的属性即可更新流程和当前进度。
+Replace node codes and names with actual instance data. The preview makes no backend requests; update props to change the workflow and progress.
 
-| 属性 | 说明 |
+| Prop | Description |
 | --- | --- |
-| `value` | Flovira 定义对象或 JSON 字符串；未传或节点为空时显示空状态 |
-| `currentNodeCodes` | 当前办理节点编号数组，支持同时高亮多个并行节点；默认不高亮 |
-| `completedNodeCodes` | 已办理节点编号；提供后启用三态配色：未办理类型浅色底与同色图标、办理中类型实色加圆点、已办理类型实色。当前状态优先；不传时保留纯流程预览的类型色 |
-| `nodeHandlers` | 以节点编号为键的实际办理人姓名数组；未提供时不从设计配置推断人员 |
-| `height` | 画布高度，默认 `320`，接受数字或 CSS 高度值；下方另有紧凑缩放栏 |
-| `ui` | 可传入现有 Lumen / Ant Design 适配器，预览仅使用其 `Tooltip` |
-| `renderTooltip` | 自定义提示内容，接收 `{ node, current, status, handlers }` |
-| `renderNodeIcon` | 自定义节点图标，接收同样的上下文 |
-| `className` / `style` | 容器样式，可使用 `--frp-*` 变量调整颜色 |
+| `value` | Definition object or JSON string; missing or empty nodes show an empty state |
+| `currentNodeCodes` | Current node codes; supports concurrent nodes and defaults to no highlights |
+| `completedNodeCodes` | Enables three-state colors: light for pending, solid with a dot for current, solid for completed. Current takes precedence. Omit for type-only preview colors |
+| `nodeHandlers` | Actual handler names keyed by node code; not inferred from design configuration |
+| `height` | Canvas height, default `320`; accepts a number or CSS height, with a compact zoom bar below |
+| `ui` | Optional Lumen / Ant Design adapter; preview uses its Tooltip only |
+| `renderTooltip` | Custom content receiving `{ node, current, status, handlers }` |
+| `renderNodeIcon` | Custom icon receiving the same context |
+| `className` / `style` | Container styling; `--frp-*` variables customize colors |
 
-预览依据业务传入的当前和已办理节点着色，不推断已办理节点或高亮历史路径。未办理表示未出现在两组编号中；业务需提供准确的实例状态。`skipType: 'REJECT'` 的连线不展示，也不展示退回轨迹。节点采用紧凑自动布局，不使用设计器保存的坐标。当前不支持正向循环；遇到循环、重复编号、无效连线或无法解析的数据会明确显示错误。
+State comes only from the supplied current and completed codes. The preview does not infer completed nodes or highlight historical paths. Nodes in neither list are pending. Rejection connections (`skipType: 'REJECT'`) and return paths are hidden. Compact automatic layout ignores stored designer coordinates. Forward cycles are unsupported; cycles, duplicate codes, invalid connections, and unparseable input produce explicit errors.
 
-Lumen 示例页面包含并行办理预览：`flovira-designer/examples/react-lumen`。
+See `flovira-designer/examples/react-lumen` for a parallel-approval preview.
 
-## Scope Migration
+## Approval node control policies
 
-本 fork 的前端包从 1.0.0 开始统一使用 `@luokuiai` scope。Vue 包的新名称是 `@luokuiai/flovira-vue-designer`，旧的 `@luokui/*` import 不再使用。
+Approval settings include rollback, transfer, add-sign, and remove-sign toggles. Rollback is enabled by default; the others are disabled. Disabling rollback hides its settings but preserves their values.
 
-## 审批节点控制策略
+Rollback strategies include returning to the initiator, the previous node, a design-time predecessor approval node, or a node selected at runtime. Except for returning to the previous node, resubmission may restart sequential execution or resume at the node that initiated the rollback. A target cannot be the current node, a later node, or a parallel sibling. Deleted or invalid targets fail validation.
 
-审批节点设置提供“允许退回、允许转办、允许加签、允许减签”开关。默认允许退回，其他操作默认关闭。关闭退回会隐藏退回配置，但保留之前填写的策略。
-
-退回策略包括退回发起人、退回上一节点、设计时指定前置审批节点、办理时指定节点。除退回上一节点外，可配置重新提交后“重新顺序流转”或“回到执行退回的节点继续”。指定节点不可为自身、后置节点或并行兄弟节点；目标删除或失效后会阻止保存。
-
-配置通过现有 `ext` 数组的 `nodeControlConfig` 项保存，不新增节点数据库字段：
+Configuration is stored in the existing `ext` array under `nodeControlConfig`:
 
 ```ts
 const config = getNodeControlConfig(node)
@@ -243,6 +241,4 @@ const config = getNodeControlConfig(node)
 const updated = setNodeControlConfig(node, { allowTransfer: true })
 ```
 
-旧 `returnPolicy` 的 `PREVIOUS`、`ANY` 分别回显为“退回上一节点”“退回时指定节点”；旧 `REJECT` 保留为“直接驳回（旧配置）”，不擅自转换语义。原字段和其他扩展数据均保留，新控制策略以 `nodeControlConfig` 为准。
-
-**当前实现为设计器配置与序列化，Flovira 核心尚未自动读取这套控制策略。** 业务运行接口需要读取配置并校验操作许可、实际已流转节点，以及退回重提路径；办理时指定的候选节点必须依据实例历史提供。前端开关不能代替后端权限检查，也不会自动改变引擎行为。
+These settings currently provide designer configuration and serialization only; the Flovira core does not automatically enforce them. Host runtime APIs must validate operation permissions, actual visited nodes, and rollback/resubmission paths. Runtime target choices must come from instance history. Frontend toggles do not replace backend authorization or change engine behavior on their own.

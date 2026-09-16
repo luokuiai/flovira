@@ -1,8 +1,8 @@
 # @luokuiai/flovira-react-adapter-lumen
 
-`@luokuiai/flovira-react-designer` 的 Lumen UI 适配器。
+Lumen UI adapter for `@luokuiai/flovira-react-designer`.
 
-Lumen UI 通过宿主依赖接入，版本范围为 `^1.0.0-beta.1`，包含 `1.0.0-beta.1`；本地开发与示例使用 `1.0.0-beta.1`。
+Lumen UI is a peer dependency with the range `^1.0.0-beta.1`, including `1.0.0-beta.1`. Local development and examples use `1.0.0-beta.1`.
 
 ```bash
 bun add @luokuiai/flovira-react-designer \

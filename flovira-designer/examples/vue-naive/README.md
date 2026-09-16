@@ -1,23 +1,24 @@
-# flovira-naive-designer-demo
+# Flovira Naive UI example
 
-Flovira 设计器（`@luokuiai/flovira-vue-designer`）的 **Naive UI** 消费示例。
+A consuming application for `@luokuiai/flovira-vue-designer` using Naive UI.
 
-以干净的第三方工程（仅 `vue` + `naive-ui` + `pinia` + 包本身）消费库的 `dist-lib`，演示「列表 / 新建 / 保存 / 修改 / 只读预览 / 导出 / 删除」完整闭环，外加「集成案例」「扩展能力验证」两个进阶入口；数据用 `demoProvider`（localStorage 持久化）脱后端运行。
+The example uses a localStorage-backed `demoProvider` and includes integration and extension examples. The adapter uses `createDiscreteApi` for context-independent messages, dialogs, and notifications. The application configures `n-config-provider` with the `zhCN` locale.
 
-## 当前状态：Naive UI 单栈（零 Element Plus / antd）
+Select the UI adapter with `setUiAdapter(naiveAdapter)` before rendering the designer.
 
-- 应用外壳与设计器全部组件：**Naive UI**，本 demo 完全不引入 Element Plus / Ant Design Vue（产物零 EP / antd）。
-- 通过 `setUiAdapter(naiveAdapter)` 把库的中性 `wf-*` 组件与命令式反馈翻译到 Naive（**28 个组件全翻译**；`message` / `dialog` / `notification` 用 `createDiscreteApi` 取脱上下文实例，loading / clickOutside 自实现）。
-- 根部用 `n-config-provider`（`zhCN` 语言包）本地化 select / input / date / pagination 等默认占位与文案。
+## Run
 
-## 运行（bun workspace）
+From the repository root:
 
 ```bash
-# 1) 库工程构建产物（在仓库根或库目录）
-cd flovira-designer/vue && bun run build:lib
-# 2) 启动本 demo
+cd flovira-designer
+bun install
+cd vue
+bun run build:lib
 cd ../examples/vue-naive
-bun run dev  # http://localhost:5182
+bun run dev
 ```
 
-库通过 `"@luokuiai/flovira-vue-designer": "workspace:*"` 本地消费其 `dist-lib`，改库后重新 `bun build:lib` 即生效。Naive 适配器为库子入口 `@luokuiai/flovira-vue-designer/naive`。
+Open http://localhost:5182.
+
+The example consumes the library's `dist-lib` output through a `workspace:*` dependency. After changing the library, run `bun run build:lib` in `flovira-designer/vue`, or run `bun run dev` there in another terminal to watch and rebuild.
