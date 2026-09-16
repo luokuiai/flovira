@@ -131,14 +131,13 @@ public class FloviraService {
      * 保存流程json字符串
      *
      * @param defJson      流程数据集合
-     * @param onlyNodeSkip 是否只保存节点和跳转
      * @return {@code ApiResult<Void>}
      * @throws Exception 异常
      * @author xiarg
      * @since 2024/10/29 16:31
      */
-    public static ApiResult<Void> saveJson(DefJson defJson, boolean onlyNodeSkip) throws Exception {
-        FlowEngine.defService().saveDef(defJson, onlyNodeSkip);
+    public static ApiResult<Void> saveJson(DefJson defJson) throws Exception {
+        FlowEngine.defService().saveDef(defJson);
         return ApiResult.ok();
     }
 

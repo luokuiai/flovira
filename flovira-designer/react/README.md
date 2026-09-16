@@ -7,7 +7,7 @@ bun add @luokuiai/flovira-react-designer react react-dom
 ```
 
 ```tsx
-import { useRef, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import {
   ReactFlowDesigner,
   type DesignerCapabilities,
@@ -27,6 +27,26 @@ export function ProcessEditor({
   renderApproverEditor?: (context: ApproverEditorRenderContext) => ReactNode
 }) {
   const designer = useRef<ReactFlowDesignerRef>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  async function submit() {
+    const editor = designer.current
+    if (!editor || busy) return
+    const result = editor.validate()
+    if (!result.valid) { setError(result.issues.map(issue => issue.message).join('；')); return }
+    const json = editor.getFlowJson()
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch('/api/flows/leave', { method: 'PUT', body: json })
+      if (!response.ok) throw new Error('提交失败')
+      if (editor.getFlowJson() === json) editor.resetDirty()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <ReactFlowDesigner
@@ -35,9 +55,11 @@ export function ProcessEditor({
       capabilities={capabilities}
       queryResources={queryResources}
       renderApproverEditor={renderApproverEditor}
-      onSave={async (_definition, json) => {
-        await fetch('/api/flows/leave', { method: 'PUT', body: json })
-      }}
+      renderToolbar={({ defaultToolbar, disabled }) => <div>
+        {defaultToolbar}
+        <button disabled={disabled || busy} onClick={submit}>提交业务配置</button>
+        {error && <p role="alert">{error}</p>}
+      </div>}
     />
   )
 }
@@ -47,13 +69,20 @@ export function ProcessEditor({
 
 - `value` / `defaultValue`: Flovira 定义对象或 JSON 字符串，分别用于受控和非受控模式。
 - `onChange`: 返回最新定义、JSON 和 dirty 状态。
-- `onSave`: 可选保存回调；组件不绑定具体 HTTP 客户端。
+- `appearance`: `standalone`（默认）显示圆角卡片；`embedded` 去掉外层边框、圆角和阴影，嵌入业务容器。只控制外壳，不改变内部控件或工具栏；父容器需提供高度。
 - `capabilities`: 宿主从后端加载后传入的设计器能力和办理人策略；不传时使用内置默认值。
 - `queryResources`: 宿主提供的资源查询函数，用于默认列表选择器和子流程等数据；提供自定义选择器时可自行加载业务数据。
 - `renderApproverEditor`: 注入业务办理人编辑器。回调会收到当前节点、策略、完整 `rule`、只读状态以及 `onChange` / `onRuleChange`；可渲染组织树、表格或任意业务配置。
 - `renderNode`: 自定义节点卡片渲染器。
 - `ui`: 可选 UI Adapter，按需替换 Button、Input、Select、Checkbox、RadioGroup、Field、Tooltip、DropdownMenu、Drawer 和 Dialog；未传入的控件继续使用默认实现。
 - ref: `getDefinition`、`getFlowJson`、`importJson`、`validate`、`undo`、`redo`、缩放和定位命令。
+
+设计器不提供保存、发布按钮、方法或回调。业务自行定义按钮和提交接口。
+`toolbar={false}` 隐藏顶栏；`renderToolbar({ defaultToolbar, disabled, dirty })` 可替换或组合默认顶栏。
+
+业务按钮通过 ref 调用 `validate()` 和 `getFlowJson()`，自行处理请求、加载状态、错误与跳转。
+成功后由业务调用 `resetDirty()`；如果允许请求期间继续编辑，应先确认当前 JSON 仍与提交快照一致，
+避免清除后续修改。组合表单与流程时，同样由业务统一校验、取数和提交。
 
 完整迁移由后端流程包方法负责，设计器不内置 JSON 导入/导出按钮。
 子流程候选项仅在点击“选择流程”后查询，每页 20 条，支持关键词搜索和“加载更多”。
@@ -122,7 +151,18 @@ import '@luokuiai/flovira-react-adapter-antd/style.css'
 <ReactFlowDesigner ui={antdDesignerUi} />
 ```
 
+## 容器高度
+
+设计器高度为父容器的 `100%`，不设置固定高度或最小高度。宿主必须提供明确的容器高度，
+例如 `<div style={{ height: 'calc(100dvh - 64px)' }}><ReactFlowDesigner /></div>`。
+嵌入 flex 布局时，为承载区域设置 `flex: 1; min-height: 0`，并确保外层有明确高度。
+画布在组件内部滚动，不会因流程节点增多而撑高宿主。
+
 ## 条件分支配置
+
+标准表单可用 `fields` / `items` 描述对象和数组，调用 `getFormConditionFields` 转换为可读条件字段。
+明细组选择“任一条 / 所有条满足以下全部条件”，整组条件匹配同一行；普通字段范围另提供数组数量。
+接入方式和条件语义见[嵌套表单字段与流程条件](../../docs/form-field-conditions.md)。
 
 条件分支使用独立条件卡片：点击卡片配置规则，卡片下方的「＋」添加审批、等待、子流程或嵌套分支，不会为了表示条件自动创建审批任务。组内条件为「且」，条件组之间为「或」；条件分支的「其他条件」为兜底，多选分支的「始终进入」为无条件执行，并行分支无需条件。
 
@@ -143,7 +183,7 @@ import '@luokuiai/flovira-react-adapter-antd/style.css'
 />
 ```
 
-可视化规则默认编译为 `spel@@#{...}`，执行端需要启用已有的 Spring SpEL 条件策略；使用其他条件引擎时，通过 `compileBranchConditions(groups)` 属性返回对应的条件表达式。字段编码默认支持字母、数字和下划线，且不能以数字开头。规则元数据保存在分支父节点的 `ext.branchConditions` 条目，运行表达式仍保存在连线 `skipCondition`，不增加数据库字段。已有表达式不自动转换或覆盖，可继续通过「表达式」模式编辑；回调成功返回空字段时仍可使用表达式模式；也可通过 `conditionFields` 直接传入已有字段，回调优先。尚未配置完整的新增条件分支会阻止界面保存。
+可视化规则默认编译为 `spel@@#{...}`，执行端需要启用已有的 Spring SpEL 条件策略；使用其他条件引擎时，通过 `compileBranchConditions(groups)` 属性返回对应的条件表达式。字段编码默认支持字母、数字和下划线，且不能以数字开头。规则元数据保存在分支父节点的 `ext.branchConditions` 条目，运行表达式仍保存在连线 `skipCondition`，不增加数据库字段。已有表达式不自动转换或覆盖，可继续通过「表达式」模式编辑；回调成功返回空字段时仍可使用表达式模式；也可通过 `conditionFields` 直接传入已有字段，回调优先。尚未配置完整的新增条件分支会使流程校验失败。
 
 ## 只读流程预览
 

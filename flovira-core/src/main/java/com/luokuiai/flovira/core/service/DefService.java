@@ -94,11 +94,10 @@ public interface DefService extends IFloviraService<Definition> {
      * 保存流程节点和跳转
      *
      * @param defJson      流程定义json对象
-     * @param onlyNodeSkip 是否只保存节点和跳转
      * @author xiarg
      * @since 2024/10/29 16:30
      */
-    void saveDef(DefJson defJson, boolean onlyNodeSkip) throws Exception;
+    void saveDef(DefJson defJson) throws Exception;
 
     /**
      * 导出单份设计 JSON，不包含表单；跨环境迁移请使用 exportPackage。

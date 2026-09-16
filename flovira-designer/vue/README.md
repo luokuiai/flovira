@@ -14,7 +14,7 @@
 - **界面适配**：按需选择 Element Plus、Ant Design Vue 或 Naive UI，也可实现自定义适配器。
 - **数据接入**：通过数据源接口连接后端，也可直接传入流程 JSON，使用模拟数据独立运行。
 - **扩展能力**：支持自定义节点、画布扩展、插槽和流程结构校验。
-- **程序控制**：提供保存、缩放、撤销、重做、导出等方法，以及流程变更事件。
+- **程序控制**：提供校验、取数、缩放、撤销、重做、导出等方法，以及流程变更事件。
 
 ## 作为 npm 组件库使用
 
@@ -58,10 +58,10 @@ app.mount('#app')
 ```vue
 <template>
   <!-- 后端驱动：传入 definitionId，组件调用 queryDef 加载 -->
-  <FlowDesigner :definition-id="defId" :only-design-show="true" :disabled="false" @close="onClose" @saved="onSaved" />
+  <FlowDesigner :definition-id="defId" :only-design-show="true" :disabled="false" />
 
   <!-- 本地数据驱动：直接传入流程 JSON（initialJson 优先于 definitionId / queryDef） -->
-  <FlowDesigner :initial-json="flowJson" :only-design-show="true" @saved="onSaved" />
+  <FlowDesigner :initial-json="flowJson" :only-design-show="true" />
 </template>
 <script setup>
 import { FlowDesigner } from '@luokuiai/flovira-vue-designer'
@@ -74,7 +74,9 @@ import { FlowDesigner } from '@luokuiai/flovira-vue-designer'
 | --- | --- | --- | --- |
 | definitionId | String | null | 流程定义标识，传入则 `queryDef` 加载该定义，否则新建 |
 | initialJson | String \| Object | null | 初始流程 JSON（flovira 定义对象或其字符串）。**有值时优先于 `definitionId`/`queryDef`**，组件不再请求后端，直接渲染 / 编辑，实现纯组件用法 |
-| disabled | Boolean | false | 只读模式（隐藏保存等编辑操作） |
+| disabled | Boolean | false | 只读模式（禁用编辑操作） |
+| toolbar | Boolean | true | 是否显示顶栏，不影响画布编辑和命令式 API |
+| appearance | 'standalone' \| 'embedded' | standalone | 独立圆角卡片 / 无外层边框、圆角、阴影的嵌入内容；不改变内部控件和工具栏，父容器需提供高度 |
 | onlyDesignShow | Boolean | false | 仅显示画布（跳过基础信息步骤，直达流程设计） |
 | showGrid | Boolean | false | 画布显示网格 |
 | customNodes | Array | [] | 追加自定义 LogicFlow 节点（`lf.register`），在内置节点之后注册，可新增节点类型或覆盖内置同名 type |
@@ -83,19 +85,17 @@ import { FlowDesigner } from '@luokuiai/flovira-vue-designer'
 | onBeforeUse | Function | - | 命令式扩展钩子：在 `extraExtensions` 之后、`new LogicFlow()` 之前调用，透出 LogicFlow 类，可注册**带配置**的扩展 `LF.use(Ext, { ...options })` |
 | onRegister | Function | - | 命令式节点钩子：在 `customNodes` 之后、`render` 之前调用，透出 lf 实例，可批量 / 条件注册节点、注册自定义边或做渲染前设置 |
 | json | String \| Object | - | 配合 `v-model:json` 的受控流程 JSON。语义：**初始注入（优先级高于 initialJson/definitionId）+ 变更回写**（`update:json`）。不做运行时反向重渲染（外部重载请配合 `:key` 重挂载，规避回环与撤销历史丢失） |
-| structureValidator | Function | - | 自定义流程结构校验器 `(graph: { nodes, edges }) => string[] \| void`：在内置结构校验（≥1 开始 / ≥1 结束 / 无孤立节点）之后追加调用，返回错误信息数组。通过命令式 `validateStructure()` 触发；不自动拦截保存，可在 `before-save` 里据结果 `preventDefault()` |
+| structureValidator | Function | - | 自定义流程结构校验器 `(graph: { nodes, edges }) => string[] \| void`：在内置结构校验之后追加调用，返回错误信息数组。由业务调用 `validateStructure()` 触发 |
 
 #### FlowDesigner 组件事件
 
 | 名称 | 回传 | 说明 |
 | --- | --- | --- |
-| @close | - | 宿主关闭回调（替代 iframe postMessage）；保存成功后也会自动触发 |
-| @saved | `{ id, data, json }` | 保存成功：当前定义标识、后端返回 data（如新建后的 definitionId）、本次提交的流程 JSON |
+| @close | - | 宿主关闭回调；保存成功不自动关闭 |
 | @ready | `{ lf }` | 画布初始化完成，透出底层 LogicFlow 实例，便于高级定制 |
-| @before-save | `{ id, json, onlyDesignShow, setJson, preventDefault }` | 保存提交前（**同步**）：可 `setJson(next)` 改写提交内容，或 `preventDefault()` 取消本次保存（异步逻辑不会被等待） |
 | @change | `{ dirty, getJson, getGraphData }` | 画布图数据变更（基于 LogicFlow `history:change`，初次渲染不触发）；取值函数按需执行，可获取 JSON 或图数据 |
-| @dirty | `boolean` | 未保存状态翻转：首次变更 `false→true`，保存成功 / `resetDirty()` 后 `true→false`（仅画布图数据，不含基础信息表单字段） |
-| @validate-error | `{ source, fields? }` | 基础信息校验未通过：`source` = save / step / api；`fields` 为无效字段明细（Element Plus 提供，Ant Design Vue 暂为空）。onlyDesignShow 模式无校验、不触发 |
+| @dirty | `boolean` | 未保存状态翻转：首次变更 `false→true`，`resetDirty()` 后 `true→false`（仅画布图数据，不含基础信息表单字段） |
+| @validate-error | `{ source, fields? }` | 基础信息校验未通过：`source` = step / api；`fields` 为无效字段明细（Element Plus 提供，Ant Design Vue 暂为空）。onlyDesignShow 模式无校验、不触发 |
 | @node-click | `{ id, type, data, lf }` | 画布节点被点击 |
 | @update:json | `string` | 配合 `v-model:json`：画布变更时回写最新流程 JSON（仅绑定 `json` 时派发） |
 
@@ -104,7 +104,8 @@ import { FlowDesigner } from '@luokuiai/flovira-vue-designer'
 | 名称 | 透出 | 说明 |
 | --- | --- | --- |
 | header-left | `{ flowName }` | 流程名区自定义 |
-| header-actions | `{ save, disabled }` | 保存按钮区追加 |
+| toolbar | `{ disabled, dirty, activeStep, steps, goToStep }` | 替换整个顶栏 |
+| header-actions | 同 toolbar | 替换顶栏右侧操作区 |
 | toolbar-extra | `{ lf, disabled }` | 工具栏追加自定义按钮 |
 | logo | - | 画布水印 |
 | node-form-extra | `{ form, disabled }` | 节点属性抽屉扩展点，可向任意节点注入自定义配置项 |
@@ -128,6 +129,16 @@ const { designerRef, isReady, save, getFlowJson, getLogicFlow, zoom, undo, redo,
 可用方法：`save / validate / getGraphData / getFlowJson / getFlowName / getLogicFlow / zoom / zoomIn / zoomOut / fitView / resetZoom / undo / redo / clear / downloadImage / downloadJson / isDirty / resetDirty / validateStructure`。
 
 完整迁移由后端流程包方法负责，设计器不内置 JSON 导入/导出按钮；已有命令式 JSON 方法仅用于设计数据。
+标准表单可通过 `getFormConditionFields` 展开为可读字段，传入 `conditionFields` 后，连线面板提供字段条件配置。
+数组采用“任一条 / 所有条满足以下全部条件”的明细组，支持保存与回显，详见[嵌套表单字段与流程条件](../../docs/form-field-conditions.md)。
+设计器不提供保存、发布按钮、方法或回调。业务自行定义操作、请求、加载状态、错误提示与跳转。
+`:toolbar="false"` 隐藏整个顶栏；`toolbar` 插槽替换顶栏，`header-actions` 插槽替换右侧操作区。
+可通过 ref / `useFlowDesigner()` 调用 `validate()` 校验基础信息、`validateStructure()` 校验流程，
+再用 `getFlowJson()` 获取数据。业务提交成功后自行调用 `resetDirty()`；
+允许提交期间继续编辑时，应先确认当前 JSON 与提交快照一致，避免清除后续修改。
+仅嵌入画布时可同时设置 `onlyDesignShow` 和 `:toolbar="false"`；自定义顶栏需要步骤导航时，
+使用插槽中的 `activeStep`、`steps`、`goToStep`。
+
 子流程候选项仅在点击“选择流程”后查询，每页 20 条，支持关键词搜索和“加载更多”。
 宿主 `queryResources` 须处理 `keyword`、`pageNum`、`pageSize` 并返回匹配总数 `total`；
 未加载到的已选流程仍按编码回显，不会因分页、搜索或请求失败丢失。
@@ -135,7 +146,7 @@ const { designerRef, isReady, save, getFlowJson, getLogicFlow, zoom, undo, redo,
 作为 `FlowDesigner` 的 `initialJson` 展示；`getPackageForm` 和 `parsePackageFormContent`
 提供表单元数据及内容给宿主渲染器。详见[流程包接入说明](../../docs/workflow-packages.md)。
 
-> `validateStructure()` 返回 `{ valid: boolean, errors: string[] }`：内置校验 ≥1 开始节点 / ≥1 结束节点 / 无孤立节点，并追加 `props.structureValidator` 的输出。不自动拦截保存，可在 `before-save` 里据 `valid` 决定是否 `preventDefault()`。
+> `validateStructure()` 返回 `{ valid: boolean, errors: string[] }`：内置校验 ≥1 开始节点 / ≥1 结束节点 / 无孤立节点，并追加 `props.structureValidator` 的输出。业务自行调用并处理校验结果。
 
 #### useFlowJson（流程 JSON 响应式只读视图）
 
@@ -152,7 +163,7 @@ const { json, data, dirty } = useFlowJson(designerRef)
 // 或在自己的 @ready/@change 里调用 flowJson.sync() 手动刷新
 ```
 
-返回：`json`（字符串，响应式）、`data`（解析对象）、`dirty`（未保存标记）、`sync()`（手动拉取）、`bind`（可 `v-on` 展开的 ready/change/saved/dirty 监听集合；若你已单独绑定这些事件，请改用 `sync()` 以免事件被覆盖）。
+返回：`json`（字符串，响应式）、`data`（解析对象）、`dirty`（未保存标记）、`sync()`（手动拉取）、`bind`（可 `v-on` 展开的 ready/change/dirty 监听集合；若你已单独绑定这些事件，请改用 `sync()` 以免事件被覆盖）。
 
 ### 自定义界面适配器（UiAdapter）
 
@@ -206,7 +217,7 @@ setDataProvider({
 
 **接口约定与使用建议**
 
-- **方法清单**（均返回 `Promise`）：统一集成 `capabilities()` / `queryResources(query)` / `resolveRelationship(query)`；流程定义 `saveJson(data, onlyNodeSkip?)` / `queryDef(id?)` / `queryFlowChart(id)`；运行时查询 `subprocessSummary(...)` / `subprocessChildren(...)` / `subprocessEvents(...)` / `subprocessHistory(...)`；配置 `config()`。
+- **方法清单**（均返回 `Promise`）：统一集成 `capabilities()` / `queryResources(query)` / `resolveRelationship(query)`；流程定义 `saveJson(data)` / `queryDef(id?)` / `queryFlowChart(id)`；运行时查询 `subprocessSummary(...)` / `subprocessChildren(...)` / `subprocessEvents(...)` / `subprocessHistory(...)`；配置 `config()`。
 - **部分覆盖**：`setDataProvider(partial)` 会与内置 HTTP 实现 `Object.assign` 合并，只需覆盖关心的方法，其余自动回退；传 `null` / 不传恢复为默认 HTTP 实现。
 - **失败要抛**：方法内部失败请 `reject` / `throw`（而非静默返回空），以便设计器经 UiAdapter 反馈错误，避免「假成功」。
 - **入参/出参宽松**：业务数据保持 `any`，不强约束后端响应结构，便于跨后端适配；按需在自己的实现里做强类型。

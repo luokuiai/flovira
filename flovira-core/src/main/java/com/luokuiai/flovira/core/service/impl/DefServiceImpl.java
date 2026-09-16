@@ -134,13 +134,11 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
     }
 
     @Override
-    public void saveDef(DefJson defJson, boolean onlyNodeSkip) {
+    public void saveDef(DefJson defJson) {
         if (ObjectUtil.isNull(defJson)) {
             return;
         }
-        if (defJson.getId() == null || !onlyNodeSkip) {
-            AssertUtil.isEmpty(defJson.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
-        }
+        AssertUtil.isEmpty(defJson.getBusinessType(), ExceptionCons.NULL_DEFINITION_BUSINESS_TYPE);
         FlowCombine flowCombine = DefJson.copyCombine(defJson);
         Definition definition = flowCombine.getDefinition();
         // 保存完整设计时，空表单引用表示清除绑定，不能被 ORM 的非空更新策略忽略。
@@ -161,9 +159,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         if (ObjectUtil.isNull(id)) {
             FlowEngine.defService().save(definition);
         } else {
-            if (!onlyNodeSkip) {
-                FlowEngine.defService().updateById(definition);
-            }
+            FlowEngine.defService().updateById(definition);
             // 删除所有节点和连线
             FlowEngine.nodeService().remove(FlowEngine.newNode().setDefinitionId(id));
             FlowEngine.skipService().remove(FlowEngine.newSkip().setDefinitionId(id));

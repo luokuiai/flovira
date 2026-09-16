@@ -4,9 +4,39 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { createRef } from 'react'
 import { ReactFlowDesigner } from './ReactFlowDesigner'
 import { createInitialDefinition } from './model'
+import { getFormConditionFields, type FormDefinition } from './formDefinition'
+import fixture from '../../../flovira-core/src/test/resources/nested-form-conditions.json'
 import type { DesignerConditionField, ReactFlowDesignerRef } from './types'
 
 afterEach(cleanup)
+
+test('configures one named detail scope with two same-row conditions and preserves it after reopening', () => {
+  const ref = createRef<ReactFlowDesignerRef>()
+  const fields = getFormConditionFields(fixture.form as FormDefinition)
+  const view = render(<ReactFlowDesigner ref={ref} defaultValue={createInitialDefinition()} conditionFields={fields} />)
+  fireEvent.click(view.getByRole('button', { name: '在 开始 后添加节点' }))
+  fireEvent.click(view.getByRole('menuitem', { name: '添加条件分支' }))
+  let drawer = within(view.getByRole('dialog', { name: '分支条件' }))
+  fireEvent.click(drawer.getByRole('button', { name: '添加条件组' }))
+  fireEvent.change(drawer.getByLabelText('条件范围 1'), { target: { value: 'details' } })
+  expect(drawer.getAllByLabelText('明细匹配方式 1')).toHaveLength(1)
+  expect(drawer.queryByRole('option', { name: '地址 / 城市' })).toBeNull()
+  fireEvent.change(drawer.getByLabelText('比较方式 1-1'), { target: { value: 'GT' } })
+  fireEvent.change(drawer.getByLabelText('条件值 1-1'), { target: { value: '5000' } })
+  fireEvent.click(drawer.getByRole('button', { name: '添加条件' }))
+  fireEvent.change(drawer.getByLabelText('条件字段 1-2'), { target: { value: 'details[].category' } })
+  fireEvent.change(drawer.getByLabelText('条件值 1-2'), { target: { value: 'travel' } })
+  fireEvent.click(drawer.getByRole('button', { name: '保存条件' }))
+  const split = ref.current!.getDefinition().nodeList.find(node => node.nodeType === '3')!
+  expect(split.skipList[0].skipCondition).toBe(fixture.anyExpression)
+  expect(view.getByRole('button', { name: '配置分支：分支一' }).textContent).toContain('报销明细（任一条满足）')
+  fireEvent.click(view.getByRole('button', { name: '配置分支：分支一' }))
+  drawer = within(view.getByRole('dialog', { name: '分支条件' }))
+  expect((drawer.getByLabelText('条件字段 1-2') as HTMLSelectElement).value).toBe('details[].category')
+  fireEvent.change(drawer.getByLabelText('明细匹配方式 1'), { target: { value: 'ALL' } })
+  fireEvent.click(drawer.getByRole('button', { name: '保存条件' }))
+  expect(ref.current!.getDefinition().nodeList.find(node => node.nodeCode === split.nodeCode)!.skipList[0].skipCondition).toBe(fixture.allExpression)
+})
 
 test('configures a branch from business fields, then inserts business nodes independently', () => {
   const ref = createRef<ReactFlowDesignerRef>()

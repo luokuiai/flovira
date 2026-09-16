@@ -1,4 +1,5 @@
 import type LogicFlow from '@logicflow/core'
+import type { FormConditionField } from '../data/formDefinition'
 
 /**
  * FlowDesigner 公共类型集中出口。
@@ -44,11 +45,17 @@ export interface FlowDesignerPaletteNodes {
 
 /** FlowDesigner 组件 props（props 驱动，宿主耦合由外层页面壳负责）。 */
 export interface FlowDesignerProps {
+  /** standalone 为独立卡片，embedded 去掉外层边框、圆角和阴影。 */
+  appearance?: 'standalone' | 'embedded'
+  /** 是否显示顶栏；默认显示。 */
+  toolbar?: boolean
+  /** 宿主表单元数据经 getFormConditionFields 展开的可读条件字段。 */
+  conditionFields?: readonly FormConditionField[]
   /** 流程定义 id（新建态传 null，走本地 initData 渲染） */
   definitionId?: string | null
   /**
    * 初始流程 JSON（脱后端驱动）：flovira 定义对象或其 JSON 字符串。
-   * 形状与 DataProvider.queryDef 返回的 data、命令式 getFlowJson() / saved 事件输出一致（可直接 round-trip）。
+   * 形状与 DataProvider.queryDef 返回的 data、命令式 getFlowJson() 输出一致（可直接 round-trip）。
    * 提供该值时优先于 queryDef：组件不再请求后端，直接用此 JSON 渲染/编辑，实现纯组件用法。
    */
   initialJson?: string | Record<string, any> | null
@@ -98,7 +105,7 @@ export interface FlowDesignerProps {
   /**
    * 自定义流程结构校验器：在内置结构校验（≥1 开始节点 / ≥1 结束节点 / 无孤立节点）之后追加调用，
    * 入参为当前画布图数据（LogicFlow getGraphData：nodes / edges），返回错误信息数组（空数组 / 无返回即通过）。
-   * 通过命令式 `validateStructure()` 触发；不自动拦截保存，可在 `before-save` 里据其结果 `preventDefault()`。
+   * 通过命令式 `validateStructure()` 触发；业务自行决定是否提交。
    */
   structureValidator?: (graph: { nodes: any[]; edges: any[] }) => string[] | void
 }
@@ -111,16 +118,6 @@ export interface FlowStructureValidateResult {
   errors: string[]
 }
 
-/** `saved` 事件回传：当前定义 id、后端返回数据（如新建后的 definitionId）与本次保存的流程 json。 */
-export interface FlowDesignerSavedPayload {
-  /** 当前流程定义 id（新建首存前为 null） */
-  id: string | null
-  /** 后端保存接口返回的 data（如新建后生成的 definitionId） */
-  data: any
-  /** 本次保存提交的 flovira 流程 json 字符串 */
-  json: string
-}
-
 /** `ready` 事件回传：画布初始化完成后透出底层 LogicFlow 实例，便于消费方做高级定制。 */
 export interface FlowDesignerReadyPayload {
   /** 已初始化的底层 LogicFlow 实例 */
@@ -128,34 +125,14 @@ export interface FlowDesignerReadyPayload {
 }
 
 /**
- * `before-save` 事件回传：保存提交「前」的可改写上下文。
- *
- * 用途：在调用后端保存接口之前，消费方可改写最终提交的 json，或取消本次保存。
- * 注意：该事件**同步派发**，处理函数内的异步逻辑不会被 `await`——`setJson` / `preventDefault`
- * 必须在处理函数同步执行期间调用才生效。
- */
-export interface FlowDesignerBeforeSavePayload {
-  /** 当前流程定义 id（新建首存前为 null） */
-  id: string | null
-  /** 即将提交的 flovira 流程 json 字符串（可经 setJson 改写） */
-  json: string
-  /** 是否仅设计画布模式（onlyDesignShow） */
-  onlyDesignShow: boolean
-  /** 改写本次提交的 json：传入新的 json 字符串覆盖默认提交内容 */
-  setJson: (json: string) => void
-  /** 取消本次保存：终止保存流程，不调用后端、不触发 saved / close */
-  preventDefault: () => void
-}
-
-/**
  * `validate-error` 事件回传：基础信息表单校验未通过。
  *
- * 在保存 / 切到流程设计步骤 / 命令式 `validate()` 触发的校验失败时派发，宿主据此提示或拦截。
+ * 在切到流程设计步骤 / 命令式 `validate()` 触发的校验失败时派发，宿主据此提示或拦截。
  * onlyDesignShow 模式无基础信息步骤、恒校验通过，不会触发本事件。
  */
 export interface FlowDesignerValidateErrorPayload {
-  /** 触发校验的来源：save=点击保存 / step=切到流程设计步骤 / api=命令式 validate() */
-  source: 'save' | 'step' | 'api'
+  /** 触发校验的来源：step=切到流程设计步骤 / api=命令式 validate() */
+  source: 'step' | 'api'
   /**
    * 校验未通过的字段信息（来自 UI 库表单 validate 回传的 invalid fields）。
    * 结构随 UI 适配器而异，可能为空：Element Plus 提供字段明细，Ant Design Vue 当前仅回传布尔、无明细。
@@ -195,11 +172,9 @@ export interface FlowDesignerChangePayload {
  *
  * 两种获取方式：
  * 1) 模板 ref：`<FlowDesigner ref="designerRef" />`，`designerRef.value` 即本类型；
- * 2) 组合式：`const { designerRef, save } = useFlowDesigner()`（推荐，带空安全包装）。
+ * 2) 组合式：`const { designerRef, getFlowJson } = useFlowDesigner()`（推荐，带空安全包装）。
  */
 export interface FlowDesignerInstance {
-  /** 触发保存（含基础信息校验 + 收集图数据 + 调用保存接口，等价点击「保存」按钮） */
-  save: () => Promise<void>
   /** 校验基础信息表单；onlyDesignShow 模式恒为 true */
   validate: () => Promise<boolean>
   /** 获取当前画布图数据（LogicFlow getGraphData 原始结构：nodes / edges） */

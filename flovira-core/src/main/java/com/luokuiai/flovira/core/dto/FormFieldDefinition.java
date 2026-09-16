@@ -20,6 +20,7 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.util.List;
 
 /** Flovira 标准表单字段定义。 @author warm @since 2026/9/1 */
 @Getter
@@ -38,4 +39,8 @@ public class FormFieldDefinition implements Serializable {
     private String label;
     /** 字段数据类型，不表示具体 UI 组件。 */
     private String dataType;
+    /** object 的具名子字段；其他类型不设置。 */
+    private List<FormFieldDefinition> fields;
+    /** array 的元素定义，可递归描述对象或数组；元素本身无需 key / label。 */
+    private FormFieldDefinition items;
 }

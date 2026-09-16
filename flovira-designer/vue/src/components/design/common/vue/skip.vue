@@ -12,7 +12,9 @@
               <wf-option :label="t('skip.typeReject')" value="REJECT"/>
             </wf-select>
           </wf-form-item>
-          <wf-form-item :label="t('skip.conditionLabel')" v-if="skipConditionShow" prop="skipCondition">
+          <FormConditionEditor v-if="skipConditionShow && namedMode" :rule="form.branchRule" :disabled="disabled" @apply="applyNamedRule" />
+          <wf-button v-if="skipConditionShow && fields.length && !disabled" @click="toggleNamedMode">{{ namedMode ? '使用表达式配置' : '使用字段配置' }}</wf-button>
+          <wf-form-item :label="t('skip.conditionLabel')" v-if="skipConditionShow && !namedMode" prop="skipCondition">
             <wf-input v-model="form.condition" v-if="!expressFlag" :placeholder="t('skip.conditionName')" :style="{ width: !expressFlag? '30%' : '0%' }"/>
             <wf-select v-model="form.conditionType" :placeholder="t('skip.conditionTypePlaceholder')" :style="{ width: expressFlag? '18%' : '25%', 'margin-left': '1%' }"
                        clearable @change="changeOper" @clear="handleClear">
@@ -39,7 +41,9 @@
 
 <script setup lang="ts">
 
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, inject, reactive, ref, watch, type Ref } from 'vue';
+import FormConditionEditor from './FormConditionEditor.vue';
+import type { FormConditionField } from '@/data/formDefinition';
 import {getFramework} from "@/utils/auth";
 import { useI18n } from '@/i18n';
 
@@ -63,6 +67,21 @@ const props = withDefaults(defineProps<SkipProps>(), {
 
 const expressFlag = ref(false)
 const form = ref<Record<string, any>>(props.modelValue)
+const fields = inject<Ref<readonly FormConditionField[]>>('floviraConditionFields', ref([]))
+const namedMode = ref(form.value.branchRule?.mode === 'rules' || (!form.value.skipCondition && fields.value.length > 0))
+function applyNamedRule(rule: any) {
+  form.value.branchRule = rule
+  form.value.skipCondition = rule.expression
+}
+function toggleNamedMode() {
+  namedMode.value = !namedMode.value
+  if (!namedMode.value) {
+    form.value.conditionType = 'spel'
+    form.value.conditionValue = (form.value.skipCondition || '').replace(/^spel@@/, '')
+    form.value.branchRule = undefined
+    expressFlag.value = true
+  }
+}
 const framework = getFramework()
 
 const rules = reactive({
@@ -87,6 +106,7 @@ const rules = reactive({
 });
 
 watch(form, n => {
+  if (namedMode.value) return;
   if (n.conditionType) {
     let skipCondition;
     skipCondition = n.conditionType + "@@";

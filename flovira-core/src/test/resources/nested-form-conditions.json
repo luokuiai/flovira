@@ -1,0 +1,35 @@
+{
+  "form": {
+    "schemaVersion": "1",
+    "fields": [
+      { "key": "address", "label": "地址", "dataType": "object", "fields": [
+        { "key": "city", "label": "城市", "dataType": "string" }
+      ] },
+      { "key": "details", "label": "报销明细", "dataType": "array", "items": {
+        "dataType": "object", "fields": [
+          { "key": "amount", "label": "金额", "dataType": "number" },
+          { "key": "category", "label": "费用类型", "dataType": "string" }
+        ]
+      } },
+      { "key": "tags", "label": "标签", "dataType": "array", "items": { "dataType": "string" } }
+    ],
+    "renderer": { "layout": "host-owned" }
+  },
+  "group": {
+    "collection": { "code": "details", "label": "报销明细", "quantifier": "ANY" },
+    "conditions": [
+      { "fieldCode": "details[].amount", "fieldLabel": "报销明细 / 每一项 / 金额", "fieldType": "NUMBER", "operator": "GT", "value": "5000" },
+      { "fieldCode": "details[].category", "fieldLabel": "报销明细 / 每一项 / 费用类型", "fieldType": "STRING", "operator": "EQ", "value": "travel" }
+    ]
+  },
+  "anyExpression": "spel@@#{(#details != null and #details.size() > 0 and #details.?[(#this != null and #this['amount'] != null and #this['amount'] > 5000) and (#this != null and #this['category'] != null and #this['category'] == 'travel')].size() > 0)}",
+  "allExpression": "spel@@#{(#details != null and #details.size() > 0 and #details.?[(#this != null and #this['amount'] != null and #this['amount'] > 5000) and (#this != null and #this['category'] != null and #this['category'] == 'travel')].size() == #details.size())}",
+  "cases": [
+    { "name": "different rows must not combine", "variables": { "details": [{ "amount": 6000, "category": "office" }, { "amount": 100, "category": "travel" }] }, "any": false, "all": false },
+    { "name": "one complete match", "variables": { "details": [{ "amount": 6000, "category": "travel" }, { "amount": 100, "category": "office" }] }, "any": true, "all": false },
+    { "name": "all complete matches", "variables": { "details": [{ "amount": 6000, "category": "travel" }, { "amount": 7000, "category": "travel" }] }, "any": true, "all": true },
+    { "name": "empty", "variables": { "details": [] }, "any": false, "all": false },
+    { "name": "missing", "variables": {}, "any": false, "all": false },
+    { "name": "null rows and missing fields", "variables": { "details": [null, {}, { "amount": 6000 }, { "category": "travel" }] }, "any": false, "all": false }
+  ]
+}

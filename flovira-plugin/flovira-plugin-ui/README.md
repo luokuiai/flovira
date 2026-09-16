@@ -74,6 +74,7 @@ Flovira 对 `USER`、`ROLE`、`ORGANIZATION` 和 `EXPRESSION` 的默认解析逻
 
 默认 API 前缀为 `/flovira`：
 
+- `POST /flovira/save-json`：完整保存流程定义、节点和连线，请求体为流程 JSON。
 - `GET /flovira/integration/capabilities`
 - `GET /flovira/integration/resources`
 - `POST /flovira/integration/relationships/resolve`
@@ -105,9 +106,8 @@ public class BusinessFloviraController extends FloviraController {
     @PostMapping("/save-json")
     @PreAuthorize("@workflowAuth.canSave(#defJson)")
     public ApiResult<Void> saveJson(
-            @RequestBody DefJson defJson,
-            @RequestHeader("onlyNodeSkip") boolean onlyNodeSkip) throws Exception {
-        return super.saveJson(defJson, onlyNodeSkip);
+            @RequestBody DefJson defJson) throws Exception {
+        return super.saveJson(defJson);
     }
 }
 ```

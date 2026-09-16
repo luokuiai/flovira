@@ -117,8 +117,8 @@ export const exampleApi = {
     method: 'POST', body: JSON.stringify(input),
   }),
   designerConfig: () => request<Record<string, unknown>>(`${DESIGNER_PREFIX}/config`),
-  designerSave: (definition: unknown, onlyNodeSkip = false, user = 'alice') => request<void>(`${DESIGNER_PREFIX}/save-json`, {
-    method: 'POST', headers: { onlyNodeSkip: String(onlyNodeSkip) }, body: JSON.stringify(definition),
+  designerSave: (definition: unknown, user = 'alice') => request<void>(`${DESIGNER_PREFIX}/save-json`, {
+    method: 'POST', body: JSON.stringify(definition),
   }, user),
   flowChart: (id: string | number) => request<Record<string, unknown>>(`${DESIGNER_PREFIX}/query-flow-chart/${id}`),
   subprocessSummary: (parentTaskId: string | number) => request<Record<string, unknown>>(`${DESIGNER_PREFIX}/subprocess/summary/${parentTaskId}`),

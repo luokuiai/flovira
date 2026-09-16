@@ -21,6 +21,7 @@ import com.luokuiai.flovira.core.dto.FormDefinition;
 import com.luokuiai.flovira.core.entity.Form;
 import com.luokuiai.flovira.core.orm.service.IFloviraService;
 import com.luokuiai.flovira.core.utils.StringUtils;
+import com.luokuiai.flovira.core.utils.FormDefinitionValidator;
 import com.luokuiai.flovira.core.utils.page.Page;
 
 /** 流程表单 Service。 @author vanlin @since 2024/8/19 10:06 */
@@ -43,6 +44,7 @@ public interface FormService extends IFloviraService<Form> {
     boolean saveContent(Long id, String formContent);
 
     default boolean saveDefinition(Long id, FormDefinition definition) {
+        if (definition != null) FormDefinitionValidator.validate(definition);
         String content = definition == null ? null : FlowEngine.jsonConvert.objToStr(definition);
         return saveContent(id, content);
     }
@@ -55,6 +57,8 @@ public interface FormService extends IFloviraService<Form> {
         if (form == null || StringUtils.isEmpty(form.getFormContent())) {
             return null;
         }
-        return FlowEngine.jsonConvert.strToBean(form.getFormContent(), FormDefinition.class);
+        FormDefinition definition = FlowEngine.jsonConvert.strToBean(form.getFormContent(), FormDefinition.class);
+        FormDefinitionValidator.validate(definition);
+        return definition;
     }
 }

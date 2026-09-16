@@ -19,11 +19,15 @@
 
     <section class="card designer-card">
       <FlowDesigner
+        ref="designerRef"
         :key="designerKey"
         :definition-id="selectedId ?? null"
         :initial-json="selectedId ? null : initialDefinition"
-        @saved="saved"
-      />
+      >
+        <template #header-actions="{ disabled }">
+          <a-button :disabled="disabled || saving" @click="saveDesign">Save definition</a-button>
+        </template>
+      </FlowDesigner>
     </section>
 
     <div class="example-grid">
@@ -51,7 +55,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { FlowDesigner } from '@luokuiai/flovira-vue-designer'
+import { FlowDesigner, type FlowDesignerInstance } from '@luokuiai/flovira-vue-designer'
 import {
   exampleApi,
   type DefinitionSummary,
@@ -62,6 +66,8 @@ import {
 } from '@flovira-example/common'
 
 const props = defineProps<{ onUserChange: (user: string) => void }>()
+const designerRef = ref<FlowDesignerInstance | null>(null)
+const saving = ref(false)
 const identities = ref<DemoIdentity[]>([])
 const definitions = ref<DefinitionSummary[]>([])
 const purchases = ref<PurchaseRequest[]>([])
@@ -104,9 +110,23 @@ async function changeUser(value: unknown) {
 }
 function openDefinition() { designerKey.value++ }
 function newDefinition() { selectedId.value = undefined; designerKey.value++ }
-async function saved(payload: { data?: { id?: number } }) {
-  if (payload.data?.id) selectedId.value = payload.data.id
-  await refresh(); notice.value = 'Definition saved'
+async function saveDesign() {
+  const editor = designerRef.value
+  if (!editor || saving.value) return
+  saving.value = true
+  try {
+    await run(async () => {
+      if (!await editor.validate()) return
+      const result = editor.validateStructure()
+      if (!result.valid) throw new Error(result.errors.join('; '))
+      const json = editor.getFlowJson()
+      const saved = await exampleApi.saveDefinition(JSON.parse(json), user.value)
+      selectedId.value = saved.id
+      if (editor.getFlowJson() === json) editor.resetDirty()
+      await refresh()
+      notice.value = 'Definition saved'
+    })
+  } finally { saving.value = false }
 }
 async function publish() {
   if (!selectedId.value) return

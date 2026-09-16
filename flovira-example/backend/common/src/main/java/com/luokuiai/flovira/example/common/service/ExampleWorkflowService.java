@@ -47,7 +47,7 @@ public class ExampleWorkflowService {
             throw new IllegalArgumentException("flowCode is required");
         }
         definition.setCreatedBy(DemoUserContext.get()).setUpdatedBy(DemoUserContext.get());
-        FlowEngine.defService().saveDef(definition, false);
+        FlowEngine.defService().saveDef(definition);
         Definition saved = FlowEngine.defService().getByFlowCode(definition.getFlowCode()).stream()
             .max(Comparator.comparing(Definition::getId))
             .orElseThrow(() -> new IllegalStateException("Definition was not persisted"));

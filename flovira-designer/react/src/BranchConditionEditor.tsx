@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { compileBranchConditions, getBranchRule, operatorLabels, type BranchRule } from './branchConditions'
+import { fieldsForScope, getConditionScopes } from './formDefinition'
 import type { DesignerBranchCondition, DesignerConditionField, DesignerConditionGroup, DesignerUiAdapter, FloviraNode } from './types'
 
 export function BranchConditionEditor({ node, index, fields, ui, disabled, compile = compileBranchConditions, onSave }: {
@@ -23,6 +24,7 @@ export function BranchConditionEditor({ node, index, fields, ui, disabled, compi
   })
   const update = (groupIndex: number, conditionIndex: number, condition: DesignerBranchCondition) => setRule({ ...rule,
     groups: rule.groups.map((group, i) => i === groupIndex ? {
+      ...group,
       conditions: group.conditions.map((item, j) => j === conditionIndex ? condition : item),
     } : group),
   })
@@ -59,18 +61,34 @@ export function BranchConditionEditor({ node, index, fields, ui, disabled, compi
         {rule.mode === 'rules' && <>
           <strong className="frd-condition-title">条件规则</strong>
           {!fields.length && <p className="frd-condition-hint">当前没有可选业务字段，请由接入方提供，或使用表达式配置。</p>}
-          {rule.groups.map((group, groupIndex) => <div key={groupIndex}>
+          {rule.groups.map((group, groupIndex) => {
+            const groupFields = fieldsForScope(fields, group.collection?.code)
+            return <div key={groupIndex}>
             {groupIndex > 0 && <div className="frd-condition-or">或</div>}
             <div className="frd-condition-group">
               <div className="frd-condition-group__heading"><strong>满足以下全部条件</strong></div>
+              <Select ariaLabel={`条件范围 ${groupIndex + 1}`} value={group.collection?.code || ''} disabled={disabled}
+                options={[{ value: '', label: '表单字段 / 汇总数量' }, ...getConditionScopes(fields).map(scope => ({ value: scope.code, label: scope.label }))]}
+                onValueChange={(code) => {
+                  const scope = getConditionScopes(fields).find(item => item.code === code)
+                  const available = fieldsForScope(fields, code)
+                  setRule({ ...rule, groups: rule.groups.map((item, i) => i !== groupIndex ? item : {
+                    ...(scope ? { collection: { ...scope, quantifier: 'ANY' as const } } : {}),
+                    conditions: available.length ? [newCondition(available[0])] : [],
+                  }) })
+                }} />
+              {group.collection && <Select ariaLabel={`明细匹配方式 ${groupIndex + 1}`} value={group.collection.quantifier} disabled={disabled}
+                options={[{ value: 'ANY', label: '任一条满足以下全部条件' }, { value: 'ALL', label: '所有条满足以下全部条件' }]}
+                onValueChange={(quantifier) => setRule({ ...rule, groups: rule.groups.map((item, i) => i !== groupIndex ? item
+                  : { ...item, collection: { ...group.collection!, quantifier: quantifier as 'ANY' | 'ALL' } }) })} />}
               {group.conditions.map((condition, conditionIndex) => <div key={conditionIndex}>
                 {conditionIndex > 0 && <div className="frd-condition-and">且</div>}
                 <div className="frd-condition-row">
                   <Select ariaLabel={`条件字段 ${groupIndex + 1}-${conditionIndex + 1}`} value={condition.fieldCode} disabled={disabled}
                     options={[
-                      ...(!fields.some((field) => field.code === condition.fieldCode) ? [{ value: condition.fieldCode, label: `${condition.fieldLabel}（字段不可用）`, disabled: true }] : []),
-                      ...fields.map((field) => ({ value: field.code, label: field.label })),
-                    ]} onValueChange={(code) => { const field = fields.find((item) => item.code === code); if (field) update(groupIndex, conditionIndex, newCondition(field)) }} />
+                      ...(!groupFields.some((field) => field.code === condition.fieldCode) ? [{ value: condition.fieldCode, label: `${condition.fieldLabel}（字段不可用）`, disabled: true }] : []),
+                      ...groupFields.map((field) => ({ value: field.code, label: field.label })),
+                    ]} onValueChange={(code) => { const field = groupFields.find((item) => item.code === code); if (field) update(groupIndex, conditionIndex, newCondition(field)) }} />
                   <Select ariaLabel={`比较方式 ${groupIndex + 1}-${conditionIndex + 1}`} value={condition.operator} disabled={disabled}
                     options={Object.entries(operatorLabels).filter(([key]) => condition.fieldType === 'NUMBER' || ['EQ', 'NE'].includes(key)).map(([value, label]) => ({ value, label }))}
                     onValueChange={(operator) => update(groupIndex, conditionIndex, { ...condition, operator: operator as DesignerBranchCondition['operator'] })} />
@@ -82,19 +100,22 @@ export function BranchConditionEditor({ node, index, fields, ui, disabled, compi
                       onValueChange={(value) => update(groupIndex, conditionIndex, { ...condition, value })} />}
                   <Button ariaLabel={`删除条件 ${groupIndex + 1}-${conditionIndex + 1}`} variant="text" className="frd-condition-remove" disabled={disabled}
                     onPress={() => setRule({ ...rule, groups: rule.groups.map((item, i) => i === groupIndex
-                      ? { conditions: item.conditions.filter((_, j) => j !== conditionIndex) } : item) })}>删除条件</Button>
+                      ? { ...item, conditions: item.conditions.filter((_, j) => j !== conditionIndex) } : item) })}>删除条件</Button>
                 </div>
               </div>)}
               <div className="frd-condition-group-actions">
-              <Button disabled={disabled || !fields.length} onPress={() => setRule({ ...rule,
-                groups: rule.groups.map((item, i) => i === groupIndex ? { conditions: [...item.conditions, newCondition()] } : item),
+              <Button disabled={disabled || !groupFields.length} onPress={() => setRule({ ...rule,
+                groups: rule.groups.map((item, i) => i === groupIndex ? { ...item, conditions: [...item.conditions, newCondition(groupFields[0])] } : item),
               })}><Plus size={14} /> 添加条件</Button>
               <Button ariaLabel={`删除条件组 ${groupIndex + 1}`} variant="text" disabled={disabled}
                 onPress={() => setRule({ ...rule, groups: rule.groups.filter((_, i) => i !== groupIndex) })}>删除条件组</Button>
               </div>
             </div>
-          </div>)}
-          <Button disabled={disabled || !fields.length} onPress={() => setRule({ ...rule, groups: [...rule.groups, { conditions: [newCondition()] }] })}>
+          </div>})}
+          <Button disabled={disabled || !fields.length} onPress={() => {
+            const available = fieldsForScope(fields)
+            setRule({ ...rule, groups: [...rule.groups, { conditions: available.length ? [newCondition(available[0])] : [] }] })
+          }}>
             <Plus size={14} /> 添加条件组
           </Button>
         </>}

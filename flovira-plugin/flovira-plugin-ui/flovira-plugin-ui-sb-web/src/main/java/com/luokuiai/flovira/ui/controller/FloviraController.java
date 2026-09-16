@@ -90,8 +90,8 @@ public class FloviraController {
      */
     @PostMapping("/save-json")
     @Transactional(rollbackFor = Exception.class)
-    public ApiResult<Void> saveJson(@RequestBody DefJson defJson, @RequestHeader("onlyNodeSkip") boolean onlyNodeSkip) throws Exception {
-        return FloviraService.saveJson(defJson, onlyNodeSkip);
+    public ApiResult<Void> saveJson(@RequestBody DefJson defJson) throws Exception {
+        return FloviraService.saveJson(defJson);
     }
 
     /**

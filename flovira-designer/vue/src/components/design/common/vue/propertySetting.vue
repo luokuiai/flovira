@@ -8,7 +8,7 @@
       <wf-button class="property-panel-close" @click="handleClose"><svg-icon icon-class="ep:close" /></wf-button>
     </header>
     <div class="property-panel-body">
-      <component v-if="componentType" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled"
+      <component v-if="componentType" :key="objId" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled"
                  :skipConditionShow="skipConditionShow" :nodes="nodes" :skips="skips" :form-options="formOptions">
         <template v-slot:[key]="data" v-for="(item, key) in $slots">
           <slot :name="key" v-bind="data || {}"></slot>
@@ -27,7 +27,7 @@
       :append-to-body="true"
       :before-close="handleClose"
       class="property-drawer-modern">
-      <component v-if="componentType" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled" :skipConditionShow="skipConditionShow"
+      <component v-if="componentType" :key="objId" :ref="componentType.name" :is="componentType" v-model="form" :disabled="disabled" :skipConditionShow="skipConditionShow"
                  :nodes="nodes" :skips="skips" :form-options="formOptions">
         <template v-slot:[key]="data" v-for="(item, key) in $slots">
           <slot :name="key" v-bind="data || {}"></slot>
@@ -180,6 +180,7 @@ watch(() => props.node, n => {
         skipType: n.properties.skipType,
         skipName: n.text instanceof Object ? n.text.value : n.text,
         skipCondition: skipCondition,
+        branchRule: n.properties.branchRule,
         condition: condition,
         conditionType: conditionType,
         conditionValue: conditionValue
@@ -313,7 +314,8 @@ watch(() => form.value.skipName, (n) => {
 watch(() => form.value.skipCondition, (n) => {
   // 监听跳转属性变化并更新
   props.lf.setProperties(objId.value, {
-    skipCondition: n
+    skipCondition: n,
+    branchRule: form.value.branchRule
   })
 
 });
@@ -323,6 +325,10 @@ watch(() => form.value.ext, (n) => {
   props.lf.setProperties(objId.value, {
     ext: n
   })
+}, { deep: true });
+
+watch(() => form.value.branchRule, (rule) => {
+  if (props.node?.type === 'skip') props.lf.setProperties(objId.value, { branchRule: rule })
 }, { deep: true });
 
 function show () {

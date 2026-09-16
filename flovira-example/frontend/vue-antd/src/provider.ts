@@ -9,11 +9,7 @@ export function createExampleProvider(currentUser: () => string): Partial<DataPr
     async capabilities() { return ok(await exampleApi.capabilities()) as ReturnType<DataProvider['capabilities']> extends Promise<infer T> ? T : never },
     async queryResources(query) { return ok(await exampleApi.resources(query)) },
     async resolveRelationship(query) { return ok(await exampleApi.relationship(query)) },
-    async saveJson(data, onlyNodeSkip) {
-      if (onlyNodeSkip) {
-        await exampleApi.designerSave(definitionObject(data), true, currentUser())
-        return ok(null)
-      }
+    async saveJson(data) {
       return ok(await exampleApi.saveDefinition(definitionObject(data), currentUser()))
     },
     async queryDef(id) { return ok(id ? await exampleApi.definition(Number(id)) : null) },

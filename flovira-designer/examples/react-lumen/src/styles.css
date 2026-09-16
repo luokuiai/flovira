@@ -12,6 +12,11 @@ main {
   padding: 16px;
 }
 
+#panel-designer {
+  height: calc(100dvh - 100px);
+  min-height: 0;
+}
+
 .save-toast {
   position: fixed;
   right: 24px;
