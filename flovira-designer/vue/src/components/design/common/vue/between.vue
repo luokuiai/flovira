@@ -305,7 +305,8 @@ const baseList = ref<any[]>([]);
 const buttonList = ref<Record<string, any>>({});
 const permissionRows = ref<any[]>([]); // 办理人表格
 const approverStrategies = ref<DesignerApproverStrategy[]>(DEFAULT_DESIGNER_CAPABILITIES.approverStrategies);
-const approverStrategy = ref('USER');
+const approverStrategy = ref('')
+const strategyVersion = ref(1);
 const approverExpression = ref('');
 const approverStrategyDescriptor = computed(() => approverStrategies.value.find(item => item.code === approverStrategy.value));
 const ListenerVo = ref<any[]>([]); // 监听器列表
@@ -469,7 +470,8 @@ function getPermissionFlag() {
   if (rawRule) {
     try {
       const rule = typeof rawRule === 'string' ? JSON.parse(rawRule) : rawRule;
-      approverStrategy.value = rule.strategy || 'USER';
+      approverStrategy.value = rule.strategy || ''
+      strategyVersion.value = rule.strategyVersion ?? 1;
       approverExpression.value = rule.expression || '';
       form.value.permissionFlag = (rule.subjects || []).map((subject: any) => subject.id);
       permissionRows.value = (rule.subjects || []).map((subject: any) => ({
@@ -477,13 +479,11 @@ function getPermissionFlag() {
         handlerName: subject.name || subject.id,
         resourceType: subject.type,
       }));
-      return;
     } catch (e) {
-      // 非法规则交给后端定义校验，设计器继续按旧权限字段回显。
+      // 保留原始扩展；未解析的规则不能通过校验。
     }
   }
-  const pf = form.value.permissionFlag;
-  form.value.permissionFlag = (typeof pf === 'string' && pf) ? pf.split("@@") : [""];
+  form.value.permissionFlag = permissionRows.value.map(item => item.storageId);
   if (form.value.listenerType && typeof form.value.listenerType === 'string') {
     const listenerTypes = form.value.listenerType.split(",");
     const lp = form.value.listenerPath;
@@ -592,11 +592,16 @@ function handleUserSelect(checkedItemList: any[]) {
 
 function syncApproverRule() {
   const descriptor = approverStrategyDescriptor.value;
+  if (!descriptor) return
   const subjects = descriptor?.selectionType !== 'RESOURCE' ? [] : permissionRows.value
     .filter(item => item.storageId)
     .map(item => ({ id: item.storageId, type: descriptor.resourceType, name: item.handlerName }));
+  const previousRaw = form.value.ext?.approverRule
+  const previous = typeof previousRaw === 'string' ? JSON.parse(previousRaw) : previousRaw
   const rule = {
+    ...(previous?.strategy === approverStrategy.value ? previous : {}),
     schemaVersion: 1,
+    strategyVersion: strategyVersion.value,
     strategy: approverStrategy.value,
     selectionType: descriptor?.selectionType,
     relationType: descriptor?.relationType,
@@ -607,6 +612,7 @@ function syncApproverRule() {
 }
 
 function handleApproverStrategyChange() {
+  strategyVersion.value = approverStrategyDescriptor.value?.version ?? 1
   form.value.permissionFlag = [];
   permissionRows.value = [];
   approverExpression.value = '';
@@ -644,6 +650,13 @@ getNodeExt();
 // 表单必填校验
 function validate() {
   return new Promise(async (resolve, reject) => {
+    const descriptor = approverStrategyDescriptor.value
+    if (!descriptor || strategyVersion.value !== (descriptor.version ?? 1)
+      || (descriptor.selectionType === 'RESOURCE' && permissionRows.value.length === 0)
+      || (descriptor.selectionType === 'EXPRESSION' && !approverExpression.value.trim())) {
+      reject(false)
+      return
+    }
     tabsValue.value = "1";
     await proxy.$nextTick();
     try {

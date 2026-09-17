@@ -2,10 +2,8 @@ import { createHttpProvider } from './httpProvider'
 import type {
   ApiResponse,
   DesignerCapabilities,
-  DesignerRelationshipQuery,
   DesignerResourcePage,
   DesignerResourceQuery,
-  DesignerSubject,
 } from './contracts'
 
 /**
@@ -15,7 +13,7 @@ import type {
  * 与默认后端 API 行为保持一致；通过 setDataProvider 注入自定义实现（业务方后端、mock 等），
  * 即可把数据层与具体后端解耦。这是「业务方注入数据源」与组件库 / npm 包形态的统一入口。
  *
- * 集成数据通过能力清单、通用资源查询和关系解析契约传输；
+ * 集成数据通过能力清单和通用资源查询契约传输；
  * 流程定义与运行时接口保持各自的引擎模型。
  *
  * @author warm
@@ -24,7 +22,6 @@ export interface DesignerDataProvider {
   // ===== 统一集成契约 =====
   capabilities(): Promise<ApiResponse<DesignerCapabilities>>
   queryResources(query: DesignerResourceQuery): Promise<ApiResponse<DesignerResourcePage>>
-  resolveRelationship(query: DesignerRelationshipQuery): Promise<ApiResponse<DesignerSubject[]>>
 }
 
 export interface DataProvider extends DesignerDataProvider {

@@ -1,3 +1,4 @@
+import { DEMO_CAPABILITIES } from '../../capabilities'
 import { StrictMode, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -30,6 +31,7 @@ function App() {
   return (
     <main>
       <ReactFlowDesigner
+        capabilities={DEMO_CAPABILITIES}
         appearance="embedded"
         defaultValue={initial}
         queryResources={async () => ({

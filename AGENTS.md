@@ -74,6 +74,13 @@ Read root and applicable module instructions before editing. Module files contai
 - CRUD uses `FloviraDao`. Entity changes must reach both ORM implementations, serialization, DTO conversion and supported SQL schemas.
 - Preserve tenant isolation and logical deletion in both engine-managed and ORM-managed paths.
 
+## Approver strategies
+
+- Persist stable business-owned strategy codes and configuration in node `ext`; do not snapshot future assignees at submission.
+- Each advertised strategy must come from one registered `ApproverResolver`, with separate configuration validation and runtime resolution. Reject duplicate or unknown codes and unsupported configuration versions.
+- Standard codes are `INITIATOR`, `USER`, `ROLE`, `DEPARTMENT_LEADER`, and `SUPERVISING_LEADER`. Their abstract resolvers do not supply identities or auto-register. Other strategies belong to host applications.
+- Resolve users only when a task is created for an entered node. Preview uses the same resolver read-only; existing tasks use their assigned users rather than re-resolving them. Resolver results are final user IDs, not expressions or relationship identifiers.
+
 ## Branding and attribution
 
 - Preserve Flovira names, `com.luokuiai` packages / group, modules, banner, project links and author attribution unless explicitly authorized otherwise.

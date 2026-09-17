@@ -1,7 +1,7 @@
 import type { ComponentType, ReactElement, ReactNode } from 'react'
 
 export type FloviraNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
-export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
+export type ApproverStrategy = 'INITIATOR' | 'USER' | 'ROLE' | 'DEPARTMENT_LEADER' | 'SUPERVISING_LEADER'
 
 export interface ApproverSubject {
   id: string
@@ -12,6 +12,7 @@ export interface ApproverSubject {
 export interface ApproverRule {
   schemaVersion: 1
   strategy: ApproverStrategy | string
+  strategyVersion?: number
   selectionType: ApproverSelectionType
   relationType?: string
   subjects: ApproverSubject[]
@@ -41,6 +42,7 @@ export interface DesignerApproverOption {
 
 export interface DesignerApproverStrategy {
   code: ApproverStrategy | string
+  version?: number
   name: string
   selectionType: ApproverSelectionType
   resourceType?: string
@@ -160,13 +162,6 @@ export interface DesignerResourceItem {
 export interface DesignerResourcePage {
   items: DesignerResourceItem[]
   total: number
-}
-
-export interface DesignerRelationshipQuery {
-  relationType: string
-  subjectId?: string
-  organizationId?: string
-  context?: Record<string, unknown>
 }
 
 export interface DesignerSubject {

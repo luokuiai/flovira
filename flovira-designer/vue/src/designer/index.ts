@@ -140,7 +140,6 @@ export type {
   ApiResponse,
   DesignerCapabilities,
   DesignerNodeType,
-  DesignerRelationshipQuery,
   DesignerResourceItem,
   DesignerResourcePage,
   DesignerResourceQuery,

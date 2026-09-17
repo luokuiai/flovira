@@ -3,6 +3,7 @@
 import { createRef, useState } from 'react'
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
+import { DEMO_CAPABILITIES } from '../../examples/capabilities'
 import { ReactFlowDesigner } from './ReactFlowDesigner'
 import { createInitialDefinition, getApproverRule, insertNodeAfter, setApproverRule } from './model'
 import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } from './types'
@@ -10,32 +11,61 @@ import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } f
 afterEach(cleanup)
 
 describe('ReactFlowDesigner', () => {
+  test('has no implicit strategy and preserves an unsupported persisted code', () => {
+    const definition = createInitialDefinition()
+    definition.nodeList = definition.nodeList.map(node => node.nodeType === '1'
+      ? setApproverRule(node, 'HOST_REMOVED', [], '', undefined, 'RELATION', { key: 'kept' }, 4) : node)
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
+    const approval = definition.nodeList.find(node => node.nodeType === '1')!
+    fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
+    expect(view.getByRole('option', { name: '不支持的策略：HOST_REMOVED' })).toBeTruthy()
+    expect(view.queryByRole('option', { name: '用户' })).toBeNull()
+    expect(ref.current?.validate().issues).toContainEqual(expect.objectContaining({ code: 'APPROVER_STRATEGY_UNKNOWN' }))
+    expect(getApproverRule(ref.current!.getDefinition().nodeList.find(node => node.nodeCode === approval.nodeCode)!))
+      .toMatchObject({ strategy: 'HOST_REMOVED', strategyVersion: 4, config: { key: 'kept' } })
+  })
+
+  test('revalidates persisted versions when backend capabilities arrive', () => {
+    const definition = createInitialDefinition()
+    definition.nodeList = definition.nodeList.map(node => node.nodeType === '1'
+      ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }], '', undefined, 'RESOURCE', {}, 2) : node)
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
+    view.rerender(<ReactFlowDesigner ref={ref} defaultValue={definition} capabilities={DEMO_CAPABILITIES} />)
+    expect(ref.current?.validate().issues).toContainEqual(expect.objectContaining({ code: 'APPROVER_STRATEGY_VERSION' }))
+    view.rerender(<ReactFlowDesigner ref={ref} defaultValue={definition} capabilities={{
+      ...DEMO_CAPABILITIES, approverStrategies: DEMO_CAPABILITIES.approverStrategies.map(item => ({ ...item, version: 2 })),
+    }} />)
+    expect(ref.current?.validate().issues.some(issue => issue.code.startsWith('APPROVER_STRATEGY'))).toBe(false)
+  })
+
   test('switches shell appearance independently of the toolbar without resetting the draft', () => {
     const ref = createRef<ReactFlowDesignerRef>()
-    const view = render(<ReactFlowDesigner ref={ref} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} />)
     expect(view.container.querySelector('section')?.getAttribute('data-appearance')).toBe('standalone')
     act(() => ref.current!.importJson({ ...createInitialDefinition(), flowName: '嵌入草稿' }))
-    view.rerender(<ReactFlowDesigner ref={ref} appearance="embedded" toolbar={false} />)
+    view.rerender(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} appearance="embedded" toolbar={false} />)
     expect(view.container.querySelector('section')?.getAttribute('data-appearance')).toBe('embedded')
     expect(view.container.querySelector('.frd-header')).toBeNull()
     expect(ref.current!.getDefinition().flowName).toBe('嵌入草稿')
     expect(ref.current!.isDirty()).toBe(true)
-    view.rerender(<ReactFlowDesigner ref={ref} appearance="standalone" />)
+    view.rerender(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} appearance="standalone" />)
     expect(view.container.querySelector('.frd-header')).toBeTruthy()
     expect(ref.current!.getDefinition().flowName).toBe('嵌入草稿')
   })
   test('keeps the toolbar optional and exposes only editing APIs', () => {
     const ref = createRef<ReactFlowDesignerRef>()
-    const view = render(<ReactFlowDesigner ref={ref} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} />)
     expect(view.queryByRole('button', { name: '保存' })).toBeNull()
     expect(view.queryByRole('button', { name: '发布' })).toBeNull()
     expect(ref.current).not.toHaveProperty('save')
     expect(ref.current).not.toHaveProperty('publish')
-    view.rerender(<ReactFlowDesigner ref={ref} toolbar={false} />)
+    view.rerender(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} toolbar={false} />)
     expect(view.container.querySelector('.frd-header')).toBeNull()
     expect(ref.current!.getFlowJson()).toBeTruthy()
     expect(ref.current!.validate()).toHaveProperty('valid')
-    view.rerender(<ReactFlowDesigner ref={ref} renderToolbar={({ defaultToolbar, dirty }) =>
+    view.rerender(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} renderToolbar={({ defaultToolbar, dirty }) =>
       <div>{defaultToolbar}<button onClick={() => ref.current!.resetDirty()}>业务操作 {String(dirty)}</button></div>} />)
     act(() => ref.current!.importJson({ ...createInitialDefinition(), flowName: '业务草稿' }))
     expect(ref.current!.isDirty()).toBe(true)
@@ -46,7 +76,7 @@ describe('ReactFlowDesigner', () => {
   })
 
   test('leaves package import and export actions to the host', () => {
-    const view = render(<ReactFlowDesigner defaultValue={createInitialDefinition()} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={createInitialDefinition()} />)
     expect(view.queryByRole('button', { name: '导入 JSON' })).toBeNull()
     expect(view.queryByRole('button', { name: '导出 JSON' })).toBeNull()
     expect(view.container.querySelector('input[type="file"]')).toBeNull()
@@ -57,7 +87,7 @@ describe('ReactFlowDesigner', () => {
       const definition = createInitialDefinition()
       definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1'
         ? setApproverRule(node, 'USER', ids.map((id) => ({ id, type: 'USER' }))) : node)
-      const view = render(<ReactFlowDesigner defaultValue={definition} />)
+      const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
       fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
       expect(Boolean(view.queryByRole('radiogroup', { name: '多人审批策略' }))).toBe(new Set(ids).size > 1)
       view.unmount()
@@ -68,7 +98,7 @@ describe('ReactFlowDesigner', () => {
     const ref = createRef<ReactFlowDesignerRef>()
     const definition = createInitialDefinition()
     definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
-    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} defaultValue={definition} />)
     fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
     fireEvent.click(view.getByRole('radio', { name: '票签' }))
     const ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
@@ -125,7 +155,7 @@ describe('ReactFlowDesigner', () => {
     const definition = createInitialDefinition()
     const approval = definition.nodeList.find((node) => node.nodeType === '1')!
     const designerRef = createRef<ReactFlowDesignerRef>()
-    const view = render(<ReactFlowDesigner ref={designerRef} defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={designerRef} defaultValue={definition} />)
 
     const current = within(view.container)
     fireEvent.click(current.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
@@ -205,7 +235,7 @@ describe('ReactFlowDesigner', () => {
     const definition = createInitialDefinition()
     definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
     const approval = definition.nodeList.find((node) => node.nodeType === '1')!
-    const view = render(<ReactFlowDesigner defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
 
     expect(view.queryByRole('dialog', { name: '节点设置' })).toBeNull()
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
@@ -225,7 +255,7 @@ describe('ReactFlowDesigner', () => {
   test('deletes editable nodes from the card header instead of the drawer', () => {
     const definition = createInitialDefinition()
     const approval = definition.nodeList.find((node) => node.nodeType === '1')!
-    const view = render(<ReactFlowDesigner defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
 
     expect(view.queryByRole('button', { name: '删除节点：开始' })).toBeNull()
     expect(view.queryByRole('button', { name: '删除节点：结束' })).toBeNull()
@@ -278,6 +308,7 @@ describe('ReactFlowDesigner', () => {
     await waitFor(() => expect(view.getByRole('option', { name: '自定义负责人链' })).toBeTruthy())
     expect(view.queryByText('运行时由后端“自定义负责人链”人员解析器确定办理人')).toBeNull()
     expect(view.queryByRole('button', { name: '选择自定义负责人链' })).toBeNull()
+    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'CUSTOM_MANAGER_CHAIN' } })
     fireEvent.click(view.getByRole('radio', { name: '转交管理员' }))
     const current = designerRef.current?.getDefinition().nodeList
       .find((node) => node.nodeCode === approval.nodeCode)
@@ -319,6 +350,7 @@ describe('ReactFlowDesigner', () => {
     )
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
+    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'FORM_RULE' } })
     fireEvent.click(view.getByRole('button', { name: '配置表单规则' }))
 
     const current = designerRef.current?.getDefinition().nodeList
@@ -338,7 +370,7 @@ describe('ReactFlowDesigner', () => {
     const approval = initial.nodeList.find((node) => node.nodeType === '1')!
     const definition = insertNodeAfter(initial, approval.nodeCode, '8')
     const carbonCopy = definition.nodeList.find((node) => node.nodeType === '8')!
-    const view = render(<ReactFlowDesigner defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
     expect(view.getByRole('radiogroup', { name: '多人审批策略' })).toBeTruthy()
@@ -367,7 +399,7 @@ describe('ReactFlowDesigner', () => {
         choices: [{ value: 'FAIL', label: '阻止提交' }],
       },
     ]
-    const view = render(<ReactFlowDesigner defaultValue={definition} capabilities={{
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} capabilities={{
       schemaVersion: 1,
       nodeTypes: ['0', '1', '2'],
       approverStrategies: [{
@@ -388,6 +420,7 @@ describe('ReactFlowDesigner', () => {
     }} />)
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
+    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'USER' } })
     expect(view.getByRole('button', { name: '选择指定人员' })).toBeTruthy()
     expect(view.queryByRole('radiogroup', { name: '多人审批策略' })).toBeNull()
     expect(view.queryByRole('radiogroup', { name: '无人审批策略' })).toBeNull()
@@ -401,6 +434,7 @@ describe('ReactFlowDesigner', () => {
       <ReactFlowDesigner
         ref={designerRef}
         defaultValue={definition}
+        capabilities={DEMO_CAPABILITIES}
         renderApproverEditor={({ onChange }) => (
           <button
             type="button"
@@ -414,6 +448,7 @@ describe('ReactFlowDesigner', () => {
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
     expect(view.queryByText('搜索用户')).toBeNull()
+    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'USER' } })
     fireEvent.click(view.getByRole('button', { name: '选择用户' }))
     expect(view.getByRole('dialog', { name: '人员选择' })).toBeTruthy()
     fireEvent.click(view.getByRole('button', { name: '从组织架构选择' }))
@@ -431,7 +466,7 @@ describe('ReactFlowDesigner', () => {
     const initial = createInitialDefinition()
     const start = initial.nodeList.find((node) => node.nodeType === '0')!
     const definition = insertNodeAfter(initial, start.nodeCode, '3')
-    const view = render(<ReactFlowDesigner defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
 
     expect(view.container.querySelectorAll('.frd-branch__name')).toHaveLength(0)
     expect(view.container.querySelectorAll('.frd-branch__merge-tail')).toHaveLength(2)
@@ -452,7 +487,7 @@ describe('ReactFlowDesigner', () => {
     continuation.nodeName = '共同审批'
     definition.nodeList.find((node) => node.nodeCode === continuation.nodeCode)!.nodeName = continuation.nodeName
     const ref = createRef<ReactFlowDesignerRef>()
-    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} defaultValue={definition} />)
     expect(view.container.querySelector('.frd-node__type')).toBeNull()
     fireEvent.click(view.getByRole('button', { name: '在 分支一 后添加节点' }))
     const labels = { '1': '审批节点', '3': '条件分支', '4': '并行分支', '5': '多选分支' }
@@ -471,7 +506,7 @@ describe('ReactFlowDesigner', () => {
   })
 
   test('shows named and colored node options in the insert dropdown', () => {
-    const view = render(<ReactFlowDesigner defaultValue={createInitialDefinition()} />)
+    const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={createInitialDefinition()} />)
 
     fireEvent.click(view.getAllByRole('button', { name: /后添加节点/ })[0])
     const approvalItem = view.getByRole('menuitem', { name: '添加审批节点' })

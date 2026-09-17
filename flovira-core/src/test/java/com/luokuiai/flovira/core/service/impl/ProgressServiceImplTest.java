@@ -17,6 +17,11 @@ package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.dto.FlowCombine;
+import com.luokuiai.flovira.core.dto.ApproverRule;
+import com.luokuiai.flovira.core.dto.ApproverContext;
+import com.luokuiai.flovira.core.handler.ApproverResolver;
+import com.luokuiai.flovira.core.handler.AbstractUserResolver;
+import org.junit.After;
 import com.luokuiai.flovira.core.dto.ProgressResult;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Instance;
@@ -30,6 +35,8 @@ import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.service.DefService;
 import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.service.NodeService;
+import com.luokuiai.flovira.core.service.TaskService;
+import com.luokuiai.flovira.core.service.UserService;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,10 +63,27 @@ public class ProgressServiceImplTest {
     private final Node first = node("first", NodeType.BETWEEN, "userA");
     private final Node second = node("second", NodeType.BETWEEN, "userB");
     private final Node end = node("end", NodeType.END, null);
+    private List<Task> activeTasks = Collections.emptyList();
+    private final List<String> resolvedNodes = new java.util.ArrayList<>();
     private final Map<String, Object> capturedVariables = new HashMap<>();
 
+    @After
+    public void cleanup() {
+        FrameInvoker.setBeansFunction(type -> Collections.emptyList());
+    }
+
     @Before
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void setUp() {
+        FrameInvoker.setBeansFunction(type -> ApproverResolver.class.equals(type)
+            ? (java.util.Collection) Collections.singletonList(new AbstractUserResolver() {
+                public void validate(ApproverRule rule) {}
+                public List<String> resolve(ApproverContext context) {
+                    org.junit.Assert.assertTrue(context.isPreview());
+                    resolvedNodes.add(context.getNode().getNodeCode());
+                    return Collections.singletonList(context.getNode().getPermissionFlag());
+                }
+            }) : Collections.emptyList());
         FlowEngine.setNewDef(() -> TestEntityFactory.create(Definition.class));
         FlowEngine.setNewTask(() -> TestEntityFactory.create(Task.class));
         FlowEngine.jsonConvert = new VariableJsonConvert();
@@ -105,6 +129,23 @@ public class ProgressServiceImplTest {
         assertEquals(20, capturedVariables.get("amount"));
         assertEquals("kept", capturedVariables.get("retained"));
         assertEquals(formData, capturedVariables.get("formData"));
+    }
+
+    @Test
+    public void shouldKeepActiveAssignmentSnapshotAndResolveOnlyFutureNodes() {
+        Definition definition = TestEntityFactory.create(Definition.class).setId(1L);
+        Instance instance = TestEntityFactory.create(Instance.class).setId(2L).setDefinitionId(1L)
+            .setNodeCode("first");
+        TestEntityFactory.put(instance, "VariableMap", Collections.emptyMap());
+        activeTasks = Collections.singletonList(TestEntityFactory.create(Task.class).setId(3L).setNodeCode("first"));
+        configureEngine(definition, instance);
+
+        ProgressResult result = new ProgressServiceImpl().previewByInstanceId(2L, Collections.emptyMap());
+
+        assertEquals(2, result.getNodes().size());
+        assertEquals(Collections.singletonList("assignedBeforeRoleChanged"), result.getNodes().get(0).getHandlers());
+        assertEquals(Collections.singletonList("userB"), result.getNodes().get(1).getHandlers());
+        assertEquals(Collections.singletonList("second"), resolvedNodes);
     }
 
     @Test
@@ -157,7 +198,7 @@ public class ProgressServiceImplTest {
                 return first;
             }
             if ("getExt".equals(method.getName())) {
-                return Collections.emptyMap();
+                return Collections.singletonMap("approverRule", "rule");
             }
             if ("getNextNodeList".equals(method.getName()) && args[0] instanceof Node) {
                 capturedVariables.putAll((Map<String, Object>) args[3]);
@@ -171,6 +212,14 @@ public class ProgressServiceImplTest {
             if (DefService.class.equals(type)) return defService;
             if (NodeService.class.equals(type)) return nodeService;
             if (InstanceService.class.equals(type)) return instanceService;
+            if (TaskService.class.equals(type)) return proxy(TaskService.class, (method, args) -> {
+                if ("getByInsId".equals(method.getName())) return activeTasks;
+                throw new AssertionError("Preview must not write tasks");
+            });
+            if (UserService.class.equals(type)) return proxy(UserService.class, (method, args) -> {
+                if ("getPermission".equals(method.getName())) return Collections.singletonList("assignedBeforeRoleChanged");
+                throw new AssertionError("Preview must not write assignments");
+            });
             return null;
         });
         FlowEngine.initPermissionHandler(null);
@@ -187,7 +236,7 @@ public class ProgressServiceImplTest {
         NodeServiceImpl delegate = new NodeServiceImpl();
         NodeService nodeService = proxy(NodeService.class, (method, args) -> {
             if ("getStartNode".equals(method.getName())) return start;
-            if ("getExt".equals(method.getName())) return Collections.emptyMap();
+            if ("getExt".equals(method.getName())) return Collections.singletonMap("approverRule", "rule");
             if ("getNextNodeList".equals(method.getName()) && args[0] instanceof Node) {
                 return delegate.getNextNodeList((Node) args[0], (String) args[1], (String) args[2],
                     (Map<String, Object>) args[3], null, (FlowCombine) args[5]);
@@ -247,7 +296,7 @@ public class ProgressServiceImplTest {
 
         @Override
         public <T> T strToBean(String jsonStr, Class<T> clazz) {
-            return null;
+            return clazz.cast(new ApproverRule().setStrategy("USER"));
         }
 
         @Override

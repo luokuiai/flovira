@@ -1,5 +1,5 @@
 export type DesignerNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
-export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
+export type ApproverStrategy = 'INITIATOR' | 'USER' | 'ROLE' | 'DEPARTMENT_LEADER' | 'SUPERVISING_LEADER'
 
 export interface ApproverSubject {
   id: string
@@ -10,6 +10,7 @@ export interface ApproverSubject {
 export interface ApproverRule {
   schemaVersion: 1
   strategy: ApproverStrategy | string
+  strategyVersion?: number
   selectionType: ApproverSelectionType
   relationType?: string
   subjects: ApproverSubject[]
@@ -39,6 +40,7 @@ export interface DesignerApproverOption {
 
 export interface DesignerApproverStrategy {
   code: ApproverStrategy | string
+  version?: number
   name: string
   selectionType: ApproverSelectionType
   resourceType?: string
@@ -59,32 +61,6 @@ export interface DesignerCapabilities {
   timeoutNodeTypes: DesignerNodeType[]
   operations: string[]
   resourceTypes: string[]
-}
-
-const MULTI_APPROVER_OPTION: DesignerApproverOption = {
-  code: 'approvalMode',
-  name: '多人审批策略',
-  defaultValue: 'OR',
-  nodeTypes: ['1'],
-  condition: 'MULTIPLE',
-  choices: [
-    { value: 'OR', label: '或签' },
-    { value: 'VOTE', label: '票签' },
-    { value: 'COUNTERSIGN', label: '会签' },
-  ],
-}
-
-const SAME_AS_STARTER_OPTION: DesignerApproverOption = {
-  code: 'sameAsStarterAction',
-  name: '审批人与提交人为同一人时',
-  defaultValue: 'SELF_APPROVE',
-  nodeTypes: ['1'],
-  condition: 'ALWAYS',
-  choices: [
-    { value: 'SELF_APPROVE', label: '本人审批' },
-    { value: 'AUTO_SKIP_OR_TRANSFER', label: '跳过或由其他人审批' },
-    { value: 'TRANSFER_TO_ORG_MANAGER', label: '转交部门负责人' },
-  ],
 }
 
 export interface DesignerResourceQuery {
@@ -111,13 +87,6 @@ export interface DesignerResourcePage {
   total: number
 }
 
-export interface DesignerRelationshipQuery {
-  relationType: string
-  subjectId?: string
-  organizationId?: string
-  context?: Record<string, unknown>
-}
-
 export interface DesignerSubject {
   id: string
   type: string
@@ -131,19 +100,14 @@ export const createApproverRule = (
   expression?: string,
   relationType?: string,
   selectionType: ApproverSelectionType = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
-): ApproverRule => ({ schemaVersion: 1, strategy, selectionType, relationType, subjects, expression })
+): ApproverRule => ({ schemaVersion: 1, strategyVersion: 1, strategy, selectionType, relationType, subjects, expression })
 
 export type ApiResponse<T> = T | { data?: T }
 
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-  approverStrategies: [
-    { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, editorType: 'DIALOG', resultCardinality: 'ONE_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'ORGANIZATION', name: '组织', selectionType: 'RESOURCE', resourceType: 'ORGANIZATION', relationType: 'ORGANIZATION_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false, editorType: 'INLINE', resultCardinality: 'EXACTLY_ONE', options: [SAME_AS_STARTER_OPTION] },
-  ],
+  approverStrategies: [],
   approvalModes: ['OR', 'VOTE', 'COUNTERSIGN'],
   returnPolicies: ['PREVIOUS', 'ANY', 'REJECT'],
   timeoutNodeTypes: ['1', '7'],

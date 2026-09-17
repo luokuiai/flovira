@@ -15,25 +15,25 @@
  */
 package com.luokuiai.flovira.core.handler;
 
-import com.luokuiai.flovira.core.dto.ApproverContext;
-import com.luokuiai.flovira.core.dto.ApproverRule;
+import com.luokuiai.flovira.core.constant.ApproverStrategy;
 import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
-import java.util.List;
 
 /**
- * 一个持久化策略编码对应一个业务解析器。配置校验与人员查询必须分离。
+ * 部门负责人策略的业务实现基类。不提供人员来源，不自动注册。
  *
  * @author warm
  */
-public interface ApproverResolver {
-    String getStrategy();
+public abstract class AbstractDepartmentLeaderResolver implements ApproverResolver {
+    @Override
+    public final String getStrategy() {
+        return ApproverStrategy.DEPARTMENT_LEADER;
+    }
 
-    /** 描述前端选项；code 必须与 getStrategy 一致，版本对应持久化配置格式。 */
-    ApproverStrategyDefinition getDefinition();
-
-    /** 只校验配置，不能在保存或发布时查询、固化未来节点的人员。 */
-    void validate(ApproverRule rule);
-
-    /** 返回最终用户 ID，不返回角色、组织 ID 或待执行的表达式；预览不得产生副作用。 */
-    List<String> resolve(ApproverContext context);
+    @Override
+    public ApproverStrategyDefinition getDefinition() {
+        return new ApproverStrategyDefinition().setCode(getStrategy()).setName("部门负责人")
+            .setSelectionType("RELATION").setEditorType("NONE")
+            .setMultiple(false)
+            .setResultCardinality("ONE_OR_MORE");
+    }
 }

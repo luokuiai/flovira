@@ -37,6 +37,7 @@ public class ApproverRule {
 
     private int schemaVersion = CURRENT_SCHEMA_VERSION;
     private String strategy;
+    private int strategyVersion = 1;
     private String selectionType;
     private String relationType;
     private List<BusinessSubject> subjects = new ArrayList<BusinessSubject>();

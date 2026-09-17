@@ -66,7 +66,6 @@ export type {
   DesignerConditionFieldLoader,
   DesignerBranchCondition,
   DesignerConditionGroup,
-  DesignerRelationshipQuery,
   DesignerResourceItem,
   DesignerResourcePage,
   DesignerResourceQuery,

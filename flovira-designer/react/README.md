@@ -84,7 +84,7 @@ The endpoint in this example belongs to the host application; replace it with yo
 - `value` / `defaultValue`: a Flovira definition object or JSON string for controlled / uncontrolled usage.
 - `onChange`: receives the latest definition, JSON, and dirty state.
 - `appearance`: `standalone` (default) displays a rounded card; `embedded` removes the outer border, radius, and shadow. Internal controls and toolbar are unchanged.
-- `capabilities`: designer capabilities and approver strategies loaded by the host; built-in defaults apply when omitted.
+- `capabilities`: designer capabilities and approver strategies loaded by the host; omitting it leaves the approver strategy list empty.
 - `queryResources`: host resource loader for default selectors and subprocesses. Custom selectors may load their own data.
 - `renderApproverEditor`: custom approver configuration. Receives the current node, strategy, complete `rule`, read-only state, `onChange`, and `onRuleChange`; may render organization trees, tables, or other business controls.
 - `renderNode`: custom node card renderer.
@@ -131,7 +131,7 @@ The React package does not enumerate business approver types. It renders host-pr
 
 `resultCardinality` describes the number of resolved people, not selected resources: `EXACTLY_ONE`, `ONE_OR_MORE`, `ZERO_OR_ONE`, or `ZERO_OR_MORE`. Options may declare `condition: MULTIPLE | EMPTY | ALWAYS`. Direct single-person selection hides multiple-person and empty-result policies; direct multi-person selection shows the multiple-person policy; groups that may resolve to zero or more people show both.
 
-Built-in capabilities also include policies for an approver who is the submitter: self-approval, skipping or using another approver, and transferring to a department manager. Hosts may replace or remove these strategy options.
+Strategy descriptors come from registered backend resolvers. Flovira supplies standard codes and abstract resolver classes, but no default personnel lookup or strategy options. Hosts define and implement their own policies.
 
 Strategy `options` render as radio groups and write their values into `ApproverRule.config` under the option code:
 

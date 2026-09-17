@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.luokuiai.flovira.ui.vo;
+package com.luokuiai.flovira.core.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -30,7 +30,7 @@ import java.util.List;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class DesignerApproverStrategy {
+public class ApproverStrategyDefinition {
 
     public static final String RESOURCE = "RESOURCE";
     public static final String RELATION = "RELATION";
@@ -44,6 +44,7 @@ public class DesignerApproverStrategy {
     public static final String ZERO_OR_MORE = "ZERO_OR_MORE";
 
     private String code;
+    private int version = 1;
     private String name;
     private String selectionType;
     private String resourceType;
@@ -52,22 +53,22 @@ public class DesignerApproverStrategy {
     private String editorType = EDITOR_NONE;
     private String editorKey;
     private String resultCardinality;
-    private List<DesignerApproverOption> options = new ArrayList<DesignerApproverOption>();
+    private List<ApproverOption> options = new ArrayList<ApproverOption>();
 
-    public static DesignerApproverStrategy resource(String code, String name, String resourceType,
+    public static ApproverStrategyDefinition resource(String code, String name, String resourceType,
                                                       String relationType) {
-        return new DesignerApproverStrategy().setCode(code).setName(name).setSelectionType(RESOURCE)
+        return new ApproverStrategyDefinition().setCode(code).setName(name).setSelectionType(RESOURCE)
             .setResourceType(resourceType).setRelationType(relationType).setEditorType(EDITOR_DIALOG)
             .setResultCardinality(relationType == null ? ONE_OR_MORE : ZERO_OR_MORE);
     }
 
-    public static DesignerApproverStrategy relation(String code, String name, String relationType) {
-        return new DesignerApproverStrategy().setCode(code).setName(name).setSelectionType(RELATION)
+    public static ApproverStrategyDefinition relation(String code, String name, String relationType) {
+        return new ApproverStrategyDefinition().setCode(code).setName(name).setSelectionType(RELATION)
             .setRelationType(relationType).setMultiple(false).setResultCardinality(ZERO_OR_MORE);
     }
 
-    public static DesignerApproverStrategy expression(String code, String name) {
-        return new DesignerApproverStrategy().setCode(code).setName(name).setSelectionType(EXPRESSION)
+    public static ApproverStrategyDefinition expression(String code, String name) {
+        return new ApproverStrategyDefinition().setCode(code).setName(name).setSelectionType(EXPRESSION)
             .setMultiple(false).setEditorType(EDITOR_INLINE).setResultCardinality(EXACTLY_ONE);
     }
 }

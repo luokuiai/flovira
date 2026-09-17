@@ -25,8 +25,6 @@ import com.luokuiai.flovira.core.dto.SubprocessSummary;
 import com.luokuiai.flovira.core.dto.SubprocessChildSummary;
 import com.luokuiai.flovira.core.dto.SubprocessHistoryEntry;
 import com.luokuiai.flovira.core.utils.page.Page;
-import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
-import com.luokuiai.flovira.core.dto.BusinessSubject;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
 import com.luokuiai.flovira.ui.dto.FormContentRequest;
 import com.luokuiai.flovira.ui.service.FloviraService;
@@ -71,13 +69,6 @@ public class FloviraController {
         return FloviraService.queryResources(query);
     }
 
-    /**
-     * 查询部门负责人、分管领导、角色成员和组织链等业务关系。
-     */
-    @PostMapping("/integration/relationships/resolve")
-    public ApiResult<List<BusinessSubject>> resolveRelationship(@RequestBody BusinessRelationQuery query) {
-        return FloviraService.resolveRelationship(query);
-    }
 
     /**
      * 保存流程json字符串

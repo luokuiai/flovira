@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.luokuiai.flovira.ui.vo;
+package com.luokuiai.flovira.core.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -30,12 +30,12 @@ import java.util.List;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class DesignerApproverOption {
+public class ApproverOption {
 
     private String code;
     private String name;
     private String defaultValue;
-    private List<DesignerApproverOptionChoice> choices = new ArrayList<DesignerApproverOptionChoice>();
+    private List<ApproverOptionChoice> choices = new ArrayList<ApproverOptionChoice>();
     private List<String> nodeTypes = new ArrayList<String>();
     private String condition = "ALWAYS";
 }

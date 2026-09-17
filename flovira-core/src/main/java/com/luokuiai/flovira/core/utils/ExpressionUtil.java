@@ -86,7 +86,9 @@ public class ExpressionUtil {
         Map<String, Object> variable = flowParams.getVariables();
         addTasks.forEach(addTask -> {
             boolean resolvedApproverRule = ApproverRuleUtil.isResolved(addTask.getPermissionList());
-            List<String> permissions = addTask.getPermissionList().stream()
+            List<String> permissions = resolvedApproverRule
+                ? new ArrayList<String>(addTask.getPermissionList())
+                : addTask.getPermissionList().stream()
                     .map(s -> evalVariable(s, variable)).filter(Objects::nonNull)
                     .flatMap(List::stream)
                     .distinct()

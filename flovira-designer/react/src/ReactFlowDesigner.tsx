@@ -314,7 +314,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
         commit(next)
         setSelectedCode('')
       },
-      validate: () => validateDefinition(definition),
+      validate: () => validateDefinition(definition, capabilities),
       isDirty: () => dirty,
       resetDirty: () => setDirty(false),
       undo,
@@ -323,7 +323,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       zoomOut: () => setZoom((current) => Math.max(0.5, Number((current - 0.1).toFixed(1)))),
       resetZoom: () => setZoom(1),
       locateStart,
-    }), [commit, definition, dirty, locateStart, redo, undo])
+    }), [capabilities, commit, definition, dirty, locateStart, redo, undo])
 
     const branchNode = selectedBranch ? definition.nodeList.find((node) => node.nodeCode === selectedBranch.nodeCode) : undefined
     const activeBranch = branchNode && selectedBranch && branchNode.skipList[selectedBranch.index] ? selectedBranch : null
@@ -350,9 +350,16 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const selectedApproverRule = selectedNode?.nodeType === '8'
       ? getCarbonCopyRule(selectedNode)
       : selectedNode?.nodeType === '1' ? getApproverRule(selectedNode) : null
-    const setSelectedParticipantRule = selectedNode?.nodeType === '8' ? setCarbonCopyRule : setApproverRule
+    const setSelectedParticipantRule = (...args: Parameters<typeof setApproverRule>) => {
+      const setter = selectedNode?.nodeType === '8' ? setCarbonCopyRule : setApproverRule
+      const previous = selectedApproverRule
+      args[7] = previous?.strategy === args[1]
+        ? previous.strategyVersion ?? 1
+        : findApproverStrategy(capabilities, args[1])?.version ?? 1
+      return setter(...args)
+    }
     const selectedApproverStrategy = selectedApproverRule
-      ? findApproverStrategy(capabilities, selectedApproverRule.strategy) || capabilities.approverStrategies[0]
+      ? findApproverStrategy(capabilities, selectedApproverRule.strategy)
       : undefined
     useEffect(() => {
       if (!selectedNode || !['1', '8'].includes(selectedNode.nodeType)
@@ -607,7 +614,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     }
 
     const start = definition.nodeList.find((node) => node.nodeType === '0') || definition.nodeList[0]
-    const validation = validateDefinition(definition)
+    const validation = validateDefinition(definition, capabilities)
     const updateInlineApproverRule = (rule: ApproverRule) => {
       if (!selectedNode || !selectedApproverStrategy) return
       const subjects = selectedApproverStrategy.multiple ? rule.subjects : rule.subjects.slice(0, 1)
@@ -769,12 +776,17 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                   <h4>{selectedNode.nodeType === '8' ? '抄送策略' : '审批策略'}</h4>
                   <UiField label={selectedNode.nodeType === '8' ? '抄送人类型' : '办理人类型'}>
                     <UiSelect
-                      value={String(selectedApproverStrategy?.code || '')}
+                      ariaLabel={selectedNode.nodeType === '8' ? '抄送人类型' : '办理人类型'}
+                      value={String(selectedApproverRule?.strategy || '')}
                       disabled={disabled}
-                      options={approverStrategyOptions(capabilities).map((strategy) => ({
-                        value: strategy.value,
-                        label: strategy.label,
-                      }))}
+                      options={[
+                        { value: '', label: '请选择人员策略', disabled: true },
+                        ...(selectedApproverRule?.strategy && !selectedApproverStrategy
+                          ? [{ value: selectedApproverRule.strategy, label: `不支持的策略：${selectedApproverRule.strategy}`, disabled: true }] : []),
+                        ...approverStrategyOptions(capabilities).map((strategy) => ({
+                          value: strategy.value, label: strategy.label,
+                        })),
+                      ]}
                       onValueChange={(value) => {
                         const strategy = findApproverStrategy(capabilities, value)
                         const config = strategy?.options

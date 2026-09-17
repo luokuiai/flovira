@@ -2,7 +2,6 @@ import type {
   ApproverRule,
   ApproverStrategy,
   ApproverSubject,
-  DesignerApproverOption,
   DesignerApproverStrategy,
   DesignerCapabilities,
   FloviraDefinition,
@@ -13,41 +12,10 @@ import type {
   NodeControlConfig,
 } from './types'
 
-const MULTI_APPROVER_OPTION: DesignerApproverOption = {
-  code: 'approvalMode',
-  name: '多人审批策略',
-  defaultValue: 'OR',
-  nodeTypes: ['1'],
-  condition: 'MULTIPLE',
-  choices: [
-    { value: 'COUNTERSIGN', label: '会签' },
-    { value: 'OR', label: '或签' },
-    { value: 'VOTE', label: '票签' },
-  ],
-}
-
-const SAME_AS_STARTER_OPTION: DesignerApproverOption = {
-  code: 'sameAsStarterAction',
-  name: '审批人与提交人为同一人时',
-  defaultValue: 'SELF_APPROVE',
-  nodeTypes: ['1'],
-  condition: 'ALWAYS',
-  choices: [
-    { value: 'SELF_APPROVE', label: '本人审批' },
-    { value: 'AUTO_SKIP_OR_TRANSFER', label: '跳过或由其他人审批' },
-    { value: 'TRANSFER_TO_ORG_MANAGER', label: '转交部门负责人' },
-  ],
-}
-
 export const DEFAULT_DESIGNER_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
-  approverStrategies: [
-    { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, editorType: 'DIALOG', resultCardinality: 'ONE_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'ORGANIZATION', name: '组织', selectionType: 'RESOURCE', resourceType: 'ORGANIZATION', relationType: 'ORGANIZATION_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false, editorType: 'INLINE', resultCardinality: 'EXACTLY_ONE', options: [SAME_AS_STARTER_OPTION] },
-  ],
+  approverStrategies: [],
   approvalModes: ['OR', 'VOTE', 'COUNTERSIGN'],
   returnPolicies: ['PREVIOUS', 'ANY', 'REJECT'],
   timeoutNodeTypes: ['1', '7'],
@@ -396,7 +364,8 @@ const getParticipantRule = (node: FloviraNode, code: string): ApproverRule => {
   const config = getNodeExtConfig(node, code)
   return {
     schemaVersion: 1,
-    strategy: String(config.strategy || 'USER'),
+    strategy: String(config.strategy || ''),
+    strategyVersion: Number(config.strategyVersion ?? 1),
     selectionType: (config.selectionType || (config.strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE')) as ApproverRule['selectionType'],
     relationType: config.relationType ? String(config.relationType) : undefined,
     subjects: Array.isArray(config.subjects) ? config.subjects as ApproverSubject[] : [],
@@ -426,10 +395,12 @@ export const setApproverRule = (
   relationType?: string,
   selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
   config?: Record<string, unknown>,
+  strategyVersion = 1,
 ): FloviraNode => {
   const next = setNodeExtConfig(node, 'approverRule', {
     schemaVersion: 1,
     strategy,
+    strategyVersion,
     selectionType,
     relationType,
     subjects,
@@ -453,9 +424,11 @@ export const setCarbonCopyRule = (
   relationType?: string,
   selectionType: ApproverRule['selectionType'] = strategy === 'EXPRESSION' ? 'EXPRESSION' : 'RESOURCE',
   config?: Record<string, unknown>,
+  strategyVersion = 1,
 ): FloviraNode => setNodeExtConfig(node, 'carbonCopyRule', {
   schemaVersion: 1,
   strategy,
+  strategyVersion,
   selectionType,
   relationType,
   subjects,
@@ -494,7 +467,7 @@ export const setTimeoutConfig = (
   })
 }
 
-export const validateDefinition = (definition: FloviraDefinition): FlowValidationResult => {
+export const validateDefinition = (definition: FloviraDefinition, capabilities?: DesignerCapabilities): FlowValidationResult => {
   const issues: FlowValidationResult['issues'] = []
   const nodes = definition.nodeList
   const codes = new Set(nodes.map((node) => node.nodeCode))
@@ -553,6 +526,15 @@ export const validateDefinition = (definition: FloviraDefinition): FlowValidatio
         if (invalid) {
           issues.push({ code: 'APPROVER_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 未配置办理人` })
         }
+      }
+    }
+    if (['1', '8'].includes(node.nodeType)) {
+      const rule = node.nodeType === '8' ? getCarbonCopyRule(node) : getApproverRule(node)
+      const descriptor = capabilities?.approverStrategies.find(item => item.code === rule.strategy)
+      if (!rule.strategy || (capabilities && !descriptor)) {
+        issues.push({ code: 'APPROVER_STRATEGY_UNKNOWN', nodeCode: node.nodeCode, message: `${node.nodeName} 未选择后端支持的人员策略` })
+      } else if (descriptor && (rule.strategyVersion ?? 1) !== (descriptor.version ?? 1)) {
+        issues.push({ code: 'APPROVER_STRATEGY_VERSION', nodeCode: node.nodeCode, message: `${node.nodeName} 的人员策略版本不受支持` })
       }
     }
     if (node.nodeType === '8') {

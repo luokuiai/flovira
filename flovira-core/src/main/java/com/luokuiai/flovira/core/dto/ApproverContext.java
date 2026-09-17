@@ -1,5 +1,5 @@
 /*
- *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,25 +15,23 @@
  */
 package com.luokuiai.flovira.core.dto;
 
+import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.entity.Node;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.Accessors;
-
-import java.util.HashMap;
-import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 /**
- * 审批人业务关系查询。
+ * 审批人解析上下文。预览必须只读；实例启动前 instance 可以为空。
+ * 不推断提交人身份，由业务解析器按自己的业务契约获取。
  *
  * @author warm
  */
 @Getter
-@Setter
-@Accessors(chain = true)
-public class BusinessRelationQuery {
-
-    private String relationType;
-    private String subjectId;
-    private String organizationId;
-    private Map<String, Object> context = new HashMap<String, Object>();
+@RequiredArgsConstructor
+public class ApproverContext {
+    private final Node node;
+    private final ApproverRule rule;
+    private final Instance instance;
+    private final FlowParams flowParams;
+    private final boolean preview;
 }

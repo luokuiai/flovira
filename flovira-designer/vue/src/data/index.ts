@@ -48,7 +48,6 @@ export type {
   DesignerApproverStrategy,
   DesignerCapabilities,
   DesignerNodeType,
-  DesignerRelationshipQuery,
   DesignerResourceItem,
   DesignerResourcePage,
   DesignerResourceQuery,

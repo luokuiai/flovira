@@ -560,6 +560,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public Task addTask(Node node, Instance instance, Definition definition, FlowParams flowParams) {
+        // 人员解析与预览使用相同的实例变量视图，本次提交值覆盖已保存变量。
+        flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
         Task addTask = FlowEngine.newTask();
         Date now = new Date();
         FlowEngine.dataFillHandler().idFill(addTask);
@@ -571,11 +573,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             .setFlowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(),
                 setFlowStatus(node.getNodeType(), flowParams.getSkipType())))
             .setCreatedAt(now)
-            .setPermissionList(NodeType.isWait(node.getNodeType())
-                ? Collections.<String>emptyList()
-                : NodeType.isCarbonCopy(node.getNodeType())
-                ? ApproverRuleUtil.resolveCarbonCopy(node, flowParams)
-                : ApproverRuleUtil.resolve(node, flowParams));
+            .setPermissionList(ApproverRuleUtil.resolve(node, instance, flowParams, false));
 
         TimeoutConfigUtil.applySnapshot(node, addTask, now);
 
