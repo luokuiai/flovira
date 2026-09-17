@@ -24,8 +24,9 @@ public final class ApproverStrategy {
 
     public static final String USER = "USER";
     public static final String ROLE = "ROLE";
-    public static final String ORGANIZATION = "ORGANIZATION";
-    public static final String EXPRESSION = "EXPRESSION";
+    public static final String INITIATOR = "INITIATOR";
+    public static final String DEPARTMENT_LEADER = "DEPARTMENT_LEADER";
+    public static final String SUPERVISING_LEADER = "SUPERVISING_LEADER";
 
     private ApproverStrategy() {
     }

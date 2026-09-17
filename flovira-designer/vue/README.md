@@ -208,7 +208,7 @@ setDataProvider({
 
 Use `createMockProvider()` or the runtime URL parameter `?mock=true` for backend-free development.
 
-- Integration: `capabilities()`, `queryResources(query)`, `resolveRelationship(query)`.
+- Integration: `capabilities()`, `queryResources(query)`.
 - Definitions: `saveJson(data)`, `queryDef(id?)`, `queryFlowChart(id)`.
 - Runtime queries: `subprocessSummary`, `subprocessChildren`, `subprocessEvents`, `subprocessHistory`.
 - Configuration: `config()`.

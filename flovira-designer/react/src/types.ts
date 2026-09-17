@@ -1,7 +1,7 @@
 import type { ComponentType, ReactElement, ReactNode } from 'react'
 
 export type FloviraNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
-export type ApproverStrategy = 'USER' | 'ROLE' | 'ORGANIZATION' | 'EXPRESSION'
+export type ApproverStrategy = 'INITIATOR' | 'USER' | 'ROLE' | 'DEPARTMENT_LEADER' | 'SUPERVISING_LEADER'
 
 export interface ApproverSubject {
   id: string
@@ -12,6 +12,7 @@ export interface ApproverSubject {
 export interface ApproverRule {
   schemaVersion: 1
   strategy: ApproverStrategy | string
+  strategyVersion?: number
   selectionType: ApproverSelectionType
   relationType?: string
   subjects: ApproverSubject[]
@@ -28,6 +29,10 @@ export interface DesignerApproverOptionChoice {
   value: string
   label: string
   disabled?: boolean
+  /** Strategy used by the host picker for this choice's separate subjects. */
+  selectionStrategy?: string
+  /** Key in the owning rule's config where the selected subjects are stored. */
+  selectionConfigKey?: string
 }
 
 export interface DesignerApproverOption {
@@ -41,11 +46,14 @@ export interface DesignerApproverOption {
 
 export interface DesignerApproverStrategy {
   code: ApproverStrategy | string
+  version?: number
   name: string
   selectionType: ApproverSelectionType
   resourceType?: string
   relationType?: string
   multiple: boolean
+  /** Maximum explicitly selected subjects; omitted means no configured limit. */
+  maxSubjects?: number
   /** How this strategy is configured in the node drawer. Defaults from selectionType. */
   editorType?: ApproverEditorType
   /** Stable key used by the host to select a business-specific editor. */
@@ -84,8 +92,6 @@ export interface FloviraSkip extends Record<string, unknown> {
 }
 
 export interface FloviraNode extends Record<string, unknown> {
-  /** 外部业务表单标识；留空继承流程表单。 */
-  formId?: string | null
   nodeType: FloviraNodeType
   nodeCode: string
   nodeName: string
@@ -162,13 +168,6 @@ export interface DesignerResourcePage {
   total: number
 }
 
-export interface DesignerRelationshipQuery {
-  relationType: string
-  subjectId?: string
-  organizationId?: string
-  context?: Record<string, unknown>
-}
-
 export interface DesignerSubject {
   id: string
   type: string
@@ -184,6 +183,8 @@ export interface FlowValidationIssue {
   code: string
   message: string
   nodeCode?: string
+  /** 分支问题对应节点 skipList 中的位置。 */
+  skipIndex?: number
 }
 
 export interface FlowValidationResult {
@@ -288,6 +289,8 @@ export interface DesignerDropdownMenuProps {
   trigger: ReactElement
   items: DesignerDropdownMenuItem[]
   align?: 'left' | 'right'
+  onOpenChange?(open: boolean): void
+  renderContent?(context: { close(): void }): ReactNode
   onSelect(value: string): void
 }
 
@@ -295,6 +298,7 @@ export interface DesignerDrawerProps {
   open: boolean
   title: ReactNode
   children: ReactNode
+  footer?: ReactNode
   width?: number
   ariaLabel?: string
   onClose(): void
@@ -324,7 +328,14 @@ export interface ApproverEditorRenderContext {
   onRuleChange(rule: ApproverRule): void
 }
 
+/** Host owns the picker UI. null / undefined cancels without changing the rule. */
+export type ApproverSelectionContext = Omit<ApproverEditorRenderContext, 'onChange' | 'onRuleChange'>
+export type ApproverSelectionResult = Pick<ApproverRule, 'subjects' | 'expression' | 'config'>
+export type ApproverSelector = (context: ApproverSelectionContext) =>
+  ApproverSelectionResult | null | undefined | Promise<ApproverSelectionResult | null | undefined>
+
 export interface DesignerUiAdapter {
+  Tabs?: ComponentType<DesignerTabsProps>
   Button: ComponentType<DesignerButtonProps>
   Input: ComponentType<DesignerInputProps>
   Select: ComponentType<DesignerSelectProps>
@@ -335,6 +346,14 @@ export interface DesignerUiAdapter {
   DropdownMenu: ComponentType<DesignerDropdownMenuProps>
   Drawer: ComponentType<DesignerDrawerProps>
   Dialog?: ComponentType<DesignerDialogProps>
+}
+
+export interface DesignerTabsProps {
+  value: string
+  options: { value: string; label: string }[]
+  idPrefix: string
+  ariaLabel?: string
+  onValueChange(value: string): void
 }
 
 export interface DesignerConditionField {
@@ -367,10 +386,11 @@ export type DesignerConditionFieldLoader = (
 ) => Promise<readonly DesignerConditionField[]>
 
 export interface ReactFlowDesignerProps {
-  /** standalone 为独立卡片，embedded 去掉外层边框、圆角和阴影。 */
+  /** standalone 为独立卡片；embedded 无外框和标题栏，历史操作悬浮于画布右上角。 */
   appearance?: 'standalone' | 'embedded'
-  /** 是否显示顶栏；默认显示。 */
+  /** 是否显示顶栏或嵌入模式的悬浮历史操作栏；默认显示，不影响左下角缩放。 */
   toolbar?: boolean
+  /** 自定义当前模式的操作栏：独立模式位于顶部，嵌入模式位于画布右上角。 */
   renderToolbar?: (context: DesignerToolbarContext) => ReactNode
   value?: FloviraDefinition | string
   defaultValue?: FloviraDefinition | string
@@ -389,6 +409,11 @@ export interface ReactFlowDesignerProps {
   renderNode?: (context: NodeRendererContext) => ReactNode
   /** Render a strategy editor for INLINE or DIALOG strategies. */
   renderApproverEditor?: (context: ApproverEditorRenderContext) => ReactNode
+  /** Takes precedence over the built-in dialog and renderApproverEditor for dialog strategies. */
+  onSelectApprover?: ApproverSelector
+  /** Actual form fields for per-node read/write metadata; not condition-derived fields. */
+  formFields?: readonly import('./formPermissions').DesignerFormField[]
+  queryFormFields?: import('./formPermissions').DesignerFormFieldLoader
   /** Override individual controls to integrate the designer with a host UI library. */
   ui?: Partial<DesignerUiAdapter>
 }

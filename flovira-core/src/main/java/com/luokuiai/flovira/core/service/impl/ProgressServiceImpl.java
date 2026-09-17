@@ -27,6 +27,8 @@ import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.enums.SkipType;
+import com.luokuiai.flovira.core.enums.UserType;
+import java.util.LinkedHashMap;
 import com.luokuiai.flovira.core.service.ProgressService;
 import com.luokuiai.flovira.core.utils.ApproverRuleUtil;
 import com.luokuiai.flovira.core.utils.AssertUtil;
@@ -77,29 +79,41 @@ public class ProgressServiceImpl implements ProgressService {
         Node sourceNode = FlowEngine.nodeService()
             .getByDefIdAndNodeCode(instance.getDefinitionId(), instance.getNodeCode());
         AssertUtil.isNull(sourceNode, ExceptionCons.LOST_CUR_NODE);
-        return preview(instance.getDefinitionId(), instanceId, sourceNode, instance.getVariableMap(), variables);
+        return preview(instance.getDefinitionId(), instance, sourceNode, instance.getVariableMap(), variables);
     }
 
-    private ProgressResult preview(Long definitionId, Long instanceId, Node sourceNode,
+    private ProgressResult preview(Long definitionId, Instance instance, Node sourceNode,
                                    Map<String, Object> baseVariables, Map<String, Object> variables) {
         FlowParams previewParams = new FlowParams().variables(MapUtil.mergeAll(baseVariables, variables));
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(definitionId);
-        List<ProgressNode> progressNodes = calculate(sourceNode, previewParams, flowCombine);
+        List<ProgressNode> progressNodes = calculate(sourceNode, previewParams, flowCombine, instance);
         return new ProgressResult()
             .setDefinitionId(definitionId)
-            .setInstanceId(instanceId)
+            .setInstanceId(instance == null ? null : instance.getId())
             .setSourceNodeCode(sourceNode.getNodeCode())
             .setNodes(progressNodes);
     }
 
-    private List<ProgressNode> calculate(Node sourceNode, FlowParams flowParams, FlowCombine flowCombine) {
+    private List<ProgressNode> calculate(Node sourceNode, FlowParams flowParams, FlowCombine flowCombine, Instance instance) {
         List<ProgressNode> result = new ArrayList<>();
         if (NodeType.isEnd(sourceNode.getNodeType())) {
             return result;
         }
 
+        Map<String, List<String>> assigned = new LinkedHashMap<>();
         Deque<Node> pending = new ArrayDeque<>();
-        addAll(pending, nextNodes(sourceNode, flowParams, flowCombine));
+        if (instance != null) {
+            for (Task task : FlowEngine.taskService().getByInsId(instance.getId())) {
+                List<String> handlers = assigned.computeIfAbsent(task.getNodeCode(), key -> new ArrayList<>());
+                handlers.addAll(FlowEngine.userService().getPermission(task.getId(),
+                    UserType.APPROVAL.getKey(), UserType.TRANSFER.getKey(), UserType.DEPUTE.getKey(),
+                    UserType.CARBON_COPY.getKey()));
+            }
+            for (Node node : flowCombine.getAllNodes()) {
+                if (assigned.containsKey(node.getNodeCode())) pending.addLast(node);
+            }
+        }
+        if (pending.isEmpty()) addAll(pending, nextNodes(sourceNode, flowParams, flowCombine));
         Set<String> visited = new HashSet<>();
         while (!pending.isEmpty()) {
             Node node = pending.removeFirst();
@@ -107,7 +121,11 @@ public class ProgressServiceImpl implements ProgressService {
                 continue;
             }
             if (NodeType.isWorkNode(node.getNodeType())) {
-                result.add(toProgressNode(node, flowParams));
+                result.add(assigned.containsKey(node.getNodeCode())
+                    ? new ProgressNode().setNodeCode(node.getNodeCode()).setNodeName(node.getNodeName())
+                        .setNodeType(node.getNodeType()).setHandlers(new ArrayList<>(
+                            new java.util.LinkedHashSet<>(assigned.get(node.getNodeCode()))))
+                    : toProgressNode(node, flowParams, instance));
             }
             if (!NodeType.isEnd(node.getNodeType())) {
                 addAll(pending, nextNodes(node, flowParams, flowCombine));
@@ -121,12 +139,11 @@ public class ProgressServiceImpl implements ProgressService {
             flowParams.getVariables(), null, flowCombine);
     }
 
-    private ProgressNode toProgressNode(Node node, FlowParams flowParams) {
+    private ProgressNode toProgressNode(Node node, FlowParams flowParams, Instance instance) {
         List<String> handlers = Collections.emptyList();
         if (!NodeType.isWait(node.getNodeType())) {
-            Task task = FlowEngine.newTask().setPermissionList(NodeType.isCarbonCopy(node.getNodeType())
-                ? ApproverRuleUtil.resolveCarbonCopy(node, flowParams)
-                : ApproverRuleUtil.resolve(node, flowParams));
+            Task task = FlowEngine.newTask().setPermissionList(
+                ApproverRuleUtil.resolve(node, instance, flowParams, true));
             ExpressionUtil.evalVariable(Collections.singletonList(task), flowParams);
             handlers = new ArrayList<>(task.getPermissionList());
         }

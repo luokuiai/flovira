@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.luokuiai.flovira.ui.vo;
+package com.luokuiai.flovira.core.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -27,9 +27,13 @@ import lombok.experimental.Accessors;
 @Getter
 @Setter
 @Accessors(chain = true)
-public class DesignerApproverOptionChoice {
+public class ApproverOptionChoice {
 
     private String value;
     private String label;
     private boolean disabled;
+    /** 此选项调用业务选择器时使用的策略编码。 */
+    private String selectionStrategy;
+    /** 所选人员列表在所属规则 config 中的存储键。 */
+    private String selectionConfigKey;
 }

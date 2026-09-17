@@ -1,10 +1,13 @@
-[data-lumen-theme] .flovira-react-designer {
+[data-lumen-theme] .flovira-react-designer,
+[data-lumen-theme] .frd-subprocess-options,
+.frd-lumen-drawer {
   --frd-primary: var(--lumen-color-primary);
   --frd-primary-hover: var(--lumen-color-primary-hover);
   --frd-surface: var(--lumen-color-surface);
   --frd-canvas: var(--lumen-color-surface-muted);
   --frd-border: var(--lumen-color-border);
   --frd-text: var(--lumen-color-text);
+  --frd-heading: color-mix(in srgb, var(--lumen-color-text-secondary) 80%, var(--lumen-color-text));
   --frd-muted: var(--lumen-color-text-muted);
 }
 
@@ -12,8 +15,35 @@
   margin-bottom: 16px;
 }
 
+.frd-lumen-select-trigger,
+.frd-lumen-select-option[data-ui="select-option"] {
+  font-weight: 400;
+}
+
 .frd-lumen-field > label + div {
   margin-top: 12px;
+}
+
+/* Keep a small title gap in addition to Lumen's control hit-area padding. */
+.frd-lumen-field:has([role="radiogroup"], .frd-node-controls__permissions) > label + div {
+  margin-top: 12px;
+}
+
+.frd-lumen-drawer .frd-node-controls {
+  gap: 0;
+}
+
+.frd-lumen-drawer .frd-timeout-action [role="radiogroup"],
+.frd-lumen-drawer .frd-approver-option [role="radiogroup"],
+.frd-lumen-drawer .frd-node-controls [role="radiogroup"],
+.frd-lumen-drawer .frd-node-controls__permissions {
+  row-gap: 8px;
+}
+
+.frd-settings-panel .frd-lumen-field > label {
+  color: var(--frd-heading);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .frd-lumen-checkbox-label {
@@ -27,6 +57,11 @@
 .frd-lumen-dropdown-menu {
   min-width: 188px;
   padding: 4px;
+}
+
+/* Match Lumen Select's popup layer when opened from a drawer or dialog. */
+[data-lumen-overlay-scope]:has(> .frd-lumen-dropdown-menu) {
+  z-index: 9999;
 }
 
 .frd-lumen-dropdown-item {
@@ -90,7 +125,13 @@
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 0 20px 20px;
+}
+
+.frd-lumen-drawer__footer {
+  flex: none;
+  padding: 16px 20px;
+  border-top: 1px solid var(--lumen-color-divider);
 }
 
 .frd-lumen-drawer__close-icon {
@@ -160,4 +201,8 @@
   justify-content: flex-end;
   gap: 8px;
   border-top: 1px solid var(--lumen-color-divider);
+}
+.frd-lumen-tabs {
+  margin: 0 0 20px;
+  border-bottom: 1px solid var(--lumen-color-divider);
 }

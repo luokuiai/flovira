@@ -93,7 +93,6 @@ final class WorkflowPackageTransfer {
         prepare(design);
         collectForm(design.getFormId(), sourceTenant, forms, external);
         for (Node node : full.getNodeList()) {
-            collectForm(node.getFormId(), sourceTenant, forms, external);
             if (NodeType.isSubProcess(node.getNodeType())) {
                 String childCode = SubprocessConfigUtil.read(node).getFixedChildFlowCode();
                 Definition child = definitions.getPublishByFlowCode(childCode);
@@ -142,9 +141,6 @@ final class WorkflowPackageTransfer {
             String code = design.getFlowCode();
             require(flows.put(code, flow) == null, "重复的流程编码: " + code);
             addReference(referencedForms, design.getFormId());
-            for (NodeJson node : design.getNodeList()) {
-                addReference(referencedForms, node.getFormId());
-            }
         }
         List<String> ordered = new ArrayList<>();
         order(input.getRootFlowCode(), flows, new LinkedHashSet<>(), new LinkedHashSet<>(), ordered);
@@ -188,8 +184,7 @@ final class WorkflowPackageTransfer {
             targetEntity(definition);
             require(definitions.checkAndSave(definition), "保存导入流程失败: " + code);
             for (Node node : flow.getAllNodes()) {
-                node.setDefinitionId(definition.getId()).setVersion(definition.getVersion())
-                    .setFormId(remap(node.getFormId(), references));
+                node.setDefinitionId(definition.getId()).setVersion(definition.getVersion());
                 targetEntity(node);
             }
             flow.getAllSkips().forEach(skip -> {

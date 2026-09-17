@@ -20,9 +20,6 @@ export function createHttpProvider(apiPrefix = urlPrefix + 'flovira'): DataProvi
     queryResources(query) {
       return request({ url: baseUrl + '/integration/resources', method: 'get', params: query })
     },
-    resolveRelationship(query) {
-      return request({ url: baseUrl + '/integration/relationships/resolve', method: 'post', data: query })
-    },
     // ===== 流程定义（原 api/flow/definition.js） =====
     // 保存json流程定义
     saveJson(data) {

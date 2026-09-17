@@ -61,7 +61,6 @@ export const json2LogicFlowJson = (definition) => {
       lfNode.properties.anyNodeSkip = node.anyNodeSkip
       lfNode.properties.listenerType = node.listenerType
       lfNode.properties.listenerPath = node.listenerPath
-      lfNode.properties.formId = node.formId
       lfNode.properties.status = node.status
       lfNode.properties.chartStatusColor = definition.chartStatusColor
       lfNode.properties.promptContent = node.promptContent
@@ -217,9 +216,6 @@ export const logicFlowJsonToFlovira = (data) => {
     node.anyNodeSkip = anyNode.properties.anyNodeSkip
     node.listenerType = anyNode.properties.listenerType
     node.listenerPath = anyNode.properties.listenerPath
-    if (anyNode.properties.formId && String(anyNode.properties.formId).trim()) {
-      node.formId = anyNode.properties.formId.trim()
-    }
     node.ext = [];
     for (const key in anyNode.properties.ext) {
       if (Object.prototype.hasOwnProperty.call(anyNode.properties.ext, key)) {

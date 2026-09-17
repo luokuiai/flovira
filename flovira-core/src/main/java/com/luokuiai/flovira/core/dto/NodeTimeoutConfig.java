@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -31,6 +32,11 @@ public class NodeTimeoutConfig implements Serializable {
 
     private int schemaVersion = CURRENT_SCHEMA_VERSION;
     private boolean enabled;
+    /** DURATION 或 FORM_FIELD；未指定时按固定时长处理。 */
+    private String source = "DURATION";
+    /** formData 内的字段路径，不含数组，例如 schedule.deadline。 */
+    private String fieldCode;
+    private String fieldLabel;
     private long duration;
     private String durationUnit;
     private String action;

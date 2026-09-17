@@ -167,7 +167,6 @@ public class DefJson {
                     .setAnyNodeSkip(node.getAnyNodeSkip())
                     .setListenerType(node.getListenerType())
                     .setListenerPath(node.getListenerPath())
-                    .setFormId(node.getFormId())
                     .setExt(node.getExt())
                     .setCreatedBy(node.getCreatedBy())
                     .setUpdatedBy(node.getUpdatedBy());
@@ -222,7 +221,6 @@ public class DefJson {
                     .setAnyNodeSkip(nodeJson.getAnyNodeSkip())
                     .setListenerType(nodeJson.getListenerType())
                     .setListenerPath(nodeJson.getListenerPath())
-                    .setFormId(nodeJson.getFormId())
                     .setExt(nodeJson.getExt())
                     .setCreatedBy(nodeJson.getCreatedBy())
                     .setUpdatedBy(nodeJson.getUpdatedBy());

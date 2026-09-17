@@ -560,6 +560,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public Task addTask(Node node, Instance instance, Definition definition, FlowParams flowParams) {
+        // 人员解析与预览使用相同的实例变量视图，本次提交值覆盖已保存变量。
+        flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
         Task addTask = FlowEngine.newTask();
         Date now = new Date();
         FlowEngine.dataFillHandler().idFill(addTask);
@@ -571,20 +573,12 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             .setFlowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(),
                 setFlowStatus(node.getNodeType(), flowParams.getSkipType())))
             .setCreatedAt(now)
-            .setPermissionList(NodeType.isWait(node.getNodeType())
-                ? Collections.<String>emptyList()
-                : NodeType.isCarbonCopy(node.getNodeType())
-                ? ApproverRuleUtil.resolveCarbonCopy(node, flowParams)
-                : ApproverRuleUtil.resolve(node, flowParams));
+            .setPermissionList(ApproverRuleUtil.resolve(node, instance, flowParams, false));
 
-        TimeoutConfigUtil.applySnapshot(node, addTask, now);
+        TimeoutConfigUtil.applySnapshot(node, addTask, now, flowParams.getVariables());
 
-        if (StringUtils.isNotEmpty(node.getFormId())) {
-            // 节点指定表单时覆盖流程默认表单，并保存任务快照
-            addTask.setFormId(node.getFormId());
-        } else {
-            addTask.setFormId(definition.getFormId());
-        }
+        // 所有节点使用流程表单；任务保存该引用的快照。
+        addTask.setFormId(definition.getFormId());
 
         return addTask;
     }
@@ -1098,13 +1092,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         FlowDto flowDto = new FlowDto();
         flowDto.setFormId(r.task.getFormId());
-        if (StringUtils.isNotEmpty(r.nowNode.getFormId())) {
-            ListenerUtil.execute(listenerVariable, Listener.LISTENER_FORM_LOAD, r.nowNode.getListenerPath()
-                , r.nowNode.getListenerType());
-        } else {
-            ListenerUtil.execute(listenerVariable, Listener.LISTENER_FORM_LOAD, r.definition.getListenerPath()
-                , r.definition.getListenerType());
-        }
+        ListenerUtil.execute(listenerVariable, Listener.LISTENER_FORM_LOAD, r.definition.getListenerPath()
+            , r.definition.getListenerType());
         flowDto.setData(r.instance.getVariableMap().get(FlowCons.FORM_DATA));
 
         return flowDto;

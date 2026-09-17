@@ -64,12 +64,6 @@ export interface DesignerResourcePage {
   total: number
 }
 
-export interface DesignerRelationshipQuery {
-  relationType: string
-  subjectId?: string
-  organizationId?: string
-  parameters?: Record<string, unknown>
-}
 
 async function request<T>(path: string, init: RequestInit = {}, user = 'alice'): Promise<T> {
   const headers = new Headers(init.headers)
@@ -113,9 +107,6 @@ export const exampleApi = {
     pageNum: input.pageNum, pageSize: input.pageSize,
   })}`),
   capabilities: () => request<Record<string, unknown>>(`${DESIGNER_PREFIX}/integration/capabilities`),
-  relationship: (input: DesignerRelationshipQuery) => request<Array<Record<string, unknown>>>(`${DESIGNER_PREFIX}/integration/relationships/resolve`, {
-    method: 'POST', body: JSON.stringify(input),
-  }),
   designerConfig: () => request<Record<string, unknown>>(`${DESIGNER_PREFIX}/config`),
   designerSave: (definition: unknown, user = 'alice') => request<void>(`${DESIGNER_PREFIX}/save-json`, {
     method: 'POST', body: JSON.stringify(definition),

@@ -102,6 +102,7 @@ describe('Flovira definition model', () => {
 
     const removed = deleteNode(inserted, subprocess.nodeCode)
     expect(removed.nodeList.some((node) => node.nodeCode === subprocess.nodeCode)).toBe(false)
+    removed.nodeList = removed.nodeList.map(node => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'test', type: 'USER' }]) : node)
     expect(validateDefinition(removed).valid).toBe(true)
   })
 
@@ -112,11 +113,13 @@ describe('Flovira definition model', () => {
     const gateway = result.nodeList.find((node) => node.nodeType === '3')!
 
     expect(gateway.skipList).toHaveLength(2)
+    result.nodeList = result.nodeList.map(node => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'test', type: 'USER' }]) : node)
     expect(validateDefinition(result).valid).toBe(true)
 
     const removed = deleteNode(result, gateway.nodeCode)
     expect(removed.nodeList.some((node) => ['3', '4', '5'].includes(node.nodeType))).toBe(false)
     expect(removed.nodeList.some((node) => node.nodeName.startsWith('分支'))).toBe(false)
+    removed.nodeList = removed.nodeList.map(node => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'test', type: 'USER' }]) : node)
     expect(validateDefinition(removed).valid).toBe(true)
   })
 
@@ -140,6 +143,7 @@ describe('Flovira definition model', () => {
 
     expect(getApproverRule(node)).toEqual({
       schemaVersion: 1,
+      strategyVersion: 1,
       strategy: 'ROLE',
       selectionType: 'RESOURCE',
       relationType: undefined,
@@ -178,6 +182,7 @@ describe('Flovira definition model', () => {
       definition = insertNodeAfter(definition, approval.nodeCode, '1')
     }
 
+    definition.nodeList = definition.nodeList.map(node => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'test', type: 'USER' }]) : node)
     const parsed = normalizeDefinition(serializeDefinition(definition))
     expect(parsed.nodeList.filter((node) => node.nodeType === '1')).toHaveLength(128)
     expect(validateDefinition(parsed).valid).toBe(true)

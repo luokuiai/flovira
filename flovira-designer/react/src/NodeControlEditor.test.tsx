@@ -14,17 +14,19 @@ test('configures node permissions and return/resubmit strategies with round trip
   fireEvent.click(view.getByLabelText('允许转办'))
   fireEvent.click(view.getByLabelText('允许加签'))
   fireEvent.click(view.getByLabelText('允许减签'))
-  fireEvent.click(view.getByRole('radio', { name: '退回发起人' }))
-  fireEvent.click(view.getByRole('radio', { name: '回到执行退回的节点继续' }))
+  fireEvent.click(view.getByRole('radio', { name: '驳回至发起人' }))
+  fireEvent.click(view.getByRole('radio', { name: '从驳回节点继续' }))
+  fireEvent.click(view.getByRole('button', { name: '确定' }))
   const restored = normalizeDefinition(ref.current!.getFlowJson()).nodeList.find((node) => node.nodeType === '1')!
   expect(getNodeControlConfig(restored)).toMatchObject({ allowRollback: true, allowTransfer: true, allowAddSign: true, allowMinusSign: true,
     rejectStrategy: 'TO_DRAFT', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE' })
-  fireEvent.click(view.getByLabelText('允许退回'))
-  expect(view.queryByRole('radiogroup', { name: '退回策略' })).toBeNull()
-  expect(view.queryByRole('radiogroup', { name: '退回后重新提交' })).toBeNull()
-  fireEvent.click(view.getByLabelText('允许退回'))
-  expect((view.getByRole('radio', { name: '退回发起人' }) as HTMLInputElement).checked).toBe(true)
-  expect((view.getByRole('radio', { name: '回到执行退回的节点继续' }) as HTMLInputElement).checked).toBe(true)
+  fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
+  fireEvent.click(view.getByLabelText('允许驳回'))
+  expect(view.queryByRole('radiogroup', { name: '驳回策略' })).toBeNull()
+  expect(view.queryByRole('radiogroup', { name: '驳回后重新提交' })).toBeNull()
+  fireEvent.click(view.getByLabelText('允许驳回'))
+  expect((view.getByRole('radio', { name: '驳回至发起人' }) as HTMLInputElement).checked).toBe(true)
+  expect((view.getByRole('radio', { name: '从驳回节点继续' }) as HTMLInputElement).checked).toBe(true)
 })
 
 test('restricts fixed return targets to upstream approval nodes and catches removed targets', () => {
@@ -47,8 +49,9 @@ test('validates fixed return targets and preserves old policies', () => {
   const ref = createRef<ReactFlowDesignerRef>()
   const view = render(<ReactFlowDesigner ref={ref} />)
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
-  fireEvent.click(view.getByRole('radio', { name: '退回指定节点' }))
+  fireEvent.click(view.getByRole('radio', { name: '驳回至指定节点' }))
   expect(view.getByRole('alert').textContent).toContain('没有可选')
+  fireEvent.click(view.getByRole('button', { name: '确定' }))
   expect(ref.current!.validate().issues.some(issue => issue.code === 'REJECT_TARGET_INVALID')).toBe(true)
   const node = createInitialDefinition().nodeList[1]
   expect(getNodeControlConfig({ ...node, returnPolicy: 'ANY' }).rejectStrategy).toBe('TO_REJECTOR_SPECIFIED_NODE')

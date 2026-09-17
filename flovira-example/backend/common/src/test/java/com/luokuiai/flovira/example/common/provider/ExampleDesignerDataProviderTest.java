@@ -4,8 +4,11 @@
  */
 package com.luokuiai.flovira.example.common.provider;
 
-import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
-import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
+import com.luokuiai.flovira.core.dto.ApproverRule;
+import com.luokuiai.flovira.core.dto.ApproverContext;
+import com.luokuiai.flovira.core.dto.BusinessSubject;
+import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.handler.AbstractRoleResolver;
 import com.luokuiai.flovira.example.common.model.DemoIdentity;
 import com.luokuiai.flovira.example.common.repository.ExampleRepository;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
@@ -58,20 +61,20 @@ class ExampleDesignerDataProviderTest {
     }
 
     @Test
-    void resolvesRoleOrganizationAndDepartmentRelations() {
-        DemoIdentity manager = new DemoIdentity("manager", "Manny Manager", "engineering", "manager");
-        when(repository.findByRole("manager")).thenReturn(Collections.singletonList(manager));
-        when(repository.findByOrganization("engineering")).thenReturn(Collections.singletonList(manager));
-
-        assertThat(provider.resolveRelationship(new BusinessRelationQuery()
-            .setRelationType(BusinessRelationProvider.ROLE_MEMBERS).setSubjectId("manager")))
-            .extracting("id").containsExactly("manager");
-        assertThat(provider.resolveRelationship(new BusinessRelationQuery()
-            .setRelationType(BusinessRelationProvider.ORGANIZATION_MEMBERS).setSubjectId("engineering")))
-            .extracting("id").containsExactly("manager");
-        assertThat(provider.resolveRelationship(new BusinessRelationQuery()
-            .setRelationType(BusinessRelationProvider.DEPARTMENT_LEADER).setSubjectId("engineering")))
-            .extracting("id").containsExactly("manager");
+    void resolvesCurrentRoleMembersOnlyWhenCalled() {
+        AbstractRoleResolver resolver = new ExampleApproverConfiguration().roleApproverResolver(repository);
+        ApproverRule rule = new ApproverRule().setStrategy("ROLE").setSubjects(Collections.singletonList(
+            new BusinessSubject().setId("manager").setType("ROLE")));
+        resolver.validate(rule);
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).findByRole("manager");
+        when(repository.findByRole("manager")).thenReturn(Collections.singletonList(
+            new DemoIdentity("manager", "Manager", "engineering", "manager")));
+        assertThat(resolver.resolve(new ApproverContext(null, rule, null, new FlowParams(), false)))
+            .containsExactly("manager");
+        when(repository.findByRole("manager")).thenReturn(Collections.singletonList(
+            new DemoIdentity("new-manager", "New manager", "engineering", "manager")));
+        assertThat(resolver.resolve(new ApproverContext(null, rule, null, new FlowParams(), true)))
+            .containsExactly("new-manager");
     }
 
     private DesignerResourceQuery query(String resourceType) {
