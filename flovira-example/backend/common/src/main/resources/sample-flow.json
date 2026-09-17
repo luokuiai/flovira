@@ -19,7 +19,7 @@
       "nodeType": 1,
       "nodeCode": "manager",
       "nodeName": "Manager approval",
-      "permissionFlag": "manager",
+      "ext": "[{\"code\":\"approverRule\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"strategyVersion\\\":1,\\\"strategy\\\":\\\"ROLE\\\",\\\"selectionType\\\":\\\"RESOURCE\\\",\\\"subjects\\\":[{\\\"id\\\":\\\"manager\\\",\\\"type\\\":\\\"ROLE\\\"}]}\"}]",
       "nodeRatio": "0",
       "skipList": [
         { "sourceNodeCode": "manager", "targetNodeCode": "finance", "skipType": "PASS" },
@@ -30,7 +30,7 @@
       "nodeType": 1,
       "nodeCode": "finance",
       "nodeName": "Finance approval",
-      "permissionFlag": "finance",
+      "ext": "[{\"code\":\"approverRule\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"strategyVersion\\\":1,\\\"strategy\\\":\\\"ROLE\\\",\\\"selectionType\\\":\\\"RESOURCE\\\",\\\"subjects\\\":[{\\\"id\\\":\\\"finance\\\",\\\"type\\\":\\\"ROLE\\\"}]}\"}]",
       "nodeRatio": "0",
       "skipList": [
         { "sourceNodeCode": "finance", "targetNodeCode": "end", "skipType": "PASS" },

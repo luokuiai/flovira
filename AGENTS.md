@@ -15,6 +15,7 @@ Core constraints: Java 8 source compatibility, framework / ORM / JSON independen
 - `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.0.0.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
 - Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
 - Flovira may manage versioned form metadata and content in `flow_form`; host applications may also supply forms. Workflow definitions, nodes, tasks and history store opaque string `formId` references and approval data snapshots. Keep host page routing outside `flow_form`; do not restore `form_custom`, `form_type`, `form_path`, numeric-only form references, bundled rendering pages or designer mode switching.
+- A workflow uses one form selected by its definition. Nodes configure field permissions, never a separate form or an override. Task and history form references are snapshots of the workflow form.
 
 ## Instruction hierarchy and maintenance
 
@@ -73,6 +74,13 @@ Read root and applicable module instructions before editing. Module files contai
 - Read relevant services, strategies, handlers, listeners and enums before changing approval, rejection, jumping, transfer, delegation, added / removed signers, termination, withdrawal, voting or branch behavior.
 - CRUD uses `FloviraDao`. Entity changes must reach both ORM implementations, serialization, DTO conversion and supported SQL schemas.
 - Preserve tenant isolation and logical deletion in both engine-managed and ORM-managed paths.
+
+## Approver strategies
+
+- Persist stable business-owned strategy codes and configuration in node `ext`; do not snapshot future assignees at submission.
+- Each advertised strategy must come from one registered `ApproverResolver`, with separate configuration validation and runtime resolution. Reject duplicate or unknown codes and unsupported configuration versions.
+- Standard codes are `INITIATOR`, `USER`, `ROLE`, `DEPARTMENT_LEADER`, and `SUPERVISING_LEADER`. Their abstract resolvers do not supply identities or auto-register. Other strategies belong to host applications.
+- Resolve users only when a task is created for an entered node. Preview uses the same resolver read-only; existing tasks use their assigned users rather than re-resolving them. Resolver results are final user IDs, not expressions or relationship identifiers.
 
 ## Branding and attribution
 

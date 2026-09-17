@@ -108,6 +108,37 @@ describe('lumenDesignerUi', () => {
     expect(onSelect).toHaveBeenCalledWith('1')
   })
 
+  test('keeps custom dropdown content open while loading another page', async () => {
+    const onOpenChange = vi.fn()
+    const loadMore = vi.fn()
+    const AdapterDropdown = lumenDesignerUi.DropdownMenu
+    const view = render(<AdapterDropdown trigger={<button>子流程</button>} items={[]} onSelect={() => {}}
+      onOpenChange={onOpenChange} renderContent={({ close }) => <div>
+        <button onClick={loadMore}>加载更多</button>
+        <button onClick={close}>选中流程</button>
+      </div>} />)
+    fireEvent.click(view.getByRole('button', { name: '子流程' }))
+    fireEvent.click(await view.findByRole('button', { name: '加载更多' }))
+    expect(loadMore).toHaveBeenCalledOnce()
+    expect(view.getByRole('button', { name: '子流程' }).getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(view.getByRole('button', { name: '选中流程' }))
+    expect(onOpenChange).toHaveBeenLastCalledWith(false)
+  })
+
+  test('uses native Lumen tabs and preserves panel links and keyboard navigation', () => {
+    const AdapterTabs = lumenDesignerUi.Tabs!
+    const onChange = vi.fn()
+    const view = render(<AdapterTabs value="basic" idPrefix="node" ariaLabel="节点配置分类"
+      options={[{ value: 'basic', label: '基础信息' }, { value: 'form', label: '表单权限' }]}
+      onValueChange={onChange} />)
+    expect(view.container.querySelector('[data-ui="tabs-surface"]')).toBeTruthy()
+    const tab = view.getByRole('tab', { name: '基础信息' })
+    expect(tab.getAttribute('aria-controls')).toBe('node-panel-basic')
+    fireEvent.keyDown(tab, { key: 'ArrowRight' })
+    expect(onChange).toHaveBeenLastCalledWith('form')
+    expect(document.activeElement).toBe(view.getByRole('tab', { name: '表单权限' }))
+  })
+
   test('uses Lumen Drawer for the settings surface', () => {
     const onClose = vi.fn()
     const AdapterDrawer = lumenDesignerUi.Drawer
@@ -123,7 +154,7 @@ describe('lumenDesignerUi', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
-  test('uses Lumen Modal for business picker content', () => {
+  test('uses Lumen Dialog for business picker content', () => {
     const onConfirm = vi.fn()
     const AdapterDialog = lumenDesignerUi.Dialog!
     const view = render(

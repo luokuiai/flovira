@@ -18,6 +18,8 @@ package com.luokuiai.flovira.ui.service;
 
 import lombok.extern.slf4j.Slf4j;
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
+import com.luokuiai.flovira.core.handler.ApproverResolver;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.*;
 import com.luokuiai.flovira.core.entity.Instance;
@@ -26,7 +28,6 @@ import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.exception.FlowException;
-import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.utils.ExceptionUtil;
 import com.luokuiai.flovira.core.utils.StringUtils;
@@ -69,14 +70,19 @@ public class FloviraService {
     }
 
     /**
-     * 返回业务系统声明的设计器能力；未声明时使用 Flovira 完整默认能力。
+     * 返回设计器能力；人员策略仅来自业务注册的 Resolver。
      *
      * @return 设计器能力清单
      */
     public static ApiResult<DesignerCapabilities> capabilities() {
         DesignerCapabilityProvider provider = FrameInvoker.getBean(DesignerCapabilityProvider.class);
         DesignerCapabilities capabilities = provider == null ? null : provider.getCapabilities();
-        return ApiResult.ok(capabilities == null ? DesignerCapabilities.defaults() : capabilities);
+        if (capabilities == null) capabilities = DesignerCapabilities.defaults();
+        List<ApproverStrategyDefinition> strategies = new ArrayList<>();
+        for (ApproverResolver resolver : FlowEngine.approverResolvers().values()) {
+            strategies.add(resolver.getDefinition());
+        }
+        return ApiResult.ok(capabilities.setApproverStrategies(strategies));
     }
 
     /**
@@ -112,20 +118,6 @@ public class FloviraService {
         return new DesignerResourcePage().setItems(items).setTotal(forms.getTotal());
     }
 
-    /**
-     * 委托业务系统解析组织和角色关系。流程执行语义仍由 core 负责。
-     *
-     * @param query 关系查询
-     * @return 主体引用
-     */
-    public static ApiResult<List<BusinessSubject>> resolveRelationship(BusinessRelationQuery query) {
-        BusinessRelationProvider provider = FlowEngine.businessRelationProvider();
-        if (provider == null) {
-            return ApiResult.ok(Collections.emptyList());
-        }
-        List<BusinessSubject> subjects = provider.resolveRelationship(query);
-        return ApiResult.ok(subjects == null ? Collections.emptyList() : subjects);
-    }
 
     /**
      * 保存流程json字符串

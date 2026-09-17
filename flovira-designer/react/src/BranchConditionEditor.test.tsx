@@ -26,7 +26,7 @@ test('configures one named detail scope with two same-row conditions and preserv
   fireEvent.click(drawer.getByRole('button', { name: '添加条件' }))
   fireEvent.change(drawer.getByLabelText('条件字段 1-2'), { target: { value: 'details[].category' } })
   fireEvent.change(drawer.getByLabelText('条件值 1-2'), { target: { value: 'travel' } })
-  fireEvent.click(drawer.getByRole('button', { name: '保存条件' }))
+  fireEvent.click(drawer.getByRole('button', { name: '保存' }))
   const split = ref.current!.getDefinition().nodeList.find(node => node.nodeType === '3')!
   expect(split.skipList[0].skipCondition).toBe(fixture.anyExpression)
   expect(view.getByRole('button', { name: '配置分支：分支一' }).textContent).toContain('报销明细（任一条满足）')
@@ -34,7 +34,7 @@ test('configures one named detail scope with two same-row conditions and preserv
   drawer = within(view.getByRole('dialog', { name: '分支条件' }))
   expect((drawer.getByLabelText('条件字段 1-2') as HTMLSelectElement).value).toBe('details[].category')
   fireEvent.change(drawer.getByLabelText('明细匹配方式 1'), { target: { value: 'ALL' } })
-  fireEvent.click(drawer.getByRole('button', { name: '保存条件' }))
+  fireEvent.click(drawer.getByRole('button', { name: '保存' }))
   expect(ref.current!.getDefinition().nodeList.find(node => node.nodeCode === split.nodeCode)!.skipList[0].skipCondition).toBe(fixture.allExpression)
 })
 
@@ -54,7 +54,7 @@ test('configures a branch from business fields, then inserts business nodes inde
   fireEvent.change(drawer.getByLabelText('条件值 1-1'), { target: { value: '10000' } })
   fireEvent.click(drawer.getByRole('button', { name: '添加条件组' }))
   fireEvent.change(drawer.getByLabelText('条件字段 2-1'), { target: { value: 'urgent' } })
-  fireEvent.click(drawer.getByRole('button', { name: '保存条件' }))
+  fireEvent.click(drawer.getByRole('button', { name: '保存' }))
   expect(view.queryByRole('dialog', { name: '分支条件' })).toBeNull()
   const split = ref.current!.getDefinition().nodeList.find((node) => node.nodeType === '3')!
   expect(split.skipList[0].skipCondition).toBe('spel@@#{(#amount >= 10000) or (#urgent == true)}')
@@ -71,7 +71,7 @@ test('keeps incomplete conditions open and permits a default branch without fiel
   fireEvent.click(view.getByRole('menuitem', { name: '添加条件分支' }))
   let drawer = within(view.getByRole('dialog', { name: '分支条件' }))
   expect(drawer.getByRole('button', { name: '添加条件组' }).hasAttribute('disabled')).toBe(true)
-  fireEvent.click(drawer.getByRole('button', { name: '保存条件' }))
+  fireEvent.click(drawer.getByRole('button', { name: '保存' }))
   expect(drawer.getByRole('alert').textContent).toContain('条件')
   fireEvent.click(drawer.getByRole('button', { name: '关闭分支条件' }))
   fireEvent.click(view.getByRole('button', { name: '配置分支：其他条件' }))

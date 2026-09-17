@@ -15,7 +15,6 @@
  */
 package com.luokuiai.flovira.ui.service;
 
-import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
 import com.luokuiai.flovira.ui.vo.DesignerResourcePage;
 
@@ -24,7 +23,7 @@ import com.luokuiai.flovira.ui.vo.DesignerResourcePage;
  *
  * @author warm
  */
-public interface DesignerDataProvider extends BusinessRelationProvider {
+public interface DesignerDataProvider {
 
     DesignerResourcePage queryResources(DesignerResourceQuery query);
 

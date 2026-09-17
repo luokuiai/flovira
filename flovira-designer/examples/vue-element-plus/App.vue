@@ -1,5 +1,6 @@
 <template>
-  <div class="demo-root">
+  <FormExample v-if="showFormExample" />
+  <div v-else class="demo-root">
     <!-- ========== 列表视图 ========== -->
     <div v-if="view === 'list'" class="demo-list">
       <!-- Hero 头部 -->
@@ -132,6 +133,8 @@
 </template>
 
 <script setup>
+import FormExample from './FormExample.vue'
+const showFormExample = new URLSearchParams(location.search).has('form')
 import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { FlowDesigner, useFlowJson, useFlowDesigner } from '@luokuiai/flovira-vue-designer'

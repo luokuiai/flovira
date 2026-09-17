@@ -12,6 +12,7 @@ import type {
   DesignerSelectProps,
   DesignerTooltipProps,
   DesignerUiAdapter,
+  DesignerTabsProps,
 } from './types'
 
 const classes = (...values: Array<string | undefined>) => values.filter(Boolean).join(' ')
@@ -148,8 +149,9 @@ const Tooltip = ({ content, children, disabled }: DesignerTooltipProps) => (
   </span>
 )
 
-const DropdownMenu = ({ trigger, items, align = 'left', onSelect }: DesignerDropdownMenuProps) => {
-  const [open, setOpen] = useState(false)
+const DropdownMenu = ({ trigger, items, align = 'left', onSelect, onOpenChange, renderContent }: DesignerDropdownMenuProps) => {
+  const [open, setOpenState] = useState(false)
+  const setOpen = (next: boolean) => { setOpenState(next); onOpenChange?.(next) }
   const menuId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -169,11 +171,12 @@ const DropdownMenu = ({ trigger, items, align = 'left', onSelect }: DesignerDrop
         'aria-expanded': open,
         'aria-controls': menuId,
         'aria-haspopup': 'menu',
-        onClick: () => setOpen((current) => !current),
+        onClick: () => setOpen(!open),
       })}
       {open && (
-        <div id={menuId} role="menu" className={`frd-dropdown-menu frd-dropdown-menu--${align}`}>
-          {items.map((item) => (
+        <div id={menuId} role={renderContent ? undefined : 'menu'} className={`frd-dropdown-menu frd-dropdown-menu--${align}`}
+          onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setOpen(false) } }}>
+          {renderContent ? renderContent({ close: () => setOpen(false) }) : items.map((item) => (
             <button
               key={item.value}
               type="button"
@@ -199,11 +202,22 @@ const Drawer = ({
   open,
   title,
   children,
+  footer,
   width = 340,
   ariaLabel = '抽屉',
   onClose,
 }: DesignerDrawerProps) => {
   const [retainedChildren, setRetainedChildren] = useState(children)
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented
+        && !document.querySelector('.frd-dialog[data-open="true"]')) onClose()
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [open, onClose])
 
   useEffect(() => {
     if (open) setRetainedChildren(children)
@@ -226,6 +240,7 @@ const Drawer = ({
           </Button>
         </div>
         <div className="frd-drawer__body">{open ? children : retainedChildren}</div>
+        {footer && <div className="frd-drawer__footer">{footer}</div>}
       </aside>
     </div>
   )
@@ -267,7 +282,24 @@ const Dialog = ({
   </div>
 )
 
+const Tabs = ({ value, options, idPrefix, ariaLabel, onValueChange }: DesignerTabsProps) => (
+  <div className="frd-node-tabs" role="tablist" aria-label={ariaLabel}>
+    {options.map((option, index) => <button key={option.value} type="button" role="tab"
+      id={`${idPrefix}-tab-${option.value}`} aria-controls={`${idPrefix}-panel-${option.value}`}
+      aria-selected={value === option.value} tabIndex={value === option.value ? 0 : -1}
+      onClick={() => onValueChange(option.value)} onKeyDown={event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+        event.preventDefault()
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+          : (index + (event.key === 'ArrowRight' ? 1 : options.length - 1)) % options.length
+        onValueChange(options[next].value)
+        document.getElementById(`${idPrefix}-tab-${options[next].value}`)?.focus()
+      }}>{option.label}</button>)}
+  </div>
+)
+
 export const defaultDesignerUi: DesignerUiAdapter = {
+  Tabs,
   Button,
   Input,
   Select,

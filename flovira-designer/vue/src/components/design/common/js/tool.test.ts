@@ -8,16 +8,17 @@ test('preserves definition business type independently of category', () => {
   expect(saved.businessType).toBe('PURCHASE_ORDER')
 })
 
-test('preserves external form IDs and supports clearing node overrides', () => {
+test('preserves only the workflow form and ignores node overrides', () => {
   const logic = json2LogicFlowJson({ formId: 'expense:v2', nodeList: [{
     nodeType: '1', nodeCode: 'approval', nodeName: '审批', nodeRatio: '0', formId: 'finance:v1', skipList: [],
   }] })
   let saved = JSON.parse(logicFlowJsonToFlovira(logic))
   expect(saved.formId).toBe('expense:v2')
-  expect(saved.nodeList[0].formId).toBe('finance:v1')
+  expect(saved.nodeList[0].formId).toBeUndefined()
+  expect(logic.nodes[0].properties.formId).toBeUndefined()
   expect(saved).not.toHaveProperty('formCustom')
   expect(saved.nodeList[0]).not.toHaveProperty('formPath')
-  logic.nodes[0].properties.formId = ''
+  logic.nodes[0].properties.formId = 'another-form'
   saved = JSON.parse(logicFlowJsonToFlovira(logic))
   expect(saved.nodeList[0].formId).toBeUndefined()
   expect(saved.formId).toBe('expense:v2')

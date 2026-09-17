@@ -1,5 +1,4 @@
 /*
- *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
  *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,23 +15,25 @@
  */
 package com.luokuiai.flovira.core.handler;
 
-import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
-import com.luokuiai.flovira.core.dto.BusinessSubject;
-
-import java.util.List;
+import com.luokuiai.flovira.core.constant.ApproverStrategy;
+import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
 
 /**
- * 业务组织关系查询扩展点，由审批人策略调用，流程执行语义由 Flovira 负责。
+ * 提交人策略的业务实现基类。不提供人员来源，不自动注册。
  *
  * @author warm
  */
-public interface BusinessRelationProvider {
+public abstract class AbstractInitiatorResolver implements ApproverResolver {
+    @Override
+    public final String getStrategy() {
+        return ApproverStrategy.INITIATOR;
+    }
 
-    String DEPARTMENT_LEADER = "DEPARTMENT_LEADER";
-    String SUPERVISING_LEADER = "SUPERVISING_LEADER";
-    String ROLE_MEMBERS = "ROLE_MEMBERS";
-    String ORGANIZATION_MEMBERS = "ORGANIZATION_MEMBERS";
-    String ORGANIZATION_CHAIN = "ORGANIZATION_CHAIN";
-
-    List<BusinessSubject> resolveRelationship(BusinessRelationQuery query);
+    @Override
+    public ApproverStrategyDefinition getDefinition() {
+        return new ApproverStrategyDefinition().setCode(getStrategy()).setName("提交人")
+            .setSelectionType("RELATION").setEditorType("NONE")
+            .setMultiple(false)
+            .setResultCardinality("EXACTLY_ONE");
+    }
 }

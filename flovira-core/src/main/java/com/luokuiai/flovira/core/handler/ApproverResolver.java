@@ -15,28 +15,25 @@
  */
 package com.luokuiai.flovira.core.handler;
 
+import com.luokuiai.flovira.core.dto.ApproverContext;
 import com.luokuiai.flovira.core.dto.ApproverRule;
-import com.luokuiai.flovira.core.dto.FlowParams;
-import com.luokuiai.flovira.core.entity.Node;
-
+import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
 import java.util.List;
 
 /**
- * 按策略编码解析节点办理人的扩展点。
+ * 一个持久化策略编码对应一个业务解析器。配置校验与人员查询必须分离。
  *
  * @author warm
  */
 public interface ApproverResolver {
-
-    /**
-     * @return 与设计器策略配置一致的唯一编码
-     */
     String getStrategy();
 
-    /**
-     * 解析器同时负责校验自定义策略的配置参数。
-     *
-     * @return 解析后的用户 ID
-     */
-    List<String> resolve(Node node, ApproverRule rule, FlowParams flowParams);
+    /** 描述前端选项；code 必须与 getStrategy 一致，版本对应持久化配置格式。 */
+    ApproverStrategyDefinition getDefinition();
+
+    /** 只校验配置，不能在保存或发布时查询、固化未来节点的人员。 */
+    void validate(ApproverRule rule);
+
+    /** 返回最终用户 ID，不返回角色、组织 ID 或待执行的表达式；预览不得产生副作用。 */
+    List<String> resolve(ApproverContext context);
 }

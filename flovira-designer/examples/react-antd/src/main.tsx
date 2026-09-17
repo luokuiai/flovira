@@ -1,3 +1,4 @@
+import { DEMO_CAPABILITIES } from '../../capabilities'
 import { StrictMode, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ConfigProvider } from 'antd'
@@ -36,6 +37,7 @@ function App() {
     <ConfigProvider locale={zhCN} theme={{ cssVar: {} }} componentSize="small">
       <main>
         <ReactFlowDesigner
+        capabilities={DEMO_CAPABILITIES}
           defaultValue={initial}
           ui={antdDesignerUi}
           queryResources={async () => ({

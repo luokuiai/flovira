@@ -20,7 +20,6 @@ import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.entity.*;
 import com.luokuiai.flovira.core.handler.ApproverResolver;
 import com.luokuiai.flovira.core.handler.DataFillHandler;
-import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.handler.PermissionHandler;
 import com.luokuiai.flovira.core.handler.TenantHandler;
@@ -35,6 +34,9 @@ import com.luokuiai.flovira.core.utils.ObjectUtil;
 import com.luokuiai.flovira.core.utils.StringUtils;
 
 import java.lang.reflect.Constructor;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
 import java.util.function.Supplier;
 
 /**
@@ -245,14 +247,6 @@ public class FlowEngine {
         return getObj(timeoutSchedulerLock, TimeoutSchedulerLock.class);
     }
 
-    /**
-     * 获取业务组织关系查询扩展点。
-     *
-     * @return 未配置时返回 null
-     */
-    public static BusinessRelationProvider businessRelationProvider() {
-        return getObj(null, BusinessRelationProvider.class);
-    }
 
     /**
      * 可选的业务表单字段名称提供者，通过 FrameInvoker 注册。
@@ -265,15 +259,36 @@ public class FlowEngine {
      * 按策略编码查找接入方注册的办理人解析器。
      *
      * @param strategy 策略编码
-     * @return 未注册时返回 null，由引擎使用内置默认解析逻辑
+     * @return 对应的业务解析器；未注册时明确报错
      */
     public static ApproverResolver approverResolver(String strategy) {
+        ApproverResolver resolver = approverResolvers().get(strategy);
+        if (resolver == null) {
+            throw new IllegalStateException("Unregistered approver strategy: " + strategy);
+        }
+        return resolver;
+    }
+
+    /** 同一注册表用于设计器声明、保存校验、运行时和预览。 */
+    public static Map<String, ApproverResolver> approverResolvers() {
+        Map<String, ApproverResolver> result = new LinkedHashMap<String, ApproverResolver>();
         for (ApproverResolver resolver : FrameInvoker.getBeans(ApproverResolver.class)) {
-            if (resolver != null && strategy != null && strategy.equals(resolver.getStrategy())) {
-                return resolver;
+            if (resolver == null) {
+                throw new IllegalStateException("Null approver resolver");
+            }
+            String code = resolver.getStrategy();
+            ApproverStrategyDefinition descriptor = resolver.getDefinition();
+            if (code == null || code.trim().isEmpty() || !code.equals(code.trim())
+                || descriptor == null || !code.equals(descriptor.getCode())
+                || descriptor.getVersion() < 1 || descriptor.getName() == null
+                || descriptor.getName().trim().isEmpty()) {
+                throw new IllegalStateException("Invalid approver strategy definition: " + code);
+            }
+            if (result.put(code, resolver) != null) {
+                throw new IllegalStateException("Duplicate approver strategy: " + code);
             }
         }
-        return null;
+        return result;
     }
 
     public static Flovira getFlowConfig() {

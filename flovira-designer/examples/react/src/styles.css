@@ -3,6 +3,18 @@
   background: #e9eef5;
 }
 
+.form-example { max-width: 1120px; height: auto; min-height: 100dvh; margin: auto; padding: 40px 32px; color: #1e293b; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; color-scheme: light; }
+.form-example header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.form-example h1 { margin: 0; font-size: 20px; font-weight: 500; }
+.form-example button { font: inherit; cursor: pointer; }
+.form-example header button { border: 0; border-radius: 8px; padding: 8px 22px; background: #2563eb; color: white; }
+.form-example nav { display: flex; gap: 28px; padding: 0 24px; background: white; border-radius: 12px 12px 0 0; border-bottom: 1px solid #e2e8f0; }
+.form-example nav button { background: none; border: 0; padding: 16px 0; color: #64748b; border-bottom: 2px solid transparent; }
+.form-example nav button[aria-pressed="true"] { color: #2563eb; border-bottom-color: #2563eb; }
+.form-example-panel { padding: 24px; background: white; border-radius: 0 0 12px 12px; }
+.form-example-flow { height: 620px; }
+.form-example pre { overflow: auto; }
+
 body {
   margin: 0;
   min-width: 320px;

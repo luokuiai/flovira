@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import selectUser from './selectUser.vue'
-import { designerCapabilities, designerSubjects } from '@/api/flow/definition'
+import { designerCapabilities } from '@/api/flow/definition'
 import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy } from '@/data/contracts'
 import { useI18n } from '@/i18n'
 
@@ -82,12 +82,14 @@ const form = computed(() => props.modelValue)
 const recipientVisible = ref(false)
 const recipientRows = ref<any[]>([])
 const recipientStrategies = ref<DesignerApproverStrategy[]>(DEFAULT_DESIGNER_CAPABILITIES.approverStrategies)
-const recipientStrategy = ref('USER')
+const recipientStrategy = ref('')
+const strategyVersion = ref(1)
 const recipientExpression = ref('')
 const strategyDescriptor = computed(() => recipientStrategies.value.find(item => item.code === recipientStrategy.value))
 
 function syncRule() {
   const descriptor = strategyDescriptor.value
+  if (!descriptor) return
   const subjects = descriptor?.selectionType === 'RESOURCE'
     ? recipientRows.value.filter(item => item.storageId).map(item => ({
       id: item.storageId,
@@ -95,8 +97,12 @@ function syncRule() {
       name: item.handlerName,
     }))
     : []
+  const previousRaw = form.value.ext?.carbonCopyRule
+  const previous = typeof previousRaw === 'string' ? JSON.parse(previousRaw) : previousRaw
   const rule = {
+    ...(previous?.strategy === recipientStrategy.value ? previous : {}),
     schemaVersion: 1,
+    strategyVersion: strategyVersion.value,
     strategy: recipientStrategy.value,
     selectionType: descriptor?.selectionType,
     relationType: descriptor?.relationType,
@@ -107,6 +113,7 @@ function syncRule() {
 }
 
 function handleStrategyChange() {
+  strategyVersion.value = strategyDescriptor.value?.version ?? 1
   form.value.permissionFlag = []
   recipientRows.value = []
   recipientExpression.value = ''
@@ -130,7 +137,8 @@ async function hydrateRule() {
   if (rawRule) {
     try {
       const rule = typeof rawRule === 'string' ? JSON.parse(rawRule) : rawRule
-      recipientStrategy.value = rule.strategy || 'USER'
+      recipientStrategy.value = rule.strategy || ''
+      strategyVersion.value = rule.strategyVersion ?? 1
       recipientExpression.value = rule.expression || ''
       recipientRows.value = (rule.subjects || []).map((subject: any) => ({
         storageId: subject.id,
@@ -140,25 +148,18 @@ async function hydrateRule() {
       form.value.permissionFlag = recipientRows.value.map(item => item.storageId)
       return
     } catch (_) {
-      // 后端保存时会校验非法规则；此处继续按旧 permissionFlag 尝试回显。
+      // 保留原始扩展；未解析的规则不能通过校验。
     }
   }
-  const permissions = typeof form.value.permissionFlag === 'string'
-    ? form.value.permissionFlag.split('@@').filter(Boolean)
-    : (form.value.permissionFlag || []).filter(Boolean)
-  form.value.permissionFlag = permissions
-  if (permissions.length) {
-    recipientRows.value = await designerSubjects(permissions)
-    syncRule()
-  }
+  form.value.permissionFlag = []
 }
 
 async function validate() {
   await formRef.value?.validate()
   const descriptor = strategyDescriptor.value
-  const valid = descriptor?.selectionType === 'EXPRESSION'
+  const valid = !!descriptor && strategyVersion.value === (descriptor.version ?? 1) && (descriptor.selectionType === 'EXPRESSION'
     ? Boolean(recipientExpression.value.trim())
-    : descriptor?.selectionType !== 'RESOURCE' || recipientRows.value.length > 0
+    : descriptor?.selectionType !== 'RESOURCE' || recipientRows.value.length > 0)
   return valid ? true : Promise.reject(false)
 }
 

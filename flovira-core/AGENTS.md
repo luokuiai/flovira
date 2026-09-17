@@ -9,7 +9,7 @@ Follow [root AGENTS.md](../AGENTS.md). This file contains only core-specific rul
 - `FlowEngine` exposes services, entity suppliers, handlers, listeners and JSON conversion.
 - `config` and `invoker/FrameInvoker` bridge configuration and framework services.
 - `entity`, `service`, `service.impl` and `orm` define engine contracts and abstract persistence.
-- `handler` provides data fill, tenant, permission, business relationships and external form field labels.
+- `handler` provides data fill, tenant, permission, business-owned approver resolvers and external form field labels.
 - `listener`, `strategy` and `condition` provide workflow callbacks, approver / condition / voting expressions and comparison operations.
 - `keygen`, `json` and `utils` provide IDs, serialization SPI and Java 8 utilities.
 

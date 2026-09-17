@@ -153,7 +153,13 @@ const LISTENER_RESOURCES = [
 export function createMockProvider(): DataProvider {
   return {
     capabilities() {
-      return ok(DEFAULT_DESIGNER_CAPABILITIES)
+      return ok({
+        ...DEFAULT_DESIGNER_CAPABILITIES,
+        approverStrategies: ['USER', 'ROLE'].map(code => ({
+          code, version: 1, name: code === 'USER' ? '指定人员' : '角色成员',
+          selectionType: 'RESOURCE', resourceType: code, multiple: true, editorType: 'DIALOG',
+        })),
+      })
     },
     queryResources(query) {
       const handlerTypes: Record<string, string> = { USER: '用户', ROLE: '角色' }
@@ -195,9 +201,6 @@ export function createMockProvider(): DataProvider {
       const pageSize = query.pageSize || 20
       const start = (pageNum - 1) * pageSize
       return ok({ items: rows.slice(start, start + pageSize), total: rows.length })
-    },
-    resolveRelationship() {
-      return ok([])
     },
     // ===== 流程定义 =====
     saveJson() {

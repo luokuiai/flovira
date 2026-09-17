@@ -1,4 +1,9 @@
 import './styles.css'
+export { getFormPermissionFields, getNodeFormPermissions, setNodeFieldPermission } from './formPermissions'
+export type { DesignerFormField, DesignerFormFieldLoader, NodeFieldPermission, NodeFormPermissions } from './formPermissions'
+export { FormDesigner } from './FormDesigner'
+export type { FormDesignerProps } from './FormDesigner'
+export type { FormDesignerInstance, FormDesignerValidation } from './formDesignerModel'
 export { getFormConditionFields, compileFormCondition, compileFormConditionGroup } from './formDefinition'
 export type { FormDefinition, FormFieldDefinition, FormConditionField, FormConditionGroup, FormCondition } from './formDefinition'
 
@@ -54,6 +59,7 @@ export type {
   DesignerCheckboxProps,
   DesignerRadioGroupProps,
   DesignerControlSize,
+  DesignerTabsProps,
   DesignerDropdownMenuItem,
   DesignerDropdownMenuProps,
   DesignerDialogProps,
@@ -66,7 +72,6 @@ export type {
   DesignerConditionFieldLoader,
   DesignerBranchCondition,
   DesignerConditionGroup,
-  DesignerRelationshipQuery,
   DesignerResourceItem,
   DesignerResourcePage,
   DesignerResourceQuery,
@@ -84,6 +89,9 @@ export type {
   FlowValidationResult,
   NodeRendererContext,
   ApproverEditorRenderContext,
+  ApproverSelectionContext,
+  ApproverSelectionResult,
+  ApproverSelector,
   NodeTimeoutConfig,
   NodeControlConfig,
   ReactFlowDesignerChange,

@@ -32,6 +32,7 @@ describe('designer integration contract', () => {
       { id: 'role:finance', type: 'ROLE', name: '财务角色' },
     ])).toEqual({
       schemaVersion: 1,
+      strategyVersion: 1,
       strategy: 'ROLE',
       selectionType: 'RESOURCE',
       relationType: undefined,

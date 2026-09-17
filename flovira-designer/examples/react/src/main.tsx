@@ -1,3 +1,4 @@
+import { DEMO_CAPABILITIES } from '../../capabilities'
 import { StrictMode, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -8,6 +9,7 @@ import {
 } from '@luokuiai/flovira-react-designer'
 import '@luokuiai/flovira-react-designer/style.css'
 import './styles.css'
+import { FormExample } from './FormExample'
 
 const initial = createInitialDefinition()
 initial.flowCode = 'expense_approval'
@@ -30,6 +32,7 @@ function App() {
   return (
     <main>
       <ReactFlowDesigner
+        capabilities={DEMO_CAPABILITIES}
         appearance="embedded"
         defaultValue={initial}
         queryResources={async () => ({
@@ -65,6 +68,6 @@ function App() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {new URLSearchParams(location.search).has('form') ? <FormExample /> : <App />}
   </StrictMode>,
 )

@@ -78,11 +78,6 @@ public class NodeJson {
      */
     private String listenerPath;
     /**
-     * 外部业务表单标识，由业务系统解析，不是页面路径
-     */
-    private String formId;
-
-    /**
      * 节点扩展属性
      */
     private String ext;

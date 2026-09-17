@@ -19,3 +19,12 @@ test('embedded appearance removes only the outer card decoration', () => {
   expect(embedded).toContain('box-shadow: none;')
   expect(css.match(/\.flovira-react-designer\s*\{([^}]+)\}/)![1]).toContain('border-radius: 8px;')
 })
+
+test('sizes each branch to its own content instead of stretching siblings equally', () => {
+  const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
+  const grid = css.match(/\.flovira-react-branch-grid\s*\{([^}]+)\}/)![1]
+  expect(grid).toContain('grid-auto-columns: minmax(var(--frd-branch-column-width), max-content);')
+  expect(grid).not.toContain('1fr')
+  expect(grid).toContain('align-items: stretch;')
+  expect(grid).toContain('gap: 40px;')
+})

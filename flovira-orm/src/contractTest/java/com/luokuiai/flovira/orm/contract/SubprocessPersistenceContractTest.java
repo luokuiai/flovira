@@ -148,7 +148,8 @@ public class SubprocessPersistenceContractTest {
         assertNotEquals("source-form-1", newFormId);
         Definition parent = FlowEngine.defService().getAllDataDefinition(imported.getRootDefinitionId());
         assertEquals(newFormId, parent.getFormId());
-        assertEquals(newFormId, parent.getNodeList().stream().filter(n -> "sub".equals(n.getNodeCode()))
+        // 节点不再保存表单覆盖，导入后仅流程定义持有表单引用。
+        assertNull(parent.getNodeList().stream().filter(n -> "sub".equals(n.getNodeCode()))
             .findFirst().get().getFormId());
         assertEquals(Integer.valueOf(0), parent.getPublishStatus());
         assertEquals("1", parent.getVersion());

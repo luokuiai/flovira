@@ -4,9 +4,6 @@
  */
 package com.luokuiai.flovira.example.common.provider;
 
-import com.luokuiai.flovira.core.dto.BusinessRelationQuery;
-import com.luokuiai.flovira.core.dto.BusinessSubject;
-import com.luokuiai.flovira.core.handler.BusinessRelationProvider;
 import com.luokuiai.flovira.example.common.model.DemoIdentity;
 import com.luokuiai.flovira.example.common.repository.ExampleRepository;
 import com.luokuiai.flovira.ui.dto.DesignerResourceQuery;
@@ -46,22 +43,6 @@ public class ExampleDesignerDataProvider implements DesignerDataProvider {
         return new DesignerResourcePage().setItems(new ArrayList<>(items.subList(from, to))).setTotal(items.size());
     }
 
-    @Override
-    public List<BusinessSubject> resolveRelationship(BusinessRelationQuery query) {
-        List<DemoIdentity> users;
-        if (BusinessRelationProvider.ROLE_MEMBERS.equals(query.getRelationType())) {
-            users = repository.findByRole(query.getSubjectId());
-        } else if (BusinessRelationProvider.ORGANIZATION_MEMBERS.equals(query.getRelationType())) {
-            String organization = query.getOrganizationId() == null ? query.getSubjectId() : query.getOrganizationId();
-            users = repository.findByOrganization(organization);
-        } else if (BusinessRelationProvider.DEPARTMENT_LEADER.equals(query.getRelationType())) {
-            users = repository.findByRole("manager");
-        } else {
-            users = Collections.emptyList();
-        }
-        return users.stream().map(user -> new BusinessSubject().setId(user.id()).setName(user.name()).setType("USER"))
-            .collect(Collectors.toList());
-    }
 
     private List<DesignerResourceItem> resources(String resourceType) {
         if ("USER".equals(resourceType) || "SUBJECT".equals(resourceType)) {

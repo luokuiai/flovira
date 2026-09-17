@@ -48,10 +48,11 @@ public final class NodeConfigValidator {
                         + previousNodeCode + " and " + node.getNodeCode());
                 }
             }
-            if (NodeType.isCarbonCopy(node.getNodeType())) {
-                if (ApproverRuleUtil.read(node, ApproverRuleUtil.CARBON_COPY_EXT_CONFIG) == null
-                    && StringUtils.isEmpty(node.getPermissionFlag())) {
-                    throw new IllegalStateException("Carbon copy recipients are required on node "
+            if (NodeType.isBetween(node.getNodeType()) || NodeType.isCarbonCopy(node.getNodeType())) {
+                String code = NodeType.isCarbonCopy(node.getNodeType())
+                    ? ApproverRuleUtil.CARBON_COPY_EXT_CONFIG : ApproverRuleUtil.EXT_CONFIG;
+                if (ApproverRuleUtil.read(node, code) == null) {
+                    throw new IllegalStateException("Approver rule is required on node "
                         + node.getNodeCode());
                 }
             }

@@ -125,7 +125,7 @@ export function BranchConditionEditor({ node, index, fields, ui, disabled, compi
         </Button>}
       </>}
       {error && <p className="frd-condition-error" role="alert">{error}</p>}
-      {!disabled && <div className="frd-condition-footer"><Button variant="primary" onPress={save}>保存条件</Button></div>}
+      {!disabled && <div className="frd-condition-footer"><Button variant="primary" onPress={save}>保存</Button></div>}
     </div>
   )
 }
