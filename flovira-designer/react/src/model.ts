@@ -108,6 +108,7 @@ export const normalizeDefinition = (
   const parsed = typeof value === 'string' ? JSON.parse(value) as FloviraDefinition : clone(value)
   delete (parsed as FloviraDefinition & { modelValue?: unknown }).modelValue
   const nodes = Array.isArray(parsed.nodeList) ? parsed.nodeList : []
+  nodes.forEach(node => { delete node.formId })
   return {
     ...parsed,
     nodeList: nodes.map((node) => ({
@@ -127,6 +128,7 @@ export const normalizeDefinition = (
 export const serializeDefinition = (definition: FloviraDefinition): string => {
   const saved = clone(definition) as FloviraDefinition & { modelValue?: unknown }
   delete saved.modelValue
+  saved.nodeList.forEach(node => { delete node.formId })
   return JSON.stringify(saved, null, 2)
 }
 
@@ -459,6 +461,7 @@ export const setTimeoutConfig = (
   return setNodeExtConfig(node, 'timeoutConfig', {
     schemaVersion: 1,
     enabled: false,
+    source: 'DURATION',
     duration: 1,
     durationUnit: 'HOURS',
     action: defaultAction,
@@ -496,7 +499,7 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
       if (Array.isArray(rules)) {
         rules.forEach((rule, index) => {
           if (['rules', 'expression'].includes(rule?.mode) && !node.skipList[index]?.skipCondition?.trim()) {
-            issues.push({ code: 'BRANCH_CONDITION_REQUIRED', nodeCode: node.nodeCode,
+            issues.push({ code: 'BRANCH_CONDITION_REQUIRED', nodeCode: node.nodeCode, skipIndex: index,
               message: `${node.skipList[index]?.skipName || node.nodeName} 未设置条件` })
           }
         })
@@ -509,7 +512,7 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
       const control = getNodeControlConfig(node)
       if (control.allowRollback && control.rejectStrategy === 'TO_SPECIFIED_NODE'
         && !getRejectTargetCandidates(definition, node.nodeCode).some((candidate) => candidate.nodeCode === control.rejectTargetNodeCode)) {
-        issues.push({ code: 'REJECT_TARGET_INVALID', nodeCode: node.nodeCode, message: `${node.nodeName} 未选择有效的退回目标节点` })
+        issues.push({ code: 'REJECT_TARGET_INVALID', nodeCode: node.nodeCode, message: `${node.nodeName} 未选择有效的驳回目标节点` })
       }
       if (getApproverRule(node).config?.approvalMode === 'VOTE'
         && !/^(passCount|rejectCount|default|spel)/.test(String(node.nodeRatio || ''))
@@ -556,7 +559,13 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
       const validAction = node.nodeType === '7'
         ? timeout.action === 'RESUME_WAIT'
         : node.nodeType === '1' && ['AUTO_PASS', 'AUTO_REJECT'].includes(String(timeout.action))
-      if (!Number.isFinite(duration) || duration < 1 || !validUnit || !validAction) {
+      const source = timeout.source ?? 'DURATION'
+      const validSource = source === 'FORM_FIELD'
+        ? typeof timeout.fieldCode === 'string'
+          && /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(timeout.fieldCode)
+          && timeout.fieldCode.split('.').length <= 32
+        : source === 'DURATION' && Number.isInteger(duration) && duration >= 1 && validUnit
+      if (!validSource || !validAction) {
         issues.push({ code: 'TIMEOUT_INVALID', nodeCode: node.nodeCode, message: `${node.nodeName} 的超时配置无效` })
       }
     }

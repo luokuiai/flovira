@@ -31,8 +31,9 @@ const departments = [
 export function OrganizationParticipantPicker({
   selected,
   multiple,
+  maxSubjects,
   onChange,
-}: ApproverEditorRenderContext) {
+}: Pick<ApproverEditorRenderContext, 'selected' | 'multiple' | 'onChange'> & { maxSubjects?: number }) {
   const [departmentId, setDepartmentId] = useState(departments[0].id)
   const [keyword, setKeyword] = useState('')
   const department = departments.find((item) => item.id === departmentId) || departments[0]
@@ -84,6 +85,7 @@ export function OrganizationParticipantPicker({
               <Checkbox
                 key={user.id}
                 checked={checked}
+                disabled={multiple && !checked && maxSubjects != null && selected.length >= maxSubjects}
                 label={(
                   <span className="organization-picker__person">
                     <strong>{user.name}</strong>

@@ -50,6 +50,8 @@ public class ApproverStrategyDefinition {
     private String resourceType;
     private String relationType;
     private boolean multiple = true;
+    /** 显式选择的人员或资源数量上限；未设置表示不限制，不限制动态解析结果。 */
+    private Integer maxSubjects;
     private String editorType = EDITOR_NONE;
     private String editorKey;
     private String resultCardinality;

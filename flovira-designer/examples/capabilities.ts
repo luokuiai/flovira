@@ -23,7 +23,7 @@ const SAME_AS_STARTER_OPTION: DesignerApproverOption = {
   choices: [
     { value: 'SELF_APPROVE', label: '本人审批' },
     { value: 'AUTO_SKIP_OR_TRANSFER', label: '跳过或由其他人审批' },
-    { value: 'TRANSFER_TO_ORG_MANAGER', label: '转交部门负责人' },
+    { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'sameAsStarterSubjects' },
   ],
 }
 

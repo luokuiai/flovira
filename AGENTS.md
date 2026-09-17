@@ -15,6 +15,7 @@ Core constraints: Java 8 source compatibility, framework / ORM / JSON independen
 - `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.0.0.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
 - Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
 - Flovira may manage versioned form metadata and content in `flow_form`; host applications may also supply forms. Workflow definitions, nodes, tasks and history store opaque string `formId` references and approval data snapshots. Keep host page routing outside `flow_form`; do not restore `form_custom`, `form_type`, `form_path`, numeric-only form references, bundled rendering pages or designer mode switching.
+- A workflow uses one form selected by its definition. Nodes configure field permissions, never a separate form or an override. Task and history form references are snapshots of the workflow form.
 
 ## Instruction hierarchy and maintenance
 

@@ -32,4 +32,8 @@ public class ApproverOptionChoice {
     private String value;
     private String label;
     private boolean disabled;
+    /** 此选项调用业务选择器时使用的策略编码。 */
+    private String selectionStrategy;
+    /** 所选人员列表在所属规则 config 中的存储键。 */
+    private String selectionConfigKey;
 }

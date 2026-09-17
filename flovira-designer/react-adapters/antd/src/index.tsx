@@ -1,4 +1,5 @@
 import { Button, Checkbox, Drawer, Dropdown, Form, Input, Modal, Radio, Select, Tooltip } from 'antd'
+import { useState } from 'react'
 import type {
   DesignerButtonProps,
   DesignerCheckboxProps,
@@ -143,9 +144,15 @@ const AntdTooltip = ({ content, children, placement, disabled }: DesignerTooltip
   </Tooltip>
 )
 
-const AntdDropdownMenu = ({ trigger, items, align = 'left', onSelect }: DesignerDropdownMenuProps) => (
+const AntdDropdownMenu = ({ trigger, items, align = 'left', onSelect, onOpenChange, renderContent }: DesignerDropdownMenuProps) => {
+  const [open, setOpen] = useState(false)
+  const changeOpen = (next: boolean) => { setOpen(next); onOpenChange?.(next) }
+  return (
   <Dropdown
     trigger={['click']}
+    open={open}
+    onOpenChange={changeOpen}
+    popupRender={renderContent ? () => renderContent({ close: () => changeOpen(false) }) : undefined}
     placement={align === 'right' ? 'bottomRight' : 'bottomLeft'}
     menu={{
       items: items.map((item) => ({
@@ -156,14 +163,15 @@ const AntdDropdownMenu = ({ trigger, items, align = 'left', onSelect }: Designer
         ) : undefined,
         label: item.label,
       })),
-      onClick: ({ key }) => onSelect(key),
+      onClick: ({ key }) => { onSelect(key); changeOpen(false) },
     }}
   >
     {trigger}
   </Dropdown>
 )
+}
 
-const AntdDrawer = ({ open, title, children, width = 340, ariaLabel = '抽屉', onClose }: DesignerDrawerProps) => (
+const AntdDrawer = ({ open, title, children, footer, width = 340, ariaLabel = '抽屉', onClose }: DesignerDrawerProps) => (
   <Drawer
     open={open}
     title={title}
@@ -171,6 +179,7 @@ const AntdDrawer = ({ open, title, children, width = 340, ariaLabel = '抽屉', 
     placement="right"
     aria-label={ariaLabel}
     rootClassName="frd-antd-drawer"
+    footer={footer}
     styles={{ body: { padding: 20 } }}
     onClose={onClose}
   >

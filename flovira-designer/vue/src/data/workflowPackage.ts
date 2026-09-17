@@ -53,7 +53,7 @@ export function parseWorkflowPackage(input: unknown): WorkflowPackage {
       check(node && nonblank(node.nodeCode) && !codes.has(node.nodeCode), '无效或重复的节点编码')
       check(/^[0-8]$/.test(String(node.nodeType)) && Array.isArray(node.skipList), '无效的节点或连线列表')
       codes.add(node.nodeCode)
-      addReference(node.formId)
+      delete node.formId
       if (String(node.nodeType) === '6') {
         const ext = JSON.parse(node.ext || '[]')
         check(Array.isArray(ext), '无效的子流程扩展')

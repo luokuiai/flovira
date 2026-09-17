@@ -1,10 +1,14 @@
 import { NodeControlEditor } from './NodeControlEditor'
+import { FormPermissionEditor } from './FormPermissionEditor'
+import { TimeoutFormField } from './TimeoutFormField'
+import type { DesignerFormField } from './formPermissions'
 import { BusinessFormField } from './BusinessFormField'
 import {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -12,12 +16,12 @@ import {
   type ReactNode,
 } from 'react'
 import {
+  CircleAlert,
   LocateFixed,
   Network,
   Plus,
   Redo2,
   Settings2,
-  Timer,
   Undo2,
   X,
   ZoomIn,
@@ -70,6 +74,8 @@ import type {
 } from './types'
 
 
+const EMPTY_FORM_FIELDS: readonly DesignerFormField[] = []
+
 const approverEditorType = (strategy?: DesignerCapabilities['approverStrategies'][number]): ApproverEditorType => {
   if (strategy?.editorType) return strategy.editorType
   if (strategy?.selectionType === 'EXPRESSION') return 'INLINE'
@@ -99,6 +105,15 @@ const approverOptionVisible = (
 }
 
 const INSERT_TYPES: FloviraNodeType[] = ['1', '8', '7', '6', '3', '4', '5']
+
+const selectionHint = (name: string, strategy?: DesignerCapabilities['approverStrategies'][number]) => {
+  const max = strategy?.multiple === false ? 1 : strategy?.maxSubjects
+  return max == null ? name : `${name}（最多 ${max} ${strategy?.resourceType === 'USER' ? '人' : '项'}）`
+}
+
+const exceedsSelectionLimit = (subjects: ApproverSubject[], strategy: DesignerCapabilities['approverStrategies'][number]) =>
+  strategy.maxSubjects != null && (!Number.isInteger(strategy.maxSubjects) || strategy.maxSubjects < 1
+    || new Set(subjects.map(subject => `${subject.type}:${subject.id}`)).size > strategy.maxSubjects)
 
 
 
@@ -170,6 +185,9 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     renderToolbar,
     renderNode,
     renderApproverEditor,
+    onSelectApprover,
+    formFields,
+    queryFormFields,
     ui,
   }, ref) {
     const components = useMemo(() => ({ ...defaultDesignerUi, ...ui }), [ui])
@@ -184,6 +202,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const UiTooltip = components.Tooltip
     const UiDropdownMenu = components.DropdownMenu
     const UiDrawer = components.Drawer
+    const UiTabs = components.Tabs || defaultDesignerUi.Tabs!
     const UiDialog = components.Dialog || defaultDesignerUi.Dialog!
     const initial = useMemo(
       () => normalizeDefinition(value ?? defaultValue ?? createInitialDefinition()),
@@ -192,11 +211,35 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const [definition, setDefinition] = useState<FloviraDefinition>(initial)
     const [past, setPast] = useState<FloviraDefinition[]>([])
     const [future, setFuture] = useState<FloviraDefinition[]>([])
-    const [selectedCode, setSelectedCode] = useState('')
+    const [selectedCode, setSelectedCodeState] = useState('')
+    const [nodeEdit, setNodeEdit] = useState<{ base: FloviraDefinition; draft: FloviraDefinition } | null>(null)
+    const nodeDefinition = nodeEdit?.base === definition ? nodeEdit.draft : definition
+    const setSelectedCode = (code: string, source = definition) => {
+      setSelectedCodeState(code)
+      setNodeEdit(code ? { base: source, draft: JSON.parse(JSON.stringify(source)) } : null)
+      setParticipantPickerOpen(false)
+    }
+    const commitNode = (next: FloviraDefinition) => {
+      if (disabled) return
+      setNodeEdit(current => current?.base === definition ? { ...current, draft: next } : current)
+    }
+    useEffect(() => {
+      if (!nodeEdit || (nodeEdit.base === definition && !disabled)) return
+      setSelectedCodeState('')
+      setNodeEdit(null)
+      setParticipantPickerOpen(false)
+      setSelectedBranch(current => current?.fromNode ? null : current)
+    }, [definition, disabled])
+    const [nodeTab, setNodeTab] = useState<'basic' | 'config' | 'form'>('config')
+    const nodeTabId = useId()
+    useEffect(() => {
+      const type = definition.nodeList.find(node => node.nodeCode === selectedCode)?.nodeType
+      setNodeTab(type === '0' || type === '2' ? 'basic' : 'config')
+    }, [selectedCode])
     const [loadedConditionFields, setLoadedConditionFields] = useState<readonly DesignerConditionField[]>([])
     const [conditionFieldState, setConditionFieldState] = useState<'loading' | 'ready' | 'error'>('loading')
     const [conditionFieldRetry, setConditionFieldRetry] = useState(0)
-    const [selectedBranch, setSelectedBranch] = useState<{ nodeCode: string; index: number } | null>(null)
+    const [selectedBranch, setSelectedBranch] = useState<{ nodeCode: string; index: number; fromNode?: boolean } | null>(null)
     const [zoom, setZoom] = useState(1)
     const [canvasDragging, setCanvasDragging] = useState(false)
     const canvasDragRef = useRef<{ pointerId: number; x: number; y: number; left: number; top: number } | null>(null)
@@ -235,6 +278,10 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const [approverResourceState, setApproverResourceState] = useState<'idle' | 'loading' | 'error'>('idle')
     const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
     const [participantRuleDraft, setParticipantRuleDraft] = useState<ApproverRule | null>(null)
+    const [hostPickerPending, setHostPickerPending] = useState(false)
+    const [hostPickerError, setHostPickerError] = useState('')
+    const hostPickerRequest = useRef(0)
+    const hostPickerBusy = useRef(false)
     const canvasRef = useRef<HTMLDivElement>(null)
     const lastEmittedJsonRef = useRef<string | null>(null)
 
@@ -325,14 +372,15 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       locateStart,
     }), [capabilities, commit, definition, dirty, locateStart, redo, undo])
 
-    const branchNode = selectedBranch ? definition.nodeList.find((node) => node.nodeCode === selectedBranch.nodeCode) : undefined
+    const branchDefinition = selectedBranch?.fromNode ? nodeDefinition : definition
+    const branchNode = selectedBranch ? branchDefinition.nodeList.find((node) => node.nodeCode === selectedBranch.nodeCode) : undefined
     const activeBranch = branchNode && selectedBranch && branchNode.skipList[selectedBranch.index] ? selectedBranch : null
     useEffect(() => {
       if (!activeBranch || !branchNode || !queryConditionFields || branchNode.nodeType === '4') return
       let active = true
       setConditionFieldState('loading')
       setLoadedConditionFields([])
-      Promise.resolve().then(() => queryConditionFields({ definition, node: branchNode, branch: branchNode.skipList[activeBranch.index] }))
+      Promise.resolve().then(() => queryConditionFields({ definition: branchDefinition, node: branchNode, branch: branchNode.skipList[activeBranch.index] }))
         .then((fields) => {
           if (!active) return
           if (!Array.isArray(fields)) throw new Error('表单字段返回格式无效')
@@ -340,13 +388,14 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           setConditionFieldState('ready')
         }).catch(() => { if (active) setConditionFieldState('error') })
       return () => { active = false }
-    }, [selectedBranch, definition, queryConditionFields, conditionFieldRetry])
-    const openBranch = (node: FloviraNode, index: number) => {
+    }, [selectedBranch, branchDefinition, queryConditionFields, conditionFieldRetry])
+    const openBranch = (node: FloviraNode, index: number, fromNode = false) => {
       if (queryConditionFields) setConditionFieldState('loading')
-      setSelectedCode('')
-      setSelectedBranch({ nodeCode: node.nodeCode, index })
+      if (!fromNode) setSelectedCode('')
+      setSelectedBranch({ nodeCode: node.nodeCode, index, fromNode })
     }
-    const selectedNode = definition.nodeList.find((node) => node.nodeCode === selectedCode)
+    const selectedNode = nodeEdit?.base === definition
+      ? nodeDefinition.nodeList.find((node) => node.nodeCode === selectedCode) : undefined
     const selectedApproverRule = selectedNode?.nodeType === '8'
       ? getCarbonCopyRule(selectedNode)
       : selectedNode?.nodeType === '1' ? getApproverRule(selectedNode) : null
@@ -361,6 +410,29 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const selectedApproverStrategy = selectedApproverRule
       ? findApproverStrategy(capabilities, selectedApproverRule.strategy)
       : undefined
+    useEffect(() => {
+      if (disabled || selectedNode?.nodeType !== '1' || selectedApproverRule?.strategy) return
+      const starter = findApproverStrategy(capabilities, 'STARTER')
+      if (!starter) return
+      const config = starter.options?.filter(option => approverOptionVisible(option, starter, '1'))
+        .reduce<Record<string, unknown>>((result, option) => {
+          const value = option.defaultValue ?? option.choices[0]?.value
+          if (value !== undefined) result[option.code] = value
+          return result
+        }, {})
+      commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
+        setApproverRule(selectedNode, starter.code, [], '', starter.relationType,
+          starter.selectionType, config, starter.version ?? 1)))
+    }, [selectedNode, capabilities, disabled])
+    const pickerState = useRef({ definition: nodeDefinition, selectedCode, disabled, onSelectApprover, selectedApproverStrategy })
+    pickerState.current = { definition: nodeDefinition, selectedCode, disabled, onSelectApprover, selectedApproverStrategy }
+    useEffect(() => {
+      hostPickerRequest.current += 1
+      hostPickerBusy.current = false
+      setHostPickerPending(false)
+      setHostPickerError('')
+      return () => { hostPickerRequest.current += 1 }
+    }, [nodeDefinition, selectedCode, disabled, selectedApproverStrategy])
     useEffect(() => {
       if (!selectedNode || !['1', '8'].includes(selectedNode.nodeType)
         || approverEditorType(selectedApproverStrategy) !== 'DIALOG'
@@ -405,11 +477,68 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
 
     const changeSelected = (patch: Partial<FloviraNode>) => {
       if (!selectedNode) return
-      commit(updateNode(definition, selectedNode.nodeCode, patch))
+      commitNode(updateNode(nodeDefinition, selectedNode.nodeCode, patch))
     }
 
-    const openParticipantPicker = () => {
-      if (!selectedApproverRule || approverEditorType(selectedApproverStrategy) !== 'DIALOG') return
+    const openParticipantPicker = async (target?: { strategy: string; configKey: string; optionCode: string; value: string }) => {
+      if (disabled || !selectedNode || !selectedApproverRule || !selectedApproverStrategy
+        || (!target && approverEditorType(selectedApproverStrategy) !== 'DIALOG')) return
+      const pickerStrategy = target ? findApproverStrategy(capabilities, target.strategy) : selectedApproverStrategy
+      if (target && (!onSelectApprover || !pickerStrategy || pickerStrategy.resourceType !== 'USER')) {
+        setHostPickerError('请接入人员选择回调，并提供指定人员策略')
+        return
+      }
+      if (!pickerStrategy) return
+      if (onSelectApprover) {
+        if (hostPickerBusy.current) return
+        const request = ++hostPickerRequest.current
+        const state = pickerState.current
+        const isCurrent = () => request === hostPickerRequest.current
+          && pickerState.current.definition === state.definition
+          && pickerState.current.selectedCode === state.selectedCode
+          && !pickerState.current.disabled
+          && pickerState.current.selectedApproverStrategy === state.selectedApproverStrategy
+        hostPickerBusy.current = true
+        setHostPickerPending(true)
+        setHostPickerError('')
+        try {
+          const result = await onSelectApprover(JSON.parse(JSON.stringify({
+            node: selectedNode, strategy: pickerStrategy,
+            rule: target ? { ...selectedApproverRule, strategy: pickerStrategy.code, selectionType: pickerStrategy.selectionType,
+              subjects: selectedApproverRule.config?.[target.configKey] || [], config: {} } : selectedApproverRule,
+            selected: target ? selectedApproverRule.config?.[target.configKey] || [] : selectedApproverRule.subjects,
+            multiple: pickerStrategy.multiple, disabled: false,
+          })))
+          if (!isCurrent() || result == null) return
+          if (!Array.isArray(result.subjects) || result.subjects.some(subject =>
+            !subject || typeof subject.id !== 'string' || !subject.id.trim() || typeof subject.type !== 'string' || !subject.type.trim())) {
+            throw new Error('人员选择结果格式无效')
+          }
+          const selection = JSON.parse(JSON.stringify(result))
+          const subjects = pickerStrategy.multiple ? selection.subjects : selection.subjects.slice(0, 1)
+          if (exceedsSelectionLimit(subjects, pickerStrategy)) throw new Error(`最多选择 ${pickerStrategy.maxSubjects} 项，请重新选择`)
+          if (target) {
+            if (!subjects.length || subjects.some((subject: ApproverSubject) => subject.type !== 'USER')) {
+              throw new Error('请选择至少一名指定人员')
+            }
+            updateInlineApproverRule({ ...selectedApproverRule, config: { ...selectedApproverRule.config,
+              [target.optionCode]: target.value, [target.configKey]: subjects } })
+            return
+          }
+          commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
+            setSelectedParticipantRule(selectedNode, selectedApproverStrategy.code, subjects,
+              selection.expression ?? selectedApproverRule.expression ?? '', selectedApproverStrategy.relationType,
+              selectedApproverStrategy.selectionType, selection.config ?? selectedApproverRule.config)))
+        } catch (error) {
+          if (isCurrent()) setHostPickerError(error instanceof Error ? error.message : '人员选择失败，请重试')
+        } finally {
+          if (request === hostPickerRequest.current) {
+            hostPickerBusy.current = false
+            setHostPickerPending(false)
+          }
+        }
+        return
+      }
       setApproverKeyword('')
       setApproverPage(1)
       setParticipantRuleDraft({
@@ -422,10 +551,14 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
 
     const confirmParticipantPicker = () => {
       if (!selectedNode || !selectedApproverStrategy || !participantRuleDraft) return
+      if (exceedsSelectionLimit(participantRuleDraft.subjects, selectedApproverStrategy)) {
+        setHostPickerError(`最多选择 ${selectedApproverStrategy.maxSubjects} 项，请重新选择`)
+        return
+      }
       const subjects = selectedApproverStrategy.multiple
         ? participantRuleDraft.subjects
         : participantRuleDraft.subjects.slice(0, 1)
-      commit(updateNode(definition, selectedNode.nodeCode,
+      commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
         setSelectedParticipantRule(selectedNode, selectedApproverStrategy.code, subjects,
           participantRuleDraft.expression || '', selectedApproverStrategy.relationType,
           selectedApproverStrategy.selectionType, participantRuleDraft.config)))
@@ -437,6 +570,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       const summary = summaryFor(node)
       const selected = selectedCode === node.nodeCode
       const deletable = !disabled && !['0', '2'].includes(node.nodeType)
+      const issues = validation.issues.filter((issue) => issue.nodeCode === node.nodeCode)
       if (renderNode) {
         return <>{renderNode({ node, selected, summary })}</>
       }
@@ -455,6 +589,13 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           }}
           aria-label={`编辑节点：${node.nodeName}`}
         >
+          {issues.length > 0 && (
+            <UiTooltip content={issues.map((issue) => issue.message).join('；')}>
+              <span className="frd-node__validation" role="img" aria-label={`${node.nodeName} 配置待完善：${issues.map((issue) => issue.message).join('；')}`}>
+                <CircleAlert size={20} aria-hidden="true" />
+              </span>
+            </UiTooltip>
+          )}
           <NodeHeader node={node}>
             {deletable && (
               <span className="frd-node__actions">
@@ -516,7 +657,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               commit(next)
               if (added) {
                 if (['3', '4', '5'].includes(added.nodeType)) openBranch(added, 0)
-                else { setSelectedBranch(null); setSelectedCode(added.nodeCode) }
+                else { setSelectedBranch(null); setSelectedCode(added.nodeCode, next) }
               }
             }}
           />
@@ -569,6 +710,14 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     <div className="frd-branch" key={String(skip.id || node.skipList.indexOf(skip))}>
                       <span className="frd-branch__connector" aria-hidden="true" />
                       <div className="frd-condition-card-wrapper">
+                      {validation.issues.filter(issue => issue.nodeCode === node.nodeCode
+                        && issue.skipIndex === node.skipList.indexOf(skip)).map(issue => (
+                        <UiTooltip key={issue.code} content={issue.message}>
+                          <span className="frd-node__validation" role="img" aria-label={`分支配置待完善：${issue.message}`}>
+                            <CircleAlert size={20} aria-hidden="true" />
+                          </span>
+                        </UiTooltip>
+                      ))}
                       <button type="button" className={`frd-condition-card frd-node--${NODE_META[node.nodeType]?.tone || 'exclusive'}`} data-default={getBranchRule(node, node.skipList.indexOf(skip)).mode === 'default'}
                         aria-label={`配置分支：${skip.skipName || `分支 ${node.skipList.indexOf(skip) + 1}`}`}
                         onClick={() => openBranch(node, node.skipList.indexOf(skip))}>
@@ -617,8 +766,12 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     const validation = validateDefinition(definition, capabilities)
     const updateInlineApproverRule = (rule: ApproverRule) => {
       if (!selectedNode || !selectedApproverStrategy) return
+      if (exceedsSelectionLimit(rule.subjects, selectedApproverStrategy)) {
+        setHostPickerError(`最多选择 ${selectedApproverStrategy.maxSubjects} 项，请重新选择`)
+        return
+      }
       const subjects = selectedApproverStrategy.multiple ? rule.subjects : rule.subjects.slice(0, 1)
-      commit(updateNode(definition, selectedNode.nodeCode,
+      commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
         setSelectedParticipantRule(selectedNode, selectedApproverStrategy.code, subjects,
           rule.expression || '', selectedApproverStrategy.relationType,
           selectedApproverStrategy.selectionType, rule.config)))
@@ -664,15 +817,20 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       ? editorRenderer?.(editorContext)
       : undefined
 
-    const defaultToolbar = (
+    const historyControls = (
+      <div className="frd-toolbar" role="group" aria-label="历史操作">
+        <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="撤销" disabled={!past.length || disabled} onPress={undo}><Undo2 size={16} /></ToolbarButton>
+        <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="重做" disabled={!future.length || disabled} onPress={redo}><Redo2 size={16} /></ToolbarButton>
+      </div>
+    )
+    const defaultToolbar = appearance === 'embedded' ? historyControls : (
         <header className="frd-header">
           <div className="frd-heading">
             <div className="frd-heading__icon">
-              <Network size={17} />
+              <Network size={14} />
             </div>
             <div className="frd-heading__text">
               <h2>{definition.flowName || '流程设计'}</h2>
-              <p>{definition.flowCode || '未设置流程编码'}</p>
             </div>
             {dirty && (
               <UiTooltip content="有未保存修改">
@@ -680,19 +838,20 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               </UiTooltip>
             )}
           </div>
-          <div className="frd-toolbar">
-            <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="撤销" disabled={!past.length || disabled} onPress={undo}><Undo2 size={16} /></ToolbarButton>
-            <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="重做" disabled={!future.length || disabled} onPress={redo}><Redo2 size={16} /></ToolbarButton>
-          </div>
+          {historyControls}
         </header>
     )
+    const toolbarContent = toolbar !== false && (renderToolbar
+      ? renderToolbar({ defaultToolbar, disabled, dirty })
+      : defaultToolbar)
     return (
       <section className={`flovira-react-designer ${className}`} data-appearance={appearance}>
-        {toolbar !== false && (renderToolbar
-          ? renderToolbar({ defaultToolbar, disabled, dirty })
-          : defaultToolbar)}
+        {appearance !== 'embedded' && toolbarContent}
         <div className="frd-workspace">
           <div className="frd-canvas-shell">
+            {appearance === 'embedded' && toolbar !== false && (
+              <div className="frd-history-controls">{toolbarContent}</div>
+            )}
             <div ref={canvasRef} className="flovira-react-canvas" data-dragging={canvasDragging}
               onPointerDown={handleCanvasPointerDown} onPointerMove={handleCanvasPointerMove}
               onPointerUp={endCanvasDrag} onPointerCancel={endCanvasDrag} onLostPointerCapture={endCanvasDrag}>
@@ -713,11 +872,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="放大" onPress={() => setZoom((current) => Math.min(1.5, current + 0.1))}><ZoomIn size={16} /></ToolbarButton>
               <ToolbarButton Button={UiButton} Tooltip={UiTooltip} label="定位开始节点" onPress={locateStart}><LocateFixed size={16} /></ToolbarButton>
             </div>
-            {!validation.valid && (
-              <div className="frd-validation-alert">
-                {validation.issues.length} 项配置待完善：{validation.issues[0].message}
-              </div>
-            )}
           </div>
 
           <UiDrawer open={Boolean(activeBranch)} title={branchNode && activeBranch ? branchNode.skipList[activeBranch.index].skipName || '分支条件' : '分支条件'}
@@ -730,23 +884,32 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               key={`${branchNode.nodeCode}-${activeBranch.index}-${JSON.stringify(branchNode)}`}
               node={branchNode} index={activeBranch.index} fields={queryConditionFields ? loadedConditionFields : conditionFields} ui={components} disabled={disabled}
               compile={compileBranchConditions} onSave={(name, rule) => {
-                commit(updateNode(definition, branchNode.nodeCode, setBranchRule(branchNode, activeBranch.index, name, rule)))
+                const next = updateNode(branchDefinition, branchNode.nodeCode, setBranchRule(branchNode, activeBranch.index, name, rule))
+                if (activeBranch.fromNode) commitNode(next)
+                else commit(next)
                 setSelectedBranch(null)
               }} />}
           </UiDrawer>
           <UiDrawer
-            open={Boolean(selectedNode)}
+            open={Boolean(selectedNode) && !selectedBranch?.fromNode}
             title={(
               <span className="frd-settings-panel__title">
                 <Settings2 size={17} />
                 <span className="frd-settings-panel__title-copy">
-                  <strong>{selectedNode?.nodeName || '节点设置'}</strong>
-                  <small>{selectedNode ? `${NODE_META[selectedNode.nodeType]?.label || '节点'}配置` : '节点配置'}</small>
+                  <strong>审批配置</strong>
                 </span>
               </span>
             )}
             width={460}
             ariaLabel="节点设置"
+            footer={<div className="frd-node-actions">
+              <UiButton size="compact" onPress={() => setSelectedCode('')}>取消</UiButton>
+              <UiButton size="compact" variant="primary" disabled={disabled || hostPickerPending} onPress={() => {
+                if (!selectedNode || nodeEdit?.base !== definition) return
+                if (serializeDefinition(nodeDefinition) !== serializeDefinition(definition)) commit(nodeDefinition)
+                setSelectedCode('')
+              }}>确定</UiButton>
+            </div>}
             onClose={() => {
               setParticipantPickerOpen(false)
               setSelectedCode('')
@@ -754,33 +917,36 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           >
             {selectedNode && (
               <div className="frd-settings-panel">
+              <UiTabs value={nodeTab} idPrefix={nodeTabId} ariaLabel="节点配置分类"
+                options={[{ value: 'basic', label: '基础信息' }, { value: 'config', label: selectedNode.nodeType === '1' ? '审批配置' : '节点配置' }, { value: 'form', label: '表单权限' }]}
+                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form')} />
+              <div role="tabpanel" id={`${nodeTabId}-panel-basic`} aria-labelledby={`${nodeTabId}-tab-basic`} hidden={nodeTab !== 'basic'}>
               <div className="frd-settings-group">
-                <h4>基础信息</h4>
                 <UiField label="节点名称">
                   <UiInput value={selectedNode.nodeName} disabled={disabled} ariaLabel="节点名称" onValueChange={(value) => changeSelected({ nodeName: value })} />
                 </UiField>
                 <UiField label="节点编码">
                   <UiInput value={selectedNode.nodeCode} disabled onValueChange={() => undefined} />
                 </UiField>
-                {['0', '1'].includes(selectedNode.nodeType) && (
+                {selectedNode.nodeType === '0' && (
                   <BusinessFormField
-                    value={String((selectedNode.nodeType === '0' ? definition.formId : selectedNode.formId) || '')}
-                    inherited={selectedNode.nodeType !== '0'} disabled={disabled}
+                    value={String(nodeDefinition.formId || '')} disabled={disabled}
                     queryResources={queryResources} ui={components}
-                    onChange={(formId) => selectedNode.nodeType === '0'
-                      ? commit({ ...definition, formId }) : changeSelected({ formId })} />
+                    onChange={(formId) => commitNode({ ...nodeDefinition, formId })} />
                 )}
               </div>
+              </div>
+              <div role="tabpanel" id={`${nodeTabId}-panel-config`} aria-labelledby={`${nodeTabId}-tab-config`} hidden={nodeTab !== 'config'}>
               {['1', '8'].includes(selectedNode.nodeType) && (
                 <div className="frd-settings-group">
-                  <h4>{selectedNode.nodeType === '8' ? '抄送策略' : '审批策略'}</h4>
-                  <UiField label={selectedNode.nodeType === '8' ? '抄送人类型' : '办理人类型'}>
+                  {selectedNode.nodeType === '8' && <h4>抄送策略</h4>}
+                  <UiField label={selectedNode.nodeType === '8' ? '抄送人类型' : '审批人'}>
                     <UiSelect
-                      ariaLabel={selectedNode.nodeType === '8' ? '抄送人类型' : '办理人类型'}
+                      ariaLabel={selectedNode.nodeType === '8' ? '抄送人类型' : '审批人'}
                       value={String(selectedApproverRule?.strategy || '')}
                       disabled={disabled}
                       options={[
-                        { value: '', label: '请选择人员策略', disabled: true },
+                        ...(selectedNode.nodeType === '8' ? [{ value: '', label: '请选择抄送人类型', disabled: true }] : []),
                         ...(selectedApproverRule?.strategy && !selectedApproverStrategy
                           ? [{ value: selectedApproverRule.strategy, label: `不支持的策略：${selectedApproverRule.strategy}`, disabled: true }] : []),
                         ...approverStrategyOptions(capabilities).map((strategy) => ({
@@ -798,7 +964,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                         }, {})
                         setApproverKeyword('')
                         setApproverPage(1)
-                        commit(updateNode(definition, selectedNode.nodeCode,
+                        commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
                           setSelectedParticipantRule(selectedNode, value, [], '', strategy?.relationType,
                             strategy?.selectionType || 'RESOURCE', config)))
                       }}
@@ -811,7 +977,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                         value={String(selectedApproverRule?.expression || '')}
                         disabled={disabled}
                         placeholder="例如 ${approverIds}"
-                        onValueChange={(value) => commit(updateNode(definition, selectedNode.nodeCode,
+                        onValueChange={(value) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
                           setSelectedParticipantRule(selectedNode, selectedApproverStrategy.code, [], value,
                             selectedApproverStrategy.relationType, selectedApproverStrategy.selectionType,
                             selectedApproverRule?.config)))}
@@ -820,16 +986,16 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     ) : null)
                   ) : selectedApproverStrategy && approverEditorType(selectedApproverStrategy) === 'DIALOG' ? (
                     <div className="frd-participant-picker">
-                      <UiField label={selectedApproverStrategy.name}>
+                      <UiField className="frd-participant-field" label={selectionHint(selectedApproverStrategy.resourceType === 'USER' ? '新增人员' : `新增${selectedApproverStrategy.name}`, selectedApproverStrategy)}>
                         <div className="frd-participant-launcher">
                           <UiTooltip content={`选择${selectedApproverStrategy.name}`}>
                             <UiButton
                               size="icon"
                               variant="default"
                               className="frd-participant-launcher__add"
-                              disabled={disabled}
+                              disabled={disabled || hostPickerPending}
                               ariaLabel={`选择${selectedApproverStrategy.name}`}
-                              onPress={openParticipantPicker}
+                              onPress={() => openParticipantPicker()}
                             >
                               <Plus size={14} />
                             </UiButton>
@@ -843,7 +1009,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                                 className="frd-participant-chip__remove"
                                 disabled={disabled}
                                 ariaLabel={`移除${subject.name || subject.id}`}
-                                onPress={() => commit(updateNode(definition, selectedNode.nodeCode,
+                                onPress={() => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
                                   setSelectedParticipantRule(selectedNode, selectedApproverStrategy.code,
                                     selectedApproverRule.subjects.filter((item) => item.id !== subject.id), '',
                                     selectedApproverStrategy.relationType, selectedApproverStrategy.selectionType,
@@ -859,9 +1025,11 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                   ) : null}
                   {selectedApproverStrategy?.options
                     ?.filter((option) => approverOptionVisible(option, selectedApproverStrategy, selectedNode.nodeType, selectedApproverRule?.subjects))
-                    .map((option) => (
-                    <UiField label={option.name} key={option.code}>
-                      <UiRadioGroup
+                    .map((option) => {
+                    const OptionControl = option.code === 'approvalMode' ? UiSelect : UiRadioGroup
+                    return (
+                    <UiField label={option.name} key={option.code} className="frd-approver-option">
+                      <OptionControl
                         value={String(selectedApproverRule?.config?.[option.code]
                           ?? option.defaultValue
                           ?? option.choices[0]?.value
@@ -878,13 +1046,36 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                             return rank(a.value) - rank(b.value)
                           })
                           : option.choices}
-                        onValueChange={(value) => selectedApproverRule && updateInlineApproverRule({
-                          ...selectedApproverRule,
-                          config: { ...selectedApproverRule.config, [option.code]: value },
-                        })}
+                        onValueChange={(value) => {
+                          if (selectedApproverRule) {
+                            const config = { ...selectedApproverRule.config, [option.code]: value }
+                            option.choices.forEach(item => { if (item.selectionConfigKey && item.value !== value) delete config[item.selectionConfigKey] })
+                            updateInlineApproverRule({ ...selectedApproverRule, config })
+                          }
+                        }}
                       />
+                      {option.choices.filter(choice => choice.selectionStrategy && choice.selectionConfigKey
+                        && selectedApproverRule?.config?.[option.code] === choice.value).map(choice => {
+                        const subjects = selectedApproverRule?.config?.[choice.selectionConfigKey!] as ApproverSubject[] | undefined
+                        return <div className="frd-option-subjects" key={choice.value}>
+                          <p className="frd-participant-hint">{selectionHint('新增人员', findApproverStrategy(capabilities, choice.selectionStrategy!))}</p>
+                          <div className="frd-participant-launcher">
+                            <UiTooltip content="选择指定人员">
+                              <UiButton size="icon" variant="default" className="frd-participant-launcher__add"
+                                ariaLabel="选择指定人员" disabled={disabled || hostPickerPending}
+                                onPress={() => openParticipantPicker({ strategy: choice.selectionStrategy!, configKey: choice.selectionConfigKey!, optionCode: option.code, value: choice.value })}>
+                                <Plus size={14} />
+                              </UiButton>
+                            </UiTooltip>
+                            {Array.isArray(subjects) && subjects.map(subject => <span className="frd-participant-chip" key={`${subject.type}:${subject.id}`}>
+                              <span>{subject.name || subject.id}</span>
+                            </span>)}
+                          </div>
+                        </div>
+                      })}
                     </UiField>
-                    ))}
+                    )})}
+                  {hostPickerError && <p role="alert" className="frd-error-text">{hostPickerError}</p>}
                   {selectedNode.nodeType === '1' && (
                     selectedApproverRule?.config?.approvalMode === 'VOTE'
                     && selectedApproverStrategy?.options?.some((option) => option.code === 'approvalMode'
@@ -894,15 +1085,15 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                           value={Number.isFinite(Number(selectedNode.nodeRatio)) ? String(selectedNode.nodeRatio ?? '') : ''}
                           disabled={disabled} placeholder="例如 60"
                           onValueChange={(value) => changeSelected({ nodeRatio: value })} />
-                        {validation.issues.some((issue) => issue.nodeCode === selectedNode.nodeCode && issue.code === 'VOTE_RATIO_INVALID')
+                        {validateDefinition(nodeDefinition, capabilities).issues.some((issue) => issue.nodeCode === selectedNode.nodeCode && issue.code === 'VOTE_RATIO_INVALID')
                           && <p role="alert" className="frd-condition-error">请输入大于 0、小于 100 的通过比例</p>}
                         {!Number.isFinite(Number(selectedNode.nodeRatio)) && <p className="frd-condition-hint">当前票签规则：{selectedNode.nodeRatio}。填写比例后将替换此规则。</p>}
                       </UiField>
                     )
                   )}
-                  {selectedNode.nodeType === '1' && <NodeControlEditor definition={definition} node={selectedNode}
+                  {selectedNode.nodeType === '1' && <NodeControlEditor definition={nodeDefinition} node={selectedNode}
                     disabled={disabled} ui={components}
-                    onChange={(node) => commit(updateNode(definition, selectedNode.nodeCode, node))} />}
+                    onChange={(node) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode, node))} />}
 
                 </div>
               )}
@@ -910,7 +1101,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <SubprocessField key={selectedNode.nodeCode}
                   value={String(getSubprocessConfig(selectedNode).fixedChildFlowCode || '')}
                   disabled={disabled} queryResources={queryResources} ui={components}
-                  onChange={(value) => commit(updateNode(definition, selectedNode.nodeCode, setSubprocessConfig(selectedNode, value)))} />
+                  onChange={(value) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode, setSubprocessConfig(selectedNode, value)))} />
               )}
               {selectedNode.nodeType === '7' && (
                 <UiField label="等待标识" hint="业务系统使用该标识恢复等待任务">
@@ -918,8 +1109,8 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     value={String(getWaitConfig(selectedNode).waitKey || '')}
                     disabled={disabled}
                     placeholder="例如 ORDER_PAID"
-                    onValueChange={(value) => commit(updateNode(
-                      definition,
+                    onValueChange={(value) => commitNode(updateNode(
+                      nodeDefinition,
                       selectedNode.nodeCode,
                       setWaitConfig(selectedNode, value.trim()),
                     ))}
@@ -930,34 +1121,47 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 const timeout = getTimeoutConfig(selectedNode)
                 const enabled = Boolean(timeout.enabled)
                 return (
-                  <div className="frd-settings-section">
+                  <div className="frd-settings-section frd-settings-section--timeout">
                     <div className="frd-settings-section__header">
-                      <span><Timer size={14} />节点超时</span>
+                      <span>超时处理</span>
                       <UiCheckbox
                         checked={enabled}
                         disabled={disabled}
-                        ariaLabel="启用节点超时"
-                        onCheckedChange={(checked) => commit(updateNode(
-                          definition,
+                        ariaLabel="启用超时处理"
+                        onCheckedChange={(checked) => commitNode(updateNode(
+                          nodeDefinition,
                           selectedNode.nodeCode,
                           setTimeoutConfig(selectedNode, { enabled: checked }),
                         ))}
-                      />
+                      >启用超时处理</UiCheckbox>
                     </div>
                     {enabled && (
                       <>
+                        <UiField label="超时来源" className="frd-timeout-action">
+                          <UiRadioGroup ariaLabel="超时来源" value={String(timeout.source || 'DURATION')} disabled={disabled}
+                            options={[{ value: 'DURATION', label: '固定时长' }, { value: 'FORM_FIELD', label: '表单日期时间字段' }]}
+                            onValueChange={source => changeSelected(setTimeoutConfig(selectedNode, { source }))} />
+                        </UiField>
+                        {timeout.source === 'FORM_FIELD' ? <TimeoutFormField
+                          definition={nodeDefinition} node={selectedNode} fields={formFields || EMPTY_FORM_FIELDS}
+                          queryFields={queryFormFields} value={String(timeout.fieldCode || '')} label={String(timeout.fieldLabel || '')}
+                          disabled={disabled} ui={components}
+                          onChange={(fieldCode, fieldLabel) => changeSelected(setTimeoutConfig(selectedNode, { fieldCode, fieldLabel }))} /> :
+                        <div className="frd-timeout-duration">
                         <UiField label="超时时长">
                           <UiInput
                             type="number"
                             min={1}
+                            ariaLabel="超时时长"
+                            placeholder="请输入超时时长"
                             value={Number(timeout.duration || 1)}
                             disabled={disabled}
-                            onValueChange={(value) => commit(updateNode(definition, selectedNode.nodeCode,
+                            onValueChange={(value) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
                               setTimeoutConfig(selectedNode, { duration: Math.max(1, Number(value) || 1) })))}
                           />
                         </UiField>
                         <UiField label="时间单位">
-                          <UiRadioGroup
+                          <UiSelect
                             value={String(timeout.durationUnit || 'HOURS')}
                             disabled={disabled}
                             ariaLabel="时间单位"
@@ -966,11 +1170,12 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                               { value: 'HOURS', label: '小时' },
                               { value: 'DAYS', label: '天' },
                             ]}
-                            onValueChange={(value) => commit(updateNode(definition, selectedNode.nodeCode,
+                            onValueChange={(value) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
                               setTimeoutConfig(selectedNode, { durationUnit: value })))}
                           />
                         </UiField>
-                        <UiField label="超时动作">
+                        </div>}
+                        <UiField label="超时动作" className="frd-timeout-action">
                           <UiRadioGroup
                             value={String(timeout.action || (selectedNode.nodeType === '7' ? 'RESUME_WAIT' : 'AUTO_PASS'))}
                             disabled={disabled}
@@ -979,9 +1184,9 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                               ? [{ value: 'RESUME_WAIT', label: '恢复等待并继续' }]
                               : [
                                   { value: 'AUTO_PASS', label: '自动通过' },
-                                  { value: 'AUTO_REJECT', label: '自动退回' },
+                                  { value: 'AUTO_REJECT', label: '自动驳回' },
                                 ]}
-                            onValueChange={(value) => commit(updateNode(definition, selectedNode.nodeCode,
+                            onValueChange={(value) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
                               setTimeoutConfig(selectedNode, { action: value })))}
                           />
                         </UiField>
@@ -994,10 +1199,10 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <div className="frd-settings-section">
                   <div className="frd-settings-section__header">
                     <span>分支</span>
-                    <UiButton size="compact" variant="text" disabled={disabled || !findBranchMerge(definition, selectedNode.skipList.map((skip) => skip.targetNodeCode))} className="frd-add-branch" onPress={() => commit(addCanvasBranch(definition, selectedNode.nodeCode))}><Plus size={13} />增加分支</UiButton>
+                    <UiButton size="compact" variant="text" disabled={disabled || !findBranchMerge(nodeDefinition, selectedNode.skipList.map((skip) => skip.targetNodeCode))} className="frd-add-branch" onPress={() => commitNode(addCanvasBranch(nodeDefinition, selectedNode.nodeCode))}><Plus size={13} />增加分支</UiButton>
                   </div>
                   {selectedNode.skipList.map((skip, index) => (
-                    <UiButton key={String(skip.id || index)} variant="text" onPress={() => openBranch(selectedNode, index)}>
+                    <UiButton key={String(skip.id || index)} variant="text" onPress={() => openBranch(selectedNode, index, true)}>
                       {skip.skipName || `分支 ${index + 1}`}：{branchSummary(selectedNode, index)}
                     </UiButton>
                   ))}
@@ -1007,10 +1212,17 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <p className="frd-merge-note">该节点是 {incomingCount.get(selectedNode.nodeCode)} 条分支的汇合点。</p>
               ) : null}
               </div>
+              {nodeTab === 'form' && <div role="tabpanel" id={`${nodeTabId}-panel-form`} aria-labelledby={`${nodeTabId}-tab-form`}>
+                <FormPermissionEditor key={selectedNode.nodeCode} definition={nodeDefinition} node={selectedNode} fields={formFields || EMPTY_FORM_FIELDS}
+                  queryFields={queryFormFields} ui={components} disabled={disabled}
+                  onChange={node => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode, node))} />
+              </div>}
+              </div>
             )}
           </UiDrawer>
           {selectedNode && selectedApproverRule
             && selectedApproverStrategy
+            && !onSelectApprover
             && approverEditorType(selectedApproverStrategy) === 'DIALOG' && (
             <UiDialog
               open={participantPickerOpen}
@@ -1047,7 +1259,8 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                           key={`${item.resourceType}:${item.id}`}
                           className="frd-resource-list__item"
                           checked={selected}
-                          disabled={disabled || item.disabled}
+                          disabled={disabled || item.disabled || (!selected && selectedApproverStrategy.maxSubjects != null
+                            && (participantRuleDraft?.subjects.length || 0) >= selectedApproverStrategy.maxSubjects)}
                           onCheckedChange={() => participantRuleDraft && setParticipantRuleDraft({
                             ...participantRuleDraft,
                             subjects: selected

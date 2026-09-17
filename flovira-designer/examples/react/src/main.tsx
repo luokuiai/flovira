@@ -9,6 +9,7 @@ import {
 } from '@luokuiai/flovira-react-designer'
 import '@luokuiai/flovira-react-designer/style.css'
 import './styles.css'
+import { FormExample } from './FormExample'
 
 const initial = createInitialDefinition()
 initial.flowCode = 'expense_approval'
@@ -67,6 +68,6 @@ function App() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {new URLSearchParams(location.search).has('form') ? <FormExample /> : <App />}
   </StrictMode>,
 )

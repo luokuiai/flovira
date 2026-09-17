@@ -16,12 +16,12 @@ const multiApproverOption = {
 const emptyApproverOption = {
   code: 'emptyPolicy',
   name: '无人审批策略',
-  defaultValue: 'FAIL',
+  defaultValue: 'SKIP',
   nodeTypes: ['1'],
   condition: 'EMPTY',
   choices: [
-    { value: 'FAIL', label: '阻止提交' },
-    { value: 'TO_ADMIN', label: '转交管理员' },
+    { value: 'SKIP', label: '跳过' },
+    { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'emptyPolicySubjects' },
   ],
 }
 
@@ -34,7 +34,7 @@ const sameAsStarterOption = {
   choices: [
     { value: 'SELF_APPROVE', label: '本人审批' },
     { value: 'AUTO_SKIP_OR_TRANSFER', label: '跳过或由其他人审批' },
-    { value: 'TRANSFER_TO_ORG_MANAGER', label: '转交部门负责人' },
+    { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'sameAsStarterSubjects' },
   ],
 }
 
@@ -43,7 +43,7 @@ const capabilities = {
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
   approverStrategies: [
     { code: 'STARTER', name: '提交人', selectionType: 'RELATION', relationType: 'STARTER', multiple: false, editorType: 'NONE', resultCardinality: 'EXACTLY_ONE', options: [sameAsStarterOption] },
-    { code: 'USER', name: '指定人员', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, editorType: 'DIALOG', editorKey: 'organization-user-picker', resultCardinality: 'ONE_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },
+    { code: 'USER', name: '指定人员', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, maxSubjects: 20, editorType: 'DIALOG', editorKey: 'organization-user-picker', resultCardinality: 'ONE_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },
     { code: 'GROUP', name: '分组', selectionType: 'RESOURCE', resourceType: 'GROUP', relationType: 'GROUP_MEMBERS', multiple: false, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },
     { code: 'ROLE', name: '指定角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },
     { code: 'ORG_MANAGER', name: '部门负责人', selectionType: 'RELATION', relationType: 'ORG_MANAGER', multiple: false, editorType: 'NONE', resultCardinality: 'ZERO_OR_ONE', options: [emptyApproverOption, sameAsStarterOption] },
@@ -103,7 +103,9 @@ export const mockBackend = (): Plugin => ({
         const keyword = (url.searchParams.get('keyword') || '').trim().toLowerCase()
         const items = (resources[resourceType as keyof typeof resources] || []).filter((item) =>
           !keyword || item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword))
-        send(response, { items, total: items.length })
+        const pageNum = Math.max(1, Number(url.searchParams.get('pageNum')) || 1)
+        const pageSize = Math.max(1, Number(url.searchParams.get('pageSize')) || 20)
+        send(response, { items: items.slice((pageNum - 1) * pageSize, pageNum * pageSize), total: items.length })
         return
       }
       if (url.pathname === '/flovira/integration/relationships/resolve') {

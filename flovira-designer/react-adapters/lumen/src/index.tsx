@@ -1,8 +1,9 @@
 import { cloneElement, type ReactElement } from 'react'
-import { Button, Checkbox, Drawer, DropdownMenu, FormField, Input, Modal, RadioGroup, Select, Tooltip } from '@luokuiai/lumen-ui'
+import { Button, Checkbox, Dialog, Drawer, DropdownMenu, FormField, Input, RadioGroup, Select, Tabs, Tooltip } from '@luokuiai/lumen-ui'
 import type {
   DesignerButtonProps,
   DesignerCheckboxProps,
+  DesignerTabsProps,
   DesignerDropdownMenuProps,
   DesignerDialogProps,
   DesignerDrawerProps,
@@ -94,6 +95,8 @@ const LumenSelect = ({
   onValueChange,
 }: DesignerSelectProps) => (
   <Select
+    triggerClassName="frd-lumen-select-trigger"
+    optionClassName={() => 'frd-lumen-select-option'}
     value={value}
     options={options.map((option) => ({
       value: option.value,
@@ -161,10 +164,11 @@ const LumenTooltip = ({ content, children, placement, disabled }: DesignerToolti
   </Tooltip>
 )
 
-const LumenDropdownMenu = ({ trigger, items, align = 'left', onSelect }: DesignerDropdownMenuProps) => (
+const LumenDropdownMenu = ({ trigger, items, align = 'left', onSelect, onOpenChange, renderContent }: DesignerDropdownMenuProps) => (
   <DropdownMenu
     align={align}
-    menuMode
+    menuMode={!renderContent}
+    onOpenChange={onOpenChange}
     menuClassName="frd-lumen-dropdown-menu"
     trigger={({ open, menuId, toggle }) => cloneElement(
       trigger as ReactElement<Record<string, unknown>>,
@@ -176,7 +180,7 @@ const LumenDropdownMenu = ({ trigger, items, align = 'left', onSelect }: Designe
       },
     )}
   >
-    {({ close }) => items.map((item) => (
+    {({ close }) => renderContent ? renderContent({ close }) : items.map((item) => (
       <button
         key={item.value}
         type="button"
@@ -199,7 +203,7 @@ const LumenDropdownMenu = ({ trigger, items, align = 'left', onSelect }: Designe
   </DropdownMenu>
 )
 
-const LumenDrawer = ({ open, title, children, width = 340, ariaLabel = '抽屉', onClose }: DesignerDrawerProps) => (
+const LumenDrawer = ({ open, title, children, footer, width = 340, ariaLabel = '抽屉', onClose }: DesignerDrawerProps) => (
   <Drawer
     open={open}
     placement="right"
@@ -212,6 +216,7 @@ const LumenDrawer = ({ open, title, children, width = 340, ariaLabel = '抽屉',
         <Button variant="ghost" size="sm" iconOnly icon={<span className="frd-lumen-drawer__close-icon" />} aria-label={`关闭${ariaLabel}`} onClick={onClose} />
       </div>
       <div className="frd-lumen-drawer__body">{children}</div>
+      {footer && <div className="frd-lumen-drawer__footer">{footer}</div>}
     </div>
   </Drawer>
 )
@@ -228,9 +233,9 @@ const LumenDialog = ({
   onConfirm,
   onClose,
 }: DesignerDialogProps) => (
-  <Modal
+  <Dialog
     open={open}
-    modalId="flovira-participant-picker"
+    dialogId="flovira-participant-picker"
     overlayId="flovira-participant-picker-overlay"
     panelClassName="frd-lumen-dialog"
     onRequestClose={onClose}
@@ -246,10 +251,27 @@ const LumenDialog = ({
         <Button variant="primary" size="md" disabled={confirmDisabled} onClick={onConfirm}>{confirmText}</Button>
       </div>
     </div>
-  </Modal>
+  </Dialog>
+)
+
+const LumenTabs = ({ value, options, idPrefix, ariaLabel, onValueChange }: DesignerTabsProps) => (
+  <div className="frd-lumen-tabs" role="group" aria-label={ariaLabel} onKeyDown={event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+    const index = buttons.indexOf(event.target as HTMLButtonElement)
+    if (index < 0) return
+    event.preventDefault()
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : options.length - 1)) % options.length
+    onValueChange(options[next].value)
+    buttons[next]?.focus()
+  }}>
+    <Tabs value={value} options={options} idPrefix={idPrefix} onChange={onValueChange} />
+  </div>
 )
 
 export const lumenDesignerUi: DesignerUiAdapter = {
+  Tabs: LumenTabs,
   Button: LumenButton,
   Input: LumenInput,
   Select: LumenSelect,

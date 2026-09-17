@@ -4,6 +4,7 @@ import { createRef, useState } from 'react'
 import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { DEMO_CAPABILITIES } from '../../examples/capabilities'
+import { insertCanvasNode, setBranchRule } from './branchConditions'
 import { ReactFlowDesigner } from './ReactFlowDesigner'
 import { createInitialDefinition, getApproverRule, insertNodeAfter, setApproverRule } from './model'
 import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } from './types'
@@ -11,6 +12,92 @@ import type { DesignerInputProps, DesignerTooltipProps, ReactFlowDesignerRef } f
 afterEach(cleanup)
 
 describe('ReactFlowDesigner', () => {
+  test.each(['3', '5'] as const)('marks only incomplete branches of gateway %s', (type) => {
+    const initial = createInitialDefinition()
+    const definition = insertCanvasNode(initial, initial.nodeList.find(node => node.nodeType === '0')!.nodeCode, type)
+    const gateway = definition.nodeList.find(node => node.nodeType === type)!
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} capabilities={DEMO_CAPABILITIES} />)
+    expect(view.getByRole('img', { name: '分支配置待完善：分支一 未设置条件' })).toBeTruthy()
+    expect(view.queryByRole('img', { name: /其他条件 未设置条件/ })).toBeNull()
+    expect(view.getAllByRole('img', { name: /分支配置待完善/ })).toHaveLength(type === '3' ? 1 : 2)
+    const configured = setBranchRule(gateway, 0, '分支一', { mode: 'expression', groups: [], expression: 'spel@@#{true}' })
+    act(() => ref.current!.importJson({ ...definition, nodeList: definition.nodeList.map(node => node.nodeCode === gateway.nodeCode ? configured : node) }))
+    expect(view.queryByRole('img', { name: '分支配置待完善：分支一 未设置条件' })).toBeNull()
+    act(() => ref.current!.undo())
+    expect(view.getByRole('img', { name: '分支配置待完善：分支一 未设置条件' })).toBeTruthy()
+  })
+
+  test('does not mark parallel branches as missing conditions', () => {
+    const initial = createInitialDefinition()
+    const definition = insertCanvasNode(initial, initial.nodeList.find(node => node.nodeType === '0')!.nodeCode, '4')
+    const view = render(<ReactFlowDesigner defaultValue={definition} />)
+    expect(view.queryByRole('img', { name: /分支配置待完善/ })).toBeNull()
+  })
+
+  test('marks incomplete nodes and clears the marker when configured', () => {
+    const initial = createInitialDefinition()
+    const ref = createRef<ReactFlowDesignerRef>()
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={initial} capabilities={DEMO_CAPABILITIES} appearance="embedded" />)
+    const approval = initial.nodeList.find(node => node.nodeType === '1')!
+    const card = view.getByRole('button', { name: `编辑节点：${approval.nodeName}` })
+    expect(within(card).getByRole('img', { name: /配置待完善.*未选择后端支持的人员策略/ })).toBeTruthy()
+    expect(view.queryByText(/项配置待完善/)).toBeNull()
+    expect(ref.current!.validate().valid).toBe(false)
+    expect(within(view.getByRole('button', { name: '编辑节点：开始' })).queryByRole('img')).toBeNull()
+    const configured = { ...initial, nodeList: initial.nodeList.map(node => node.nodeCode === approval.nodeCode
+      ? setApproverRule(node, 'USER', [{ id: 'u1', type: 'USER' }]) : node) }
+    act(() => ref.current!.importJson(configured))
+    expect(view.queryByRole('img', { name: /配置待完善/ })).toBeNull()
+    const withWait = insertNodeAfter(configured, approval.nodeCode, '7')
+    act(() => ref.current!.importJson(withWait))
+    expect(view.getByRole('img', { name: /配置待完善.*等待标识无效/ })).toBeTruthy()
+    act(() => ref.current!.undo())
+    expect(view.queryByRole('img', { name: /配置待完善/ })).toBeNull()
+  })
+
+  test('floats embedded history controls independently of bottom-left zoom', () => {
+    const ref = createRef<ReactFlowDesignerRef>()
+    const initial = createInitialDefinition()
+    const view = render(<ReactFlowDesigner ref={ref} appearance="embedded" defaultValue={initial} />)
+    expect(view.queryByRole('banner')).toBeNull()
+    const history = view.container.querySelector('.frd-history-controls')!
+    expect(history.closest('.frd-canvas-shell')).toBeTruthy()
+    expect(history.closest('.flovira-react-canvas')).toBeNull()
+    expect(within(history as HTMLElement).getByRole('button', { name: '撤销' }).hasAttribute('disabled')).toBe(true)
+    act(() => ref.current!.importJson({ ...initial, flowName: '修改后的流程' }))
+    fireEvent.click(within(history as HTMLElement).getByRole('button', { name: '撤销' }))
+    expect(ref.current!.getDefinition().flowName).toBe(initial.flowName)
+    fireEvent.click(within(history as HTMLElement).getByRole('button', { name: '重做' }))
+    expect(ref.current!.getDefinition().flowName).toBe('修改后的流程')
+    expect(view.container.querySelector('.frd-zoom-controls')).toBeTruthy()
+    view.rerender(<ReactFlowDesigner ref={ref} appearance="embedded" toolbar={false} />)
+    expect(view.container.querySelector('.frd-history-controls')).toBeNull()
+    expect(view.getByRole('button', { name: '放大' })).toBeTruthy()
+    view.rerender(<ReactFlowDesigner ref={ref} appearance="embedded" disabled />)
+    expect(view.getByRole('button', { name: '撤销' }).hasAttribute('disabled')).toBe(true)
+    view.rerender(<ReactFlowDesigner ref={ref} appearance="standalone" />)
+    expect(view.getByRole('banner')).toBeTruthy()
+    expect(view.container.querySelector('.frd-history-controls')).toBeNull()
+    expect(ref.current!.getDefinition().flowName).toBe('修改后的流程')
+  })
+
+  test('shows only the toolbar title and preserves the unsaved indicator', () => {
+    const ref = createRef<ReactFlowDesignerRef>()
+    const definition = { ...createInitialDefinition(), flowName: '费用审批', flowCode: 'expense_approval' }
+    const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
+    const toolbar = within(view.getByRole('banner'))
+    expect(toolbar.getByRole('heading', { name: '费用审批' })).toBeTruthy()
+    expect(toolbar.queryByText('expense_approval')).toBeNull()
+    expect(toolbar.queryByLabelText('有未保存修改')).toBeNull()
+    act(() => ref.current!.importJson({ ...definition, flowCode: '' }))
+    expect(toolbar.queryByText('未设置流程编码')).toBeNull()
+    expect(toolbar.queryByRole('paragraph')).toBeNull()
+    expect(toolbar.getByLabelText('有未保存修改')).toBeTruthy()
+    act(() => ref.current!.resetDirty())
+    expect(toolbar.queryByLabelText('有未保存修改')).toBeNull()
+  })
+
   test('has no implicit strategy and preserves an unsupported persisted code', () => {
     const definition = createInitialDefinition()
     definition.nodeList = definition.nodeList.map(node => node.nodeType === '1'
@@ -89,7 +176,7 @@ describe('ReactFlowDesigner', () => {
         ? setApproverRule(node, 'USER', ids.map((id) => ({ id, type: 'USER' }))) : node)
       const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
       fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
-      expect(Boolean(view.queryByRole('radiogroup', { name: '多人审批策略' }))).toBe(new Set(ids).size > 1)
+      expect(Boolean(view.queryByRole('combobox', { name: '多人审批策略' }))).toBe(new Set(ids).size > 1)
       view.unmount()
     }
   })
@@ -100,22 +187,28 @@ describe('ReactFlowDesigner', () => {
     definition.nodeList = definition.nodeList.map((node) => node.nodeType === '1' ? setApproverRule(node, 'USER', [{ id: 'a', type: 'USER' }, { id: 'b', type: 'USER' }]) : node)
     const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} ref={ref} defaultValue={definition} />)
     fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
-    fireEvent.click(view.getByRole('radio', { name: '票签' }))
-    const ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
+    fireEvent.change(view.getByRole('combobox', { name: '多人审批策略' }), { target: { value: 'VOTE' } })
+    let ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
     const currentNode = () => ref.current!.getDefinition().nodeList.find((node) => node.nodeType === '1')!
     expect(ratio.value).toBe('60')
     fireEvent.change(ratio, { target: { value: '75' } })
+    fireEvent.click(view.getByRole('button', { name: '确定' }))
     expect(JSON.parse(ref.current!.getFlowJson()).nodeList.find((node: { nodeType: string }) => node.nodeType === '1').nodeRatio).toBe('75')
+    fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
+    ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
     fireEvent.change(ratio, { target: { value: '' } })
-    expect(ref.current!.validate().issues.some((issue) => issue.code === 'VOTE_RATIO_INVALID')).toBe(true)
+    expect(view.getByRole('alert').textContent).toContain('小于 100')
     fireEvent.change(ratio, { target: { value: '100' } })
     expect(view.getByRole('alert').textContent).toContain('小于 100')
     fireEvent.change(ratio, { target: { value: '60' } })
     expect(ref.current!.validate().issues.some((issue) => issue.code === 'VOTE_RATIO_INVALID')).toBe(false)
-    fireEvent.click(view.getByRole('radio', { name: '会签' }))
+    fireEvent.change(view.getByRole('combobox', { name: '多人审批策略' }), { target: { value: 'COUNTERSIGN' } })
+    fireEvent.click(view.getByRole('button', { name: '确定' }))
     expect(currentNode().nodeRatio).toBe('100')
     expect(view.queryByLabelText('通过比例（%）')).toBeNull()
-    fireEvent.click(view.getByRole('radio', { name: '或签' }))
+    fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
+    fireEvent.change(view.getByRole('combobox', { name: '多人审批策略' }), { target: { value: 'OR' } })
+    fireEvent.click(view.getByRole('button', { name: '确定' }))
     expect(currentNode().nodeRatio).toBe('0')
   })
 
@@ -140,8 +233,8 @@ describe('ReactFlowDesigner', () => {
 
     fireEvent.click(within(first.container).getByRole('button', { name: `编辑节点：${subprocess.nodeName}` }))
     fireEvent.click(within(second.container).getByRole('button', { name: `编辑节点：${subprocess.nodeName}` }))
-    fireEvent.click(within(first.container).getByRole('button', { name: '选择流程' }))
-    fireEvent.click(within(second.container).getByRole('button', { name: '选择流程' }))
+    fireEvent.click(within(first.container).getByRole('button', { name: '子流程' }))
+    fireEvent.click(within(second.container).getByRole('button', { name: '子流程' }))
 
     await waitFor(() => {
       expect(within(first.container).getByRole('option', { name: '租户 A 子流程' })).toBeTruthy()
@@ -162,6 +255,7 @@ describe('ReactFlowDesigner', () => {
     fireEvent.change(current.getByLabelText('节点名称'), {
       target: { value: '部门负责人审批' },
     })
+    fireEvent.click(current.getByRole('button', { name: '确定' }))
     expect(designerRef.current?.getDefinition().nodeList.find((node) => node.nodeCode === approval.nodeCode)?.nodeName)
       .toBe('部门负责人审批')
 
@@ -226,6 +320,7 @@ describe('ReactFlowDesigner', () => {
     const nameInput = current.getByLabelText('节点名称')
     expect(nameInput.getAttribute('data-adapter')).toBe('custom')
     fireEvent.change(nameInput, { target: { value: '适配器审批' } })
+    fireEvent.click(current.getByRole('button', { name: '确定' }))
 
     expect(designerRef.current?.getDefinition().nodeList.find((node) => node.nodeCode === approval.nodeCode)?.nodeName)
       .toBe('适配器审批')
@@ -240,12 +335,12 @@ describe('ReactFlowDesigner', () => {
     expect(view.queryByRole('dialog', { name: '节点设置' })).toBeNull()
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
     expect(view.getByRole('dialog', { name: '节点设置' })).toBeTruthy()
-    expect(view.getByRole('radio', { name: '或签' })).toBeTruthy()
-    const countersign = view.getByRole('radio', { name: '会签' }) as HTMLInputElement
-    fireEvent.click(countersign)
-    expect(countersign.checked).toBe(true)
-    expect(view.getByRole('radio', { name: '退回上一节点' })).toBeTruthy()
-    expect(view.getByRole('radio', { name: '退回时指定节点' })).toBeTruthy()
+    expect(view.getByRole('option', { name: '或签' })).toBeTruthy()
+    const mode = view.getByRole('combobox', { name: '多人审批策略' }) as HTMLSelectElement
+    fireEvent.change(mode, { target: { value: 'COUNTERSIGN' } })
+    expect(mode.value).toBe('COUNTERSIGN')
+    expect(view.getByRole('radio', { name: '驳回至上一节点' })).toBeTruthy()
+    expect(view.getByRole('radio', { name: '驳回时选择节点' })).toBeTruthy()
 
     const closeButtons = view.getAllByRole('button', { name: '关闭节点设置' })
     fireEvent.click(closeButtons[closeButtons.length - 1])
@@ -308,8 +403,9 @@ describe('ReactFlowDesigner', () => {
     await waitFor(() => expect(view.getByRole('option', { name: '自定义负责人链' })).toBeTruthy())
     expect(view.queryByText('运行时由后端“自定义负责人链”人员解析器确定办理人')).toBeNull()
     expect(view.queryByRole('button', { name: '选择自定义负责人链' })).toBeNull()
-    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'CUSTOM_MANAGER_CHAIN' } })
+    fireEvent.change(view.getByLabelText('审批人'), { target: { value: 'CUSTOM_MANAGER_CHAIN' } })
     fireEvent.click(view.getByRole('radio', { name: '转交管理员' }))
+    fireEvent.click(view.getByRole('button', { name: '确定' }))
     const current = designerRef.current?.getDefinition().nodeList
       .find((node) => node.nodeCode === approval.nodeCode)
     expect(current && getApproverRule(current).config).toEqual({ emptyPolicy: 'TO_ADMIN' })
@@ -350,8 +446,9 @@ describe('ReactFlowDesigner', () => {
     )
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
-    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'FORM_RULE' } })
+    fireEvent.change(view.getByLabelText('审批人'), { target: { value: 'FORM_RULE' } })
     fireEvent.click(view.getByRole('button', { name: '配置表单规则' }))
+    fireEvent.click(view.getByRole('button', { name: '确定' }))
 
     const current = designerRef.current?.getDefinition().nodeList
       .find((node) => node.nodeCode === approval.nodeCode)
@@ -373,12 +470,12 @@ describe('ReactFlowDesigner', () => {
     const view = render(<ReactFlowDesigner {...{ capabilities: DEMO_CAPABILITIES }} defaultValue={definition} />)
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
-    expect(view.getByRole('radiogroup', { name: '多人审批策略' })).toBeTruthy()
+    expect(view.getByRole('combobox', { name: '多人审批策略' })).toBeTruthy()
     expect(view.getByRole('radiogroup', { name: '审批人与提交人为同一人时' })).toBeTruthy()
     const closeButtons = view.getAllByRole('button', { name: '关闭节点设置' })
     fireEvent.click(closeButtons[closeButtons.length - 1])
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${carbonCopy.nodeName}` }))
-    expect(view.queryByRole('radiogroup', { name: '多人审批策略' })).toBeNull()
+    expect(view.queryByRole('combobox', { name: '多人审批策略' })).toBeNull()
     expect(view.queryByRole('radiogroup', { name: '审批人与提交人为同一人时' })).toBeNull()
   })
 
@@ -420,9 +517,9 @@ describe('ReactFlowDesigner', () => {
     }} />)
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
-    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'USER' } })
+    fireEvent.change(view.getByLabelText('审批人'), { target: { value: 'USER' } })
     expect(view.getByRole('button', { name: '选择指定人员' })).toBeTruthy()
-    expect(view.queryByRole('radiogroup', { name: '多人审批策略' })).toBeNull()
+    expect(view.queryByRole('combobox', { name: '多人审批策略' })).toBeNull()
     expect(view.queryByRole('radiogroup', { name: '无人审批策略' })).toBeNull()
   })
 
@@ -448,11 +545,12 @@ describe('ReactFlowDesigner', () => {
 
     fireEvent.click(view.getByRole('button', { name: `编辑节点：${approval.nodeName}` }))
     expect(view.queryByText('搜索用户')).toBeNull()
-    fireEvent.change(view.getByLabelText('办理人类型'), { target: { value: 'USER' } })
+    fireEvent.change(view.getByLabelText('审批人'), { target: { value: 'USER' } })
     fireEvent.click(view.getByRole('button', { name: '选择用户' }))
     expect(view.getByRole('dialog', { name: '人员选择' })).toBeTruthy()
     fireEvent.click(view.getByRole('button', { name: '从组织架构选择' }))
-    fireEvent.click(view.getByRole('button', { name: '确定' }))
+    fireEvent.click(within(view.getByRole('dialog', { name: '人员选择' })).getByRole('button', { name: '确定' }))
+    fireEvent.click(within(view.getByRole('dialog', { name: '节点设置' })).getByRole('button', { name: '确定' }))
 
     const current = designerRef.current?.getDefinition().nodeList
       .find((node) => node.nodeCode === approval.nodeCode)

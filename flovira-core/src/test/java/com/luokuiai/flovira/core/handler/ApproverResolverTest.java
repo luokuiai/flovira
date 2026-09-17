@@ -121,6 +121,19 @@ public class ApproverResolverTest {
     }
 
     @Test
+    public void taskAlwaysSnapshotsWorkflowFormEvenWhenNodeHasAnotherReference() {
+        Node node = node("first").setFormId("node-form");
+        Instance instance = TestEntityFactory.create(Instance.class).setId(2L).setDefinitionId(1L);
+        Definition definition = TestEntityFactory.create(Definition.class).setId(1L).setFormId("workflow-form");
+        TaskServiceImpl service = new TaskServiceImpl();
+        Task task = service.addTask(node, instance, definition, FlowParams.build());
+        assertEquals("workflow-form", task.getFormId());
+        definition.setFormId(null);
+        assertNull(service.addTask(node, instance, definition, FlowParams.build()).getFormId());
+        assertEquals("workflow-form", task.getFormId());
+    }
+
+    @Test
     public void resolvesOnlyEnteredNodeAndKeepsEarlierAssignmentSnapshot() {
         Node first = node("first");
         Node future = node("future");

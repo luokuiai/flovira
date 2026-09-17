@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { DesignerResourceItem, DesignerResourceLoader, DesignerUiAdapter } from './types'
 
 export function SubprocessField({ value, disabled, queryResources, ui, onChange }: {
@@ -42,29 +43,29 @@ export function SubprocessField({ value, disabled, queryResources, ui, onChange 
     }, 200)
     return () => { active = false; clearTimeout(timer) }
   }, [open, disabled, queryResources, keyword, pageNum, retry])
-  const { Field, Button, Input, Select } = ui
+  const { Field, Button, Input, DropdownMenu } = ui
   const current = items.find((item) => (item.code || item.id) === value)
     || (selected && (selected.code || selected.id) === value ? selected : undefined)
-  return <Field label="固定子流程">
-    <Select ariaLabel="固定子流程" value={value} disabled={disabled}
-      options={[
-        { value: '', label: '请选择已发布流程' },
-        ...(value && !items.some((item) => (item.code || item.id) === value)
-          ? [{ value, label: current?.name || value }] : []),
-        ...items.map((item) => ({ value: item.code || item.id, label: item.name, disabled: item.disabled })),
-      ]} onValueChange={(code) => {
-        setSelected(items.find((item) => (item.code || item.id) === code))
-        onChange(code)
-      }} />
-    {queryResources && !open && <Button disabled={disabled} onPress={() => setOpen(true)}>选择流程</Button>}
-    {open && <>
+  return <Field label="子流程">
+    <DropdownMenu items={[]} onSelect={() => {}} onOpenChange={setOpen}
+      trigger={<button type="button" className="frd-select frd-subprocess-trigger" disabled={disabled}
+        aria-label="子流程"><span>{current?.name || value || '请选择已发布流程'}</span><ChevronDown size={16} /></button>}
+      renderContent={({ close }) => <div className="frd-subprocess-options">
       <Input ariaLabel="搜索子流程" placeholder="搜索流程名称或编码" value={keyword} disabled={disabled}
-        onValueChange={(text) => { setKeyword(text); setPageNum(1); setItems([]) }} />
+        onValueChange={(text) => { setKeyword(text); setPageNum(1); setItems([]); setHasMore(false); setState('loading') }} />
+      <div role="listbox" aria-label="已发布流程" className="frd-subprocess-options__list">
+        {value && <button type="button" role="option" aria-selected={false}
+          onClick={() => { onChange(''); setSelected(undefined); close() }}>清除选择</button>}
+        {items.map(item => <button key={item.code || item.id} type="button" role="option"
+          aria-selected={value === (item.code || item.id)} disabled={disabled || item.disabled}
+          onClick={() => { setSelected(item); onChange(item.code || item.id); close() }}>{item.name}</button>)}
+      </div>
+      {!queryResources && <p role="status">请接入方提供子流程查询</p>}
       {state === 'loading' && <p role="status">加载中...</p>}
       {state === 'error' && <><p role="alert">子流程加载失败，已选值保留</p>
-        <Button disabled={disabled} onPress={() => setRetry((count) => count + 1)}>重试</Button></>}
-      {state === 'idle' && !items.length && <p role="status">暂无匹配流程</p>}
-      {hasMore && <Button disabled={disabled || state !== 'idle'} onPress={() => setPageNum((page) => page + 1)}>加载更多</Button>}
-    </>}
+        <Button size="compact" disabled={disabled} onPress={() => setRetry((count) => count + 1)}>重试</Button></>}
+      {queryResources && state === 'idle' && !items.length && <p role="status">暂无匹配流程</p>}
+      {hasMore && <Button size="compact" disabled={disabled || state !== 'idle'} onPress={() => setPageNum((page) => page + 1)}>加载更多</Button>}
+    </div>} />
   </Field>
 }

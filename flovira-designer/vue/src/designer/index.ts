@@ -1,4 +1,6 @@
 import type { App, Plugin } from 'vue'
+export { default as FormDesigner } from '../components/form/FormDesigner.vue'
+export type { FormDesignerInstance, FormDesignerValidation } from '../data/formDesignerModel'
 export { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from '../data/workflowPackage'
 export type { WorkflowPackage, PackageDefinition, PackagedForm } from '../data/workflowPackage'
 import '@/icons'

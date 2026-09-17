@@ -99,12 +99,6 @@
           <div class="placeholder mt5">{{ t('between.voteRejectRequired') }}</div>
         </wf-form-item>
 
-        <wf-form-item :label="t('between.formId')" prop="formId">
-          <wf-tree-select v-if="formOptions.length" v-model="form.formId"
-              :data="formOptions" :props="{ value: 'id', label: 'name', children: 'children' }"
-              value-key="id" :placeholder="t('between.formIdPlaceholder')" clearable check-strictly/>
-          <wf-input v-else v-model="form.formId" :placeholder="t('between.formIdPlaceholder')" maxlength="100"/>
-        </wf-form-item>
         <!-- 自定义扩展点：消费方可注入额外表单项（透出 { form, disabled }） -->
         <slot name="node-form-extra" :form="form" :disabled="disabled" />
           </div>
