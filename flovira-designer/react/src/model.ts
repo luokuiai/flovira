@@ -561,9 +561,9 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
       }
       if (getApproverRule(node).config?.approvalMode === 'VOTE'
         && !/^(passCount|rejectCount|default|spel)/.test(String(node.nodeRatio || ''))
-        && !(Number(node.nodeRatio) > 0 && Number(node.nodeRatio) < 100)) {
+        && !(Number(node.nodeRatio) >= 1 && Number(node.nodeRatio) < 100)) {
         issues.push({ code: 'VOTE_RATIO_INVALID', nodeCode: node.nodeCode,
-          message: `${node.nodeName} 的票签通过比例必须大于 0% 且小于 100%` })
+          message: `${node.nodeName} 的票签通过比例必须大于等于 1% 且小于 100%` })
       }
       const configured = getNodeExtConfig(node, 'approverRule')
       if (Object.keys(configured).length > 0) {

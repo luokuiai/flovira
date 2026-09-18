@@ -21,7 +21,7 @@ const emptyApproverOption = {
   condition: 'EMPTY',
   choices: [
     { value: 'ERROR', label: '报错并阻止流转' },
-    { value: 'SKIP', label: '跳过' },
+    { value: 'SKIP', label: '自动跳过' },
     { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'emptyPolicySubjects' },
   ],
 }
