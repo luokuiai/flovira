@@ -1135,6 +1135,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                         ))}
                       >启用超时处理</UiCheckbox>
                     </div>
+                    <p className="frd-condition-hint">必须由业务系统自行接入超时调度；仅配置此处不会自动执行。</p>
                     {enabled && (
                       <>
                         <UiField label="超时来源" className="frd-timeout-action">

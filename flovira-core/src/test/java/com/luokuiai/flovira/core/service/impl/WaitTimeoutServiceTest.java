@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -29,7 +30,6 @@ import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.enums.TimeoutAction;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
-import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
 import com.luokuiai.flovira.core.service.InstanceService;
 import com.luokuiai.flovira.core.service.TaskService;
 import com.luokuiai.flovira.core.service.WaitService;
@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -64,7 +65,6 @@ public class WaitTimeoutServiceTest {
     @Before
     public void setUp() {
         FlowEngine.setTransactionExecutor(new DirectTransactionExecutor());
-        FlowEngine.setTimeoutSchedulerLock(null);
         FlowEngine.jsonConvert = new TestJsonConvert();
     }
 
@@ -194,77 +194,87 @@ public class WaitTimeoutServiceTest {
     }
 
     @Test
-    public void shouldReleaseClaimWhenTimeoutActionFails() {
+    public void shouldReportBatchFailureAndRollbackClaim() {
         TimeoutFixture fixture = new TimeoutFixture(true);
         TimeoutExecutionResult result = fixture.service.executeDue(new Date(), 10);
-
+        assertEquals(1, result.getClaimed());
         assertEquals(1, result.getFailed());
-        assertEquals(1, fixture.releases);
+        assertEquals(0, result.getSucceeded());
+        assertFalse(fixture.claimed);
+        assertEquals(0, fixture.releases);
     }
 
     @Test
-    public void shouldSkipDatabaseScanWhenSchedulerLockIsHeld() {
+    public void shouldExecuteSingleTaskOnlyOnceWithoutScanning() {
         TimeoutFixture fixture = new TimeoutFixture(false);
-        FlowEngine.setTimeoutSchedulerLock(new TimeoutSchedulerLock() {
-            @Override
-            public boolean tryLock(String key, String owner, long leaseMillis) {
-                return false;
-            }
-
-            @Override
-            public void unlock(String key, String owner) {
-            }
-        });
-
-        TimeoutExecutionResult result = fixture.service.executeDue(new Date(), 10);
-
-        assertEquals(0, result.getScanned());
+        assertTrue(fixture.service.executeTimeout(20L));
+        assertFalse(fixture.service.executeTimeout(20L));
+        assertEquals(1, fixture.passes);
         assertEquals(0, fixture.scans);
     }
 
     @Test
-    public void shouldFallbackToDatabaseClaimsWhenSchedulerLockFails() {
+    public void shouldIgnoreEarlyMissingAndDisabledTimeouts() {
         TimeoutFixture fixture = new TimeoutFixture(false);
-        FlowEngine.setTimeoutSchedulerLock(new TimeoutSchedulerLock() {
-            @Override
-            public boolean tryLock(String key, String owner, long leaseMillis) {
-                throw new IllegalStateException("redis unavailable");
-            }
+        fixture.task.setTimeoutAt(new Date(System.currentTimeMillis() + 60000L));
+        assertFalse(fixture.service.executeTimeout(20L));
+        fixture.task.setTimeoutAt(null);
+        assertFalse(fixture.service.executeTimeout(20L));
+        fixture.task.setTimeoutAt(new Date(1L));
+        assertFalse(fixture.service.executeTimeout(999L));
+        FlowEngine.getFlowConfig().getTimeout().setEnabled(false);
+        assertFalse(fixture.service.executeTimeout(20L));
+        assertEquals(0, fixture.service.executeDue(new Date(), 10).getScanned());
+        assertFalse(fixture.claimed);
+        assertEquals(0, fixture.passes);
+    }
 
-            @Override
-            public void unlock(String key, String owner) {
-            }
-        });
-
-        TimeoutExecutionResult result = fixture.service.executeDue(new Date(), 10);
-
-        assertEquals(1, result.getSucceeded());
-        assertEquals(1, fixture.scans);
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectNullTaskId() {
+        new TimeoutServiceImpl().executeTimeout(null);
     }
 
     @Test
-    public void shouldReleaseSchedulerLockWithTheAcquiredOwner() {
+    public void shouldRejectInvalidActionWithoutClaiming() {
         TimeoutFixture fixture = new TimeoutFixture(false);
-        final String[] acquiredOwner = new String[1];
-        final String[] releasedOwner = new String[1];
-        FlowEngine.setTimeoutSchedulerLock(new TimeoutSchedulerLock() {
-            @Override
-            public boolean tryLock(String key, String owner, long leaseMillis) {
-                acquiredOwner[0] = owner;
-                return true;
-            }
+        fixture.task.setTimeoutAction("UNKNOWN");
+        try {
+            fixture.service.executeTimeout(20L);
+            org.junit.Assert.fail("invalid action must fail");
+        } catch (IllegalStateException expected) {
+            assertFalse(fixture.claimed);
+            assertEquals(0, fixture.passes);
+        }
+    }
 
-            @Override
-            public void unlock(String key, String owner) {
-                releasedOwner[0] = owner;
-            }
-        });
+    @Test
+    public void shouldPropagateSingleFailureAndAllowRetry() {
+        TimeoutFixture fixture = new TimeoutFixture(true);
+        try {
+            fixture.service.executeTimeout(20L);
+            org.junit.Assert.fail("transition must fail");
+        } catch (IllegalStateException expected) {
+            assertFalse(fixture.claimed);
+        }
+        fixture.fail = false;
+        assertTrue(fixture.service.executeTimeout(20L));
+    }
 
-        TimeoutExecutionResult result = fixture.service.executeDue(new Date(), 10);
-
-        assertEquals(1, result.getSucceeded());
-        assertNotNull(acquiredOwner[0]);
-        assertEquals(acquiredOwner[0], releasedOwner[0]);
+    @Test
+    public void shouldCheckWaitDeadlineBeforeResumingFromMessage() {
+        WaitFixture fixture = new WaitFixture();
+        Flovira config = new Flovira();
+        config.getTimeout().setEnabled(true);
+        FlowEngine.setFlowConfig(config);
+        fixture.task.setTimeoutAction(TimeoutAction.RESUME_WAIT.name())
+            .setTimeoutAt(new Date(System.currentTimeMillis() + 60000L));
+        TimeoutServiceImpl service = new TimeoutServiceImpl();
+        assertFalse(service.executeTimeout(10L));
+        fixture.task.setTimeoutAt(new Date(1L));
+        assertTrue(service.executeTimeout(10L));
+        assertFalse(service.executeTimeout(10L));
+        assertEquals(1, fixture.passes);
+        assertTrue(fixture.params.getHisTaskExt().contains("WAIT_TIMEOUT"));
     }
 
     private static final class WaitFixture {
@@ -326,7 +336,7 @@ public class WaitTimeoutServiceTest {
             .setDefinitionId(1L).setNodeType(NodeType.BETWEEN.getKey()).setNodeCode("APPROVE")
             .setTimeoutAction(TimeoutAction.AUTO_PASS.name()).setTimeoutStatus("PENDING")
             .setTimeoutAt(new Date(1L));
-        private final boolean fail;
+        private boolean fail;
         private boolean claimed;
         private int passes;
         private int releases;
@@ -335,10 +345,28 @@ public class WaitTimeoutServiceTest {
 
         private TimeoutFixture(boolean fail) {
             this.fail = fail;
+            FlowEngine.setTransactionExecutor(new TransactionExecutor() {
+                @Override
+                public <T> T execute(TransactionCallback<T> callback) {
+                    boolean before = claimed;
+                    try {
+                        return callback.execute();
+                    } catch (RuntimeException ex) {
+                        claimed = before;
+                        throw ex;
+                    }
+                }
+
+                @Override
+                public void afterCommit(Runnable callback) {
+                    callback.run();
+                }
+            });
             Flovira flovira = new Flovira();
             flovira.getTimeout().setEnabled(true);
             FlowEngine.setFlowConfig(flovira);
             final TaskService taskService = proxy(TaskService.class, (method, args) -> {
+                if ("getById".equals(method.getName())) return task.getId().equals(args[0]) ? task : null;
                 if ("listDueTimeoutTasks".equals(method.getName())) {
                     scans++;
                     return Collections.singletonList(task);
@@ -353,7 +381,7 @@ public class WaitTimeoutServiceTest {
                     return true;
                 }
                 if ("skipSystemTask".equals(method.getName())) {
-                    if (fail) throw new IllegalStateException("transition failed");
+                    if (this.fail) throw new IllegalStateException("transition failed");
                     params = (FlowParams) args[0];
                     passes++;
                 }

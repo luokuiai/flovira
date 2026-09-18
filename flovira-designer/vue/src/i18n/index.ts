@@ -137,6 +137,7 @@ const zh: WfMessageTree = {
   },
   timeout: {
     enabled: '节点超时',
+    schedulingRequired: '必须由业务系统自行接入超时调度；仅配置此处不会自动执行。',
     duration: '超时时长',
     unitMinutes: '分钟',
     unitHours: '小时',
@@ -377,6 +378,7 @@ const en: WfMessageTree = {
   },
   timeout: {
     enabled: 'Node Timeout',
+    schedulingRequired: 'The host application must integrate timeout scheduling; this configuration alone does not execute timeouts.',
     duration: 'Duration',
     unitMinutes: 'Minutes',
     unitHours: 'Hours',

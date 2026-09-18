@@ -40,6 +40,11 @@ import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
 import com.luokuiai.flovira.core.orm.dao.FlowFormDao;
 import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.service.FormService;
+import com.luokuiai.flovira.core.service.TaskService;
+import com.luokuiai.flovira.core.service.impl.TaskServiceImpl;
+import com.luokuiai.flovira.core.service.impl.TimeoutServiceImpl;
+import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.utils.page.Page;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -59,6 +64,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -103,6 +114,7 @@ public class SubprocessPersistenceContractTest {
             "--spring.sql.init.mode=always",
             "--spring.sql.init.schema-locations=classpath:subprocess-contract-schema.sql",
             "--flovira.banner=false",
+            "--flovira.timeout.enabled=true",
             "--flovira.logic-delete=true",
             "--flovira.tenant-handler-path=" + ContractTenantHandler.class.getName(),
             "--flovira.data-source-type=postgresql"
@@ -358,6 +370,109 @@ public class SubprocessPersistenceContractTest {
         assertEquals(1, taskDao.save(wait));
         assertEquals(1, taskDao.claimWait(41L, new Date(6000L)));
         assertEquals(0, taskDao.claimWait(41L, new Date(7000L)));
+    }
+
+    @Test
+    public void shouldNotEnableSchedulingWhenTimeoutsAreEnabled() {
+        assertTrue(FlowEngine.getFlowConfig().getTimeout().isEnabled());
+        assertTrue(context.getBeansOfType(
+            org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class).isEmpty());
+        assertNotNull(FlowEngine.timeoutService());
+    }
+
+    @Test
+    public void shouldRollbackTimeoutClaimAndTransitionTogether() {
+        timeoutTask();
+        boolean enabled = FlowEngine.getFlowConfig().getTimeout().isEnabled();
+        FlowEngine.getFlowConfig().getTimeout().setEnabled(true);
+        try {
+            installTimeoutTransition(() -> {
+                jdbcTemplate.update("delete from flow_task where id = 42");
+                throw new IllegalStateException("transition failed");
+            });
+            TimeoutServiceImpl service = new TimeoutServiceImpl();
+            try {
+                service.executeTimeout(42L);
+                fail("transition must fail");
+            } catch (IllegalStateException expected) {
+                assertEquals("transition failed", expected.getMessage());
+            }
+            assertEquals("PENDING", taskDao.selectById(42L).getTimeoutStatus());
+            assertNull(taskDao.selectById(42L).getTimeoutClaimedAt());
+            installTimeoutTransition(() -> jdbcTemplate.update("delete from flow_task where id = 42"));
+            assertTrue(service.executeTimeout(42L));
+            assertNull(taskDao.selectById(42L));
+            org.junit.Assert.assertFalse(service.executeTimeout(42L));
+        } finally {
+            FrameInvoker.setBeanFunction(context::getBean);
+            FlowEngine.getFlowConfig().getTimeout().setEnabled(enabled);
+        }
+    }
+
+    @Test
+    public void shouldHoldTimeoutClaimUntilTransitionCommits() throws Exception {
+        timeoutTask();
+        boolean enabled = FlowEngine.getFlowConfig().getTimeout().isEnabled();
+        FlowEngine.getFlowConfig().getTimeout().setEnabled(true);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch competitor = new CountDownLatch(1);
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            installTimeoutTransition(() -> {
+                entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("test timed out");
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(ex);
+                }
+                jdbcTemplate.update("delete from flow_task where id = 42");
+            });
+            TimeoutServiceImpl service = new TimeoutServiceImpl();
+            Future<Boolean> first = workers.submit(() -> service.executeTimeout(42L));
+            assertTrue(entered.await(10, TimeUnit.SECONDS));
+            // 即使扫描时间已超过旧租约，也不能在执行事务提交前偷走抢占。
+            Future<Integer> second = workers.submit(() -> {
+                competitor.countDown();
+                return service.executeDue(new Date(System.currentTimeMillis() + 600000L), 10).getSucceeded();
+            });
+            assertTrue(competitor.await(10, TimeUnit.SECONDS));
+            try {
+                second.get(200, TimeUnit.MILLISECONDS);
+                fail("competing timeout must wait for the task row lock");
+            } catch (TimeoutException expected) {
+                // 第一执行者仍持有行锁。
+            }
+            release.countDown();
+            assertTrue(first.get(10, TimeUnit.SECONDS));
+            assertEquals(Integer.valueOf(0), second.get(10, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            workers.shutdownNow();
+            workers.awaitTermination(10, TimeUnit.SECONDS);
+            FrameInvoker.setBeanFunction(context::getBean);
+            FlowEngine.getFlowConfig().getTimeout().setEnabled(enabled);
+        }
+    }
+
+    private void timeoutTask() {
+        Task task = FlowEngine.newTask().setId(42L).setDefinitionId(1000L).setInstanceId(100L)
+            .setNodeCode("APPROVE").setNodeName("Approve").setNodeType(1).setFlowStatus("1")
+            .setTimeoutAt(new Date(1L)).setTimeoutAction("AUTO_PASS").setTimeoutStatus("PENDING");
+        root(task);
+        taskDao.save(task);
+    }
+
+    private void installTimeoutTransition(final Runnable transition) {
+        TaskService service = new TaskServiceImpl() {
+            @Override
+            public Instance skipSystemTask(FlowParams params, Task task) {
+                transition.run();
+                return null;
+            }
+        }.setDao(taskDao);
+        FrameInvoker.setBeanFunction(type -> TaskService.class.equals(type) ? service : context.getBean(type));
     }
 
     @Test
