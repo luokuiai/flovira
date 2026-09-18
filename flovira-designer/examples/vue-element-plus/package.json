@@ -1,6 +1,6 @@
 {
   "name": "flovira-ep-designer-demo",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "private": true,
   "description": "Flovira 设计器（@luokuiai/flovira-vue-designer）Element Plus 消费示例",
   "type": "module",

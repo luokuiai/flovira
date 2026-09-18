@@ -15,11 +15,12 @@ const multiApproverOption = {
 
 const emptyApproverOption = {
   code: 'emptyPolicy',
-  name: '无人审批策略',
-  defaultValue: 'SKIP',
+  name: '审批人为空时',
+  defaultValue: 'ERROR',
   nodeTypes: ['1'],
   condition: 'EMPTY',
   choices: [
+    { value: 'ERROR', label: '报错并阻止流转' },
     { value: 'SKIP', label: '跳过' },
     { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'emptyPolicySubjects' },
   ],

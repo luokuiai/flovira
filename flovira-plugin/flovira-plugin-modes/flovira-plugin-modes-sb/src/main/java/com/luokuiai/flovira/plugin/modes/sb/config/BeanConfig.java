@@ -20,7 +20,6 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.enums.FrameworkType;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
-import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
 import com.luokuiai.flovira.core.orm.dao.*;
 import com.luokuiai.flovira.core.service.*;
 import com.luokuiai.flovira.core.service.impl.*;
@@ -31,6 +30,7 @@ import com.luokuiai.flovira.plugin.modes.sb.expression.*;
 import com.luokuiai.flovira.plugin.modes.sb.helper.SpelHelper;
 import com.luokuiai.flovira.plugin.modes.sb.utils.SpringUtil;
 import com.luokuiai.flovira.plugin.modes.sb.transaction.SpringTransactionExecutor;
+import com.luokuiai.flovira.plugin.modes.sb.listener.SpringLifecycleListenerRegistrar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.beans.factory.ListableBeanFactory;
 
 import java.util.Objects;
 
@@ -49,12 +50,17 @@ import java.util.Objects;
  * @since 2023/6/5 23:01
  */
 @SuppressWarnings("rawtypes unchecked")
-@Import({SpringUtil.class, SpelHelper.class, TimeoutSchedulingConfig.class})
+@Import({SpringUtil.class, SpelHelper.class})
 @ConditionalOnProperty(value = "flovira.enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(FloviraProperties.class)
 public class BeanConfig {
 
     private static final Logger log = LoggerFactory.getLogger(BeanConfig.class);
+
+    @Bean
+    public SpringLifecycleListenerRegistrar lifecycleListenerRegistrar(ListableBeanFactory beanFactory) {
+        return new SpringLifecycleListenerRegistrar(beanFactory, FlowEngine.lifecycleListeners());
+    }
 
     @Bean
     public FlowDefinitionDao definitionDao() {
@@ -167,6 +173,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public com.luokuiai.flovira.core.orm.dao.FlowNodeExecutionDao nodeExecutionDao() {
+        return new com.luokuiai.flovira.orm.dao.FlowNodeExecutionDaoImpl();
+    }
+
+    @Bean
     public FlowSubprocessEventDao subprocessEventDao() {
         return new FlowSubprocessEventDaoImpl();
     }
@@ -190,7 +201,6 @@ public class BeanConfig {
         FrameInvoker.setBeanFunction(SpringUtil::getBean);
         FrameInvoker.setBeansFunction(SpringUtil::getBeans);
         FlowEngine.setTransactionExecutor(SpringUtil.getBean(com.luokuiai.flovira.core.transaction.TransactionExecutor.class));
-        FlowEngine.setTimeoutSchedulerLock(FrameInvoker.getBean(TimeoutSchedulerLock.class));
         FloviraProperties flovira = SpringUtil.getBean(FloviraProperties.class);
         flovira.init();
         flovira.setFramework(FrameworkType.SPRING_BOOT);
@@ -222,6 +232,7 @@ public class BeanConfig {
         FlowEngine.setNewSubprocessRun(FlowSubprocessRun::new);
         FlowEngine.setNewSubprocessChild(FlowSubprocessChild::new);
         FlowEngine.setNewSubprocessEvent(FlowSubprocessEvent::new);
+        FlowEngine.setNewNodeExecution(com.luokuiai.flovira.orm.entity.FlowNodeExecution::new);
     }
 
     public void after(Flovira flowConfig) {

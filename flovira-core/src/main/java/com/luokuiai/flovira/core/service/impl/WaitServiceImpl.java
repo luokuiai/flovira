@@ -16,6 +16,7 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.NodeJson;
@@ -45,7 +46,7 @@ import java.util.Map;
  */
 public class WaitServiceImpl implements WaitService {
 
-    public static final String SYSTEM_HANDLER = "flovira:wait";
+    public static final String SYSTEM_HANDLER = "SYSTEM_WAIT";
 
     @Override
     public WaitResumeResult resumeTask(final Long taskId, final Map<String, Object> variables) {
@@ -90,7 +91,7 @@ public class WaitServiceImpl implements WaitService {
             .message("WAIT_TIMEOUT".equals(action) ? "WAIT timeout resumed: " + waitKey : "WAIT resumed: " + waitKey)
             .hisTaskExt(waitHistory(waitKey, action))
             .variables(variables == null ? Collections.<String, Object>emptyMap() : variables);
-        FlowEngine.taskService().skipSystemTask(flowParams, task);
+        LifecycleTransition.system(action, () -> FlowEngine.taskService().skipSystemTask(flowParams, task));
         return new WaitResumeResult(task.getInstanceId(), task.getId(), waitKey, "RESUMED");
     }
 

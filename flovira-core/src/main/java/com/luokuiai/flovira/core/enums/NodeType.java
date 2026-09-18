@@ -70,7 +70,10 @@ public enum NodeType {
     /**
      * 抄送节点
      */
-    CARBON_COPY(8, "carbonCopy");
+    CARBON_COPY(8, "carbonCopy"),
+
+    /** 运行时发起人办理环节，不作为可绘制的开始事件。 */
+    INITIATOR(9, "initiator");
 
     private final Integer key;
     private final String value;

@@ -1,3 +1,4 @@
+import { lifecycleValue, parseLifecycle, validateLifecycle } from './lifecycle'
 import type {
   ApproverRule,
   ApproverStrategy,
@@ -274,18 +275,22 @@ export const getSubprocessConfig = (node: FloviraNode): Record<string, unknown> 
   return getNodeExtConfig(node, 'subprocessConfig')
 }
 
-export const getNodeControlConfig = (node: FloviraNode): NodeControlConfig => ({
-  schemaVersion: 1,
-  allowRollback: true,
-  allowTransfer: false,
-  allowAddSign: false,
-  allowMinusSign: false,
-  rejectStrategy: node.returnPolicy === 'ANY' ? 'TO_REJECTOR_SPECIFIED_NODE'
-    : node.returnPolicy === 'REJECT' ? 'REJECT' : 'TO_PREVIOUS',
-  rejectTargetNodeCode: '',
-  resubmitStrategy: 'RESTART_FROM_BEGINNING',
-  ...getNodeExtConfig(node, 'nodeControlConfig'),
-})
+export const getNodeControlConfig = (node: FloviraNode): NodeControlConfig => {
+  const stored = getNodeExtConfig(node, 'nodeControlConfig')
+  return {
+    schemaVersion: 1,
+    allowRollback: true,
+    allowTransfer: false,
+    allowAddSign: false,
+    allowMinusSign: false,
+    rejectStrategy: node.returnPolicy === 'ANY' ? 'TO_REJECTOR_SPECIFIED_NODE'
+      : node.returnPolicy === 'REJECT' ? 'REJECT' : 'TO_PREVIOUS',
+    rejectTargetNodeCode: '',
+    resubmitStrategy: 'RESTART_FROM_BEGINNING',
+    ...stored,
+    ...(stored.rejectStrategy === 'TO_DRAFT' ? { rejectStrategy: 'TO_INITIATOR' as const } : {}),
+  }
+}
 
 export const setNodeControlConfig = (node: FloviraNode, patch: Partial<NodeControlConfig>): FloviraNode =>
   setNodeExtConfig(node, 'nodeControlConfig', { ...getNodeControlConfig(node), ...patch, schemaVersion: 1 })
@@ -472,6 +477,16 @@ export const setTimeoutConfig = (
 
 export const validateDefinition = (definition: FloviraDefinition, capabilities?: DesignerCapabilities): FlowValidationResult => {
   const issues: FlowValidationResult['issues'] = []
+  for (const item of [definition, ...definition.nodeList]) {
+    try {
+      const legacy = item as unknown as { listenerType?: string; listenerPath?: string }
+      if ((legacy.listenerType || '').split(',').some(type => type && type !== 'formLoad')
+          || (!legacy.listenerType && legacy.listenerPath)) throw new Error('旧监听配置需迁移到生命周期回调')
+      validateLifecycle(parseLifecycle(lifecycleValue(item.ext)), 'nodeType' in item ? String(item.nodeType) : undefined)
+    } catch (error) {
+      issues.push({ code: 'LIFECYCLE_INVALID', message: String(error), nodeCode: 'nodeCode' in item ? String(item.nodeCode) : undefined })
+    }
+  }
   const nodes = definition.nodeList
   const codes = new Set(nodes.map((node) => node.nodeCode))
   const incoming = new Map<string, number>()
@@ -538,6 +553,23 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
         issues.push({ code: 'APPROVER_STRATEGY_UNKNOWN', nodeCode: node.nodeCode, message: `${node.nodeName} 未选择后端支持的人员策略` })
       } else if (descriptor && (rule.strategyVersion ?? 1) !== (descriptor.version ?? 1)) {
         issues.push({ code: 'APPROVER_STRATEGY_VERSION', nodeCode: node.nodeCode, message: `${node.nodeName} 的人员策略版本不受支持` })
+      }
+      if (node.nodeType === '1') {
+        for (const [key, subjectKey] of [['emptyPolicy', 'emptyPolicySubjects'], ['sameAsStarterAction', 'sameAsStarterSubjects']]) {
+          const value = rule.config?.[key]
+          const allowed = key === 'emptyPolicy' ? ['ERROR', 'SKIP', 'TRANSFER_TO_USER']
+            : ['SELF_APPROVE', 'AUTO_SKIP_OR_TRANSFER', 'TRANSFER_TO_USER']
+          if (value != null && !allowed.includes(String(value))) {
+            issues.push({ code: 'APPROVER_POLICY_INVALID', nodeCode: node.nodeCode, message: `${node.nodeName} 的审批人处理策略无效` })
+          }
+          if (value !== 'TRANSFER_TO_USER') continue
+          const subjects = rule.config?.[subjectKey] as ApproverSubject[] | undefined
+          if (!Array.isArray(subjects) || !subjects.length || subjects.some(subject => !subject
+            || typeof subject.id !== 'string' || !subject.id.trim() || subject.type !== 'USER')
+            || (capabilities && !capabilities.approverStrategies.some(strategy => strategy.code === 'USER'))) {
+            issues.push({ code: 'APPROVER_TRANSFER_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 需要选择有效的转交人员` })
+          }
+        }
       }
     }
     if (node.nodeType === '8') {

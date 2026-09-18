@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -25,4 +26,9 @@ public interface TransactionExecutor {
     <T> T execute(TransactionCallback<T> callback);
 
     void afterCommit(Runnable callback);
+
+    /** 当前线程是否处于可回滚、支持最外层提交通知的真实事务。 */
+    default boolean isTransactionActive() {
+        return false;
+    }
 }

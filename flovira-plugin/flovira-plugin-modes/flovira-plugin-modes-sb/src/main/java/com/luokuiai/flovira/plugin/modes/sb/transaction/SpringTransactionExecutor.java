@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@ package com.luokuiai.flovira.plugin.modes.sb.transaction;
 import com.luokuiai.flovira.core.transaction.TransactionCallback;
 import com.luokuiai.flovira.core.transaction.TransactionExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -30,26 +32,51 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class SpringTransactionExecutor implements TransactionExecutor {
 
     private final TransactionTemplate transactionTemplate;
+    private final TransactionTemplate afterCommitTemplate;
+    private final ThreadLocal<Boolean> deliveringAfterCommit = new ThreadLocal<Boolean>();
 
     public SpringTransactionExecutor(PlatformTransactionManager transactionManager) {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.afterCommitTemplate = new TransactionTemplate(transactionManager);
+        this.afterCommitTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Override
     public <T> T execute(final TransactionCallback<T> callback) {
-        return transactionTemplate.execute(status -> callback.execute());
+        boolean afterCommit = Boolean.TRUE.equals(deliveringAfterCommit.get());
+        TransactionTemplate template = afterCommit ? afterCommitTemplate : transactionTemplate;
+        return template.execute(status -> {
+            deliveringAfterCommit.remove();
+            try { return callback.execute(); }
+            finally { if (afterCommit) deliveringAfterCommit.set(true); }
+        });
+    }
+
+    @Override
+    public boolean isTransactionActive() {
+        return !Boolean.TRUE.equals(deliveringAfterCommit.get()) && TransactionSynchronizationManager.isActualTransactionActive()
+            && TransactionSynchronizationManager.isSynchronizationActive();
     }
 
     @Override
     public void afterCommit(final Runnable callback) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+        // The original synchronization is still bound while afterCommit runs,
+        // but registering another callback there would never deliver it.
+        if (Boolean.TRUE.equals(deliveringAfterCommit.get())
+            || !TransactionSynchronizationManager.isSynchronizationActive()) {
             callback.run();
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                callback.run();
+                Boolean previous = deliveringAfterCommit.get();
+                deliveringAfterCommit.set(true);
+                try { callback.run(); }
+                finally {
+                    if (previous == null) deliveringAfterCommit.remove();
+                    else deliveringAfterCommit.set(previous);
+                }
             }
         });
     }

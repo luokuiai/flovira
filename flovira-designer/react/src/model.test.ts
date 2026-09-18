@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+import { DEMO_CAPABILITIES } from '../../examples/capabilities'
 import {
   approverStrategyOptions,
   addGatewayBranch,
@@ -255,4 +256,23 @@ test('drops the legacy designer mode without changing business extension keys', 
   expect(saved).not.toHaveProperty('modelValue')
   expect(saved.ext).toBe(legacy.ext)
   expect(legacy.modelValue).toBe('CLASSICS')
+})
+
+test('validates both transfer policies before submitting a definition to the backend', () => {
+  for (const [key, subjectKey] of [['emptyPolicy', 'emptyPolicySubjects'], ['sameAsStarterAction', 'sameAsStarterSubjects']]) {
+    const definition = createInitialDefinition()
+    const index = definition.nodeList.findIndex(node => node.nodeType === '1')
+    const configure = (config: Record<string, unknown>) => {
+      definition.nodeList[index] = setApproverRule(definition.nodeList[index], 'ROLE',
+        [{ id: 'finance', type: 'ROLE' }], '', 'ROLE_MEMBERS', 'RESOURCE', config)
+      return validateDefinition(definition, DEMO_CAPABILITIES).issues.filter(issue => issue.code.startsWith('APPROVER_'))
+    }
+    expect(configure({ [key]: 'TRANSFER_TO_USER' }).map(issue => issue.code)).toContain('APPROVER_TRANSFER_REQUIRED')
+    expect(configure({ [key]: 'TRANSFER_TO_USER', [subjectKey]: [{ id: 'role', type: 'ROLE' }] })
+      .map(issue => issue.code)).toContain('APPROVER_TRANSFER_REQUIRED')
+    expect(configure({ [key]: 'TRANSFER_TO_USER', [subjectKey]: [{ id: 'backup', type: 'USER' }] })).toEqual([])
+    const copy = normalizeDefinition(JSON.parse(serializeDefinition(definition)))
+    expect(getApproverRule(copy.nodeList[index]).config?.[subjectKey]).toEqual([{ id: 'backup', type: 'USER' }])
+    expect(configure({ [key]: 'UNSUPPORTED' }).map(issue => issue.code)).toContain('APPROVER_POLICY_INVALID')
+  }
 })

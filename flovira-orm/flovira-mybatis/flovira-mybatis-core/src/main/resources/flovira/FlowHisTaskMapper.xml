@@ -20,6 +20,7 @@
         <result property="skipType" column="skip_type"/>
         <result property="flowStatus" column="flow_status"/>
         <result property="formId" column="form_id"/>
+        <result property="nodeExecutionId" column="node_execution_id"/>
         <result property="message" column="message"/>
         <result property="variables" column="variables"/>
         <result property="ext" column="ext"/>
@@ -47,6 +48,7 @@
                t.skip_type,
                t.flow_status,
                t.form_id,
+               t.node_execution_id,
                t.message,
                t.variables,
                t.ext,
@@ -89,6 +91,7 @@
             <if test="entity.skipType != null  and entity.skipType != ''">and t.skip_type = #{entity.skipType}</if>
             <if test="entity.flowStatus != null">and t.flow_status = #{entity.flowStatus}</if>
             <if test="entity.formId != null  and entity.formId != ''">and t.form_id = #{entity.formId}</if>
+            <if test="entity.nodeExecutionId != null ">and t.node_execution_id = #{entity.nodeExecutionId}</if>
             <if test="entity.message != null  and entity.message != ''">and t.message = #{entity.message}</if>
             <if test="entity.variables != null  and entity.variables != ''">and t.variables = #{entity.variables}</if>
             <if test="entity.ext != null  and entity.ext != ''">and t.ext = #{entity.ext}</if>
@@ -145,6 +148,7 @@
         skip_type,
         flow_status,
         form_id,
+        node_execution_id,
         message,
         variables,
         ext,
@@ -171,6 +175,7 @@
             #{item.skipType},
             #{item.flowStatus},
             #{item.formId},
+            #{item.nodeExecutionId},
             #{item.message},
             #{item.variables},
             #{item.ext},
@@ -199,6 +204,7 @@
         skip_type,
         flow_status,
         form_id,
+        node_execution_id,
         message,
         variables,
         ext,
@@ -224,6 +230,7 @@
             #{item.skipType},
             #{item.flowStatus},
             #{item.formId},
+            #{item.nodeExecutionId},
             #{item.message},
             #{item.variables},
             #{item.ext},
@@ -321,6 +328,7 @@
             <if test="skipType != null and skipType != ''">skip_type,</if>
             <if test="flowStatus != null">flow_status,</if>
             <if test="formId != null and formId != ''">form_id,</if>
+            <if test="nodeExecutionId != null">node_execution_id,</if>
             <if test="message != null">message,</if>
             <if test="variables != null">variables,</if>
             <if test="ext != null">ext,</if>
@@ -345,6 +353,7 @@
             <if test="skipType != null and skipType != ''">#{skipType},</if>
             <if test="flowStatus != null">#{flowStatus},</if>
             <if test="formId != null and formId != ''">#{formId},</if>
+            <if test="nodeExecutionId != null">#{nodeExecutionId},</if>
             <if test="message != null">#{message},</if>
             <if test="variables != null">#{variables},</if>
             <if test="ext != null">#{ext},</if>
@@ -371,6 +380,7 @@
             <if test="skipType != null and skipType != ''">skip_type = #{skipType},</if>
             <if test="flowStatus != null">flow_status = #{flowStatus},</if>
             <if test="formId != null and formId != ''">form_id = #{formId},</if>
+            <if test="nodeExecutionId != null">node_execution_id = #{nodeExecutionId},</if>
             <if test="message != null">message = #{message},</if>
             <if test="variables != null">variables = #{variables},</if>
             <if test="ext != null">ext = #{ext},</if>
@@ -455,6 +465,7 @@
             <if test="skipType != null and skipType != ''">and skip_type = #{skipType}</if>
             <if test="flowStatus != null">and flow_status = #{flowStatus}</if>
             <if test="formId != null and formId != ''">and form_id = #{formId}</if>
+            <if test="nodeExecutionId != null">and node_execution_id = #{nodeExecutionId}</if>
             <if test="message != null">and message = #{message}</if>
             <if test="variables != null">and variables = #{variables}</if>
             <if test="ext != null">and ext = #{ext}</if>
@@ -489,6 +500,7 @@
             <if test="entity.skipType != null and entity.skipType != ''">and skip_type = #{entity.skipType}</if>
             <if test="entity.flowStatus != null">and flow_status = #{entity.flowStatus}</if>
             <if test="entity.formId != null and entity.formId != ''">and form_id = #{entity.formId}</if>
+            <if test="entity.nodeExecutionId != null">and node_execution_id = #{entity.nodeExecutionId}</if>
             <if test="entity.message != null">and message = #{entity.message}</if>
             <if test="entity.variables != null">and variables = #{entity.variables}</if>
             <if test="entity.ext != null">and ext = #{entity.ext}</if>

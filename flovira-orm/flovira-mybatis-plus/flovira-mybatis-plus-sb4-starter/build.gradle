@@ -7,6 +7,7 @@ plugins {
 }
 
 dependencies {
+    testImplementation libs.junit.junit
     api platform('org.springframework.boot:spring-boot-dependencies:4.0.2')
     api project(':flovira-mybatis-plus-sb-starter')
     api libs.com.baomidou.mybatis.plus.spring.boot4.starter
@@ -15,3 +16,6 @@ dependencies {
 }
 
 description = 'flovira-mybatis-plus-sb4-starter'
+
+// Exercise the shared listener adapter on this starter's Spring generation.
+sourceSets.test.java.srcDir rootProject.file('flovira-plugin/flovira-plugin-modes/flovira-plugin-modes-sb/src/test/java/com/luokuiai/flovira/plugin/modes/sb/listener')

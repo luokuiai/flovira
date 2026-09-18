@@ -478,6 +478,10 @@ function initEvent() {
     if (isGateWay(nodeClick.value.type) && !disabled.value) {
       gatewayAddNode(lf.value, nodeClick.value);
     }
+    // 结束节点使用 SVG 圆形，没有业务卡片的编辑入口。
+    if (nodeClick.value.type === 'end') {
+      eventCenter.emit('edit:node', { id: args.data.id, click: true })
+    }
   })
 
   eventCenter.on('edit:node', (args) => {

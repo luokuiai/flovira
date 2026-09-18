@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -162,4 +163,13 @@ public interface Instance extends RootEntity {
 
     Instance setActivityStatus(Integer activityStatus);
 
+    /** 退回发起人的策略与来源快照，独立于业务变量。 */
+    String getResubmissionContext();
+
+    Instance setResubmissionContext(String context);
+
+    /** 原生生命周期状态，独立于业务自定义 flowStatus。 */
+    String getLifecycleState();
+
+    Instance setLifecycleState(String value);
 }

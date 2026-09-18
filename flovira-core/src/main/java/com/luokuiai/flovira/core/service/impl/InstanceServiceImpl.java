@@ -26,7 +26,8 @@ import com.luokuiai.flovira.core.enums.ActivityStatus;
 import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.enums.SkipType;
-import com.luokuiai.flovira.core.listener.ListenerVariable;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
+import com.luokuiai.flovira.core.listener.lifecycle.ProcessLifecycleState;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
 import com.luokuiai.flovira.core.service.InstanceService;
@@ -70,6 +71,11 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
     }
 
     private Instance start(String businessId, FlowParams flowParams, Definition definition) {
+        requireBusinessType(definition);
+        return FlowEngine.transactionExecutor().execute(() -> doStart(businessId, flowParams, definition));
+    }
+
+    private Instance doStart(String businessId, FlowParams flowParams, Definition definition) {
         String businessType = requireBusinessType(definition);
         AssertUtil.isEmpty(businessId, ExceptionCons.NULL_BUSINESS_ID);
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombine(definition);
@@ -82,18 +88,15 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
             , ExceptionCons.NOT_DEFINITION_ACTIVITY);
         flowParams.skipType(SkipType.PASS.getKey());
 
-        // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(definition, null, startNode, flowParams.getVariables())
-            .setFlowParams(flowParams));
+        Instance instance = setStartInstance(startNode, businessType, businessId, flowParams);
+        instance.setTenantId(definition.getTenantId()).setLifecycleState(ProcessLifecycleState.ACTIVE.name());
+        LifecycleTransition transition = new LifecycleTransition(instance, definition, startNode, null, flowParams, "START", "USER");
 
 
         // 获取下一个节点，如果是网关节点，则重新获取后续节点
         PathWayData pathWayData = new PathWayData().setDefId(startNode.getDefinitionId()).setSkipType(flowParams.getSkipType());
         List<Node> nextNodes = FlowEngine.nodeService().getNextNodeList(startNode, null, flowParams.getSkipType(),
             flowParams.getVariables(), pathWayData, flowCombine);
-
-        // 设置流程实例对象
-        Instance instance = setStartInstance(nextNodes.get(0), businessType, businessId, flowParams);
 
         // 设置历史任务
         HisTask hisTask = setHisTask(nextNodes, flowParams, startNode, instance.getId());
@@ -110,20 +113,24 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
         pathWayData.getTargetNodes().addAll(nextNodes);
         instance.setDefJson(FlowEngine.chartService().startMetadata(pathWayData));
 
-        // 执行分派监听器
-        ListenerUtil.executeAssignment(new ListenerVariable(definition, instance, startNode, flowParams.getVariables()
-            , null, nextNodes, addTasks).setFlowParams(flowParams));
+        save(instance);
+        hisTask.setNodeExecutionId(transition.startNode(startNode));
+        transition.prepare(addTasks, nextNodes);
 
         // 开启流程，保存流程信息
         saveFlowInfo(instance, addTasks, hisTask, flowParams);
 
-        // 执行完成和创建监听器
-        ListenerUtil.endCreateListener(new ListenerVariable(definition, instance, startNode, flowParams.getVariables()
-            , null, nextNodes, addTasks).setFlowParams(flowParams));
+        transition.finish(false, false, "COMPLETED", null, null);
 
+        if (NodeType.isEnd(instance.getNodeType()) && instance.getVariableMap().containsKey("flovira.subprocess.parentInstanceId")) {
+            FlowEngine.subprocessService().onInstanceTerminal(instance, com.luokuiai.flovira.core.enums.SubprocessOutcome.SUCCEEDED);
+        }
+
+        if (containsSubprocessTask(addTasks)) FlowEngine.subprocessService().onTasksCreated(addTasks);
         CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariables());
+        Instance advanced = ApproverPolicyUtil.advanceTasks(addTasks, flowParams.getVariables());
 
-        return instance;
+        return advanced == null ? instance : advanced;
     }
 
     static String requireBusinessType(Definition definition) {
@@ -190,10 +197,7 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
             FlowEngine.taskService().saveBatch(addTasks);
             FlowEngine.userService().saveBatch(users);
         }
-        save(instance);
-        if (containsSubprocessTask(addTasks)) {
-            FlowEngine.subprocessService().onTasksCreated(addTasks);
-        }
+        updateById(instance);
     }
 
     private boolean containsSubprocessTask(List<Task> tasks) {

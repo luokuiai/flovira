@@ -1,3 +1,4 @@
+import { LifecycleExtEditor } from './LifecycleEditor'
 import { NodeControlEditor } from './NodeControlEditor'
 import { FormPermissionEditor } from './FormPermissionEditor'
 import { TimeoutFormField } from './TimeoutFormField'
@@ -230,7 +231,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       setParticipantPickerOpen(false)
       setSelectedBranch(current => current?.fromNode ? null : current)
     }, [definition, disabled])
-    const [nodeTab, setNodeTab] = useState<'basic' | 'config' | 'form'>('config')
+    const [nodeTab, setNodeTab] = useState<'basic' | 'config' | 'form' | 'lifecycle'>('config')
     const nodeTabId = useId()
     useEffect(() => {
       const type = definition.nodeList.find(node => node.nodeCode === selectedCode)?.nodeType
@@ -918,8 +919,14 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
             {selectedNode && (
               <div className="frd-settings-panel">
               <UiTabs value={nodeTab} idPrefix={nodeTabId} ariaLabel="节点配置分类"
-                options={[{ value: 'basic', label: '基础信息' }, { value: 'config', label: selectedNode.nodeType === '1' ? '审批配置' : '节点配置' }, { value: 'form', label: '表单权限' }]}
-                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form')} />
+                options={[{ value: 'basic', label: '基础信息' }, { value: 'config', label: selectedNode.nodeType === '1' ? '审批配置' : '节点配置' }, { value: 'form', label: '表单权限' }, ...(!['3', '4', '5'].includes(selectedNode.nodeType) ? [{ value: 'lifecycle', label: '回调' }] : [])]}
+                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form' | 'lifecycle')} />
+              {!['3', '4', '5'].includes(selectedNode.nodeType) && <div role="tabpanel" id={`${nodeTabId}-panel-lifecycle`} aria-labelledby={`${nodeTabId}-tab-lifecycle`} hidden={nodeTab !== 'lifecycle'}>
+                {selectedNode.nodeType === '0' && <LifecycleExtEditor ext={nodeDefinition.ext} ui={components} disabled={disabled}
+                  onChange={value => commitNode({ ...nodeDefinition, ext: value })} />}
+                <LifecycleExtEditor ext={selectedNode.ext} nodeType={selectedNode.nodeType} ui={components} disabled={disabled}
+                  onChange={value => changeSelected({ ext: value })} />
+              </div>}
               <div role="tabpanel" id={`${nodeTabId}-panel-basic`} aria-labelledby={`${nodeTabId}-tab-basic`} hidden={nodeTab !== 'basic'}>
               <div className="frd-settings-group">
                 <UiField label="节点名称">
@@ -1135,6 +1142,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                         ))}
                       >启用超时处理</UiCheckbox>
                     </div>
+                    <p className="frd-condition-hint">必须由业务系统自行接入超时调度；仅配置此处不会自动执行。</p>
                     {enabled && (
                       <>
                         <UiField label="超时来源" className="frd-timeout-action">

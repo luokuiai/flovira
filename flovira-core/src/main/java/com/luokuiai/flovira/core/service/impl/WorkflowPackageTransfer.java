@@ -34,6 +34,7 @@ import com.luokuiai.flovira.core.exception.FlowException;
 import com.luokuiai.flovira.core.service.DefService;
 import com.luokuiai.flovira.core.utils.FlowConfigUtil;
 import com.luokuiai.flovira.core.utils.NodeConfigValidator;
+import com.luokuiai.flovira.core.utils.LifecycleConfigUtil;
 import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.core.utils.SubprocessConfigUtil;
 import com.luokuiai.flovira.core.utils.SubprocessDefinitionValidator;
@@ -229,6 +230,7 @@ final class WorkflowPackageTransfer {
         FlowCombine flow = FlowConfigUtil.structureFlow(definition);
         SubprocessDefinitionValidator.validateNodeConfigs(flow.getAllNodes());
         NodeConfigValidator.validate(flow.getAllNodes());
+        LifecycleConfigUtil.validate(flow.getDefinition(), flow.getAllNodes());
         return flow;
     }
 

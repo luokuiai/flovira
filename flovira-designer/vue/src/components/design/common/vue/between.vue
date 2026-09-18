@@ -162,60 +162,29 @@
                 <wf-button v-if="!disabled" class="add-row-btn add-row-btn-secondary" @click="initUser">{{ t('between.selectHandler') }}</wf-button>
               </div>
               </template>
+              <wf-form-item v-for="option in policyOptions" :key="option.code" :label="option.name">
+                <wf-select :model-value="approverConfig[option.code] ?? option.defaultValue ?? option.choices[0]?.value"
+                  :disabled="disabled" @update:model-value="value => updateApproverOption(option, value)">
+                  <wf-option v-for="choice in option.choices" :key="choice.value" :value="choice.value"
+                    :label="choice.label" :disabled="choice.disabled" />
+                </wf-select>
+                <template v-for="choice in option.choices" :key="choice.value">
+                  <div v-if="choice.selectionConfigKey && (approverConfig[option.code] ?? option.defaultValue ?? option.choices[0]?.value) === choice.value">
+                    <span>{{ policySubjects(choice.selectionConfigKey).map(subject => subject.name || subject.id).join('、') }}</span>
+                    <wf-button :disabled="disabled || !approverStrategies.some(item => item.code === choice.selectionStrategy)"
+                      @click="openPolicyPicker(choice)">选择转交人员</wf-button>
+                  </div>
+                </template>
+              </wf-form-item>
+              <p v-if="policyError" role="alert">{{ policyError }}</p>
           </div>
         </div>
       </div>
 
-      <!-- 监听器 -->
-      <div v-show="tabsValue === '3'" class="tabPane tabPane-full">
-        <div class="section-card section-purple">
-          <div class="section-card-body">
-            <wf-table :data="form.listenerRows" style="width: 100%">
-              <wf-table-column prop="listenerType" :label="t('common.type')" :width="isMobile ? 60 : 160">
-                <template #default="scope">
-                  <wf-form-item :prop="'listenerRows.' + scope.$index + '.listenerType'" :rules="rules.listenerType">
-                    <wf-select v-model="scope.row.listenerType" :placeholder="t('common.pleaseSelect')">
-                      <wf-option :label="t('start.listenerStart')" value="start"></wf-option>
-                      <wf-option :label="t('start.listenerAssignment')" value="assignment"></wf-option>
-                      <wf-option :label="t('start.listenerFinish')" value="finish"></wf-option>
-                      <wf-option :label="t('start.listenerCreate')" value="create"></wf-option>
-                    </wf-select>
-                  </wf-form-item>
-                </template>
-              </wf-table-column>
-              <wf-table-column prop="listenerPath" :label="t('baseInfo.listenerPathLabel')">
-                <template #default="scope">
-                  <wf-form-item :prop="'listenerRows.' + scope.$index + '.listenerPath'" :rules="rules.listenerPath">
-                      <wf-select
-                          v-model="scope.row.listenerPath"
-                          :placeholder="t('baseInfo.listenerPathPlaceholder')"
-                          allow-create
-                          filterable
-                          clearable
-                          style="width: 100%"
-                          @change="(value) => handleListenerPathChange(value, scope.row)">
-                          <wf-option
-                              v-for="item in ListenerVo"
-                              :key="item.path"
-                              :label="item.description"
-                              :value="item.path"/>
-                      </wf-select>
-                  </wf-form-item>
-                </template>
-              </wf-table-column>
-              <wf-table-column :label="t('common.operation')" width="65" align="center" v-if="!disabled">
-                <template #default="scope">
-                  <wf-button link size="small" type="danger" @click="handleDeleteRow(scope.$index)"><svg-icon icon-class="ep:delete"/></wf-button>
-                </template>
-              </wf-table-column>
-            </wf-table>
-            <div class="action-buttons">
-              <wf-button v-if="!disabled" class="add-row-btn" @click="handleAddRow">{{ t('common.addRow') }}</wf-button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div v-show="tabsValue === '3'" class="tabPane tabPane-full">
+      <LifecycleEditor :model-value="form.ext?.lifecycle" node-type="1" :disabled="disabled"
+        @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
+    </div>
       <!-- 动态页签（按钮权限等）- 都是节点扩展属性。tab 已表明当前分组，无需重复标题与卡片背景，直接渲染扩展属性表单 -->
       <div v-show="tabsValue !== '1' && tabsValue !== '2' && tabsValue !== '3'" class="tabPane tabPane-full">
         <div v-if="buttonList[tabsValue] && buttonList[tabsValue].length > 0" class="ext-tab-content">
@@ -225,6 +194,12 @@
     </wf-form>
 
     <!-- 权限标识：会签票签选择用户 -->
+    <wf-dialog v-if="policyUserVisible" v-model="policyUserVisible" title="选择转交人员"
+      :width="isMobile ? '96%' : '80%'" append-to-body>
+      <selectUser :select-user="policyPickerIds" v-model:userVisible="policyUserVisible"
+        :permission-rows="policyPickerRows" :resource-type="policyPickerStrategy?.resourceType"
+        :multiple="policyPickerStrategy?.multiple" @handleUserSelect="handlePolicyUserSelect" />
+    </wf-dialog>
     <wf-dialog :title="t('between.userSelectTitle')" v-if="userVisible" v-model="userVisible" :width="isMobile ? '96%' : '80%'" append-to-body
       class="person-select-dialog" :class="{ 'mobile-user-dialog': isMobile }"
     >
@@ -236,6 +211,7 @@
 </template>
 
 <script setup lang="ts">
+import LifecycleEditor from './LifecycleEditor.vue'
 import { computed, getCurrentInstance, reactive, ref, watch } from 'vue';
 import selectUser from "./selectUser.vue";
 import {designerCapabilities, designerResourceItems, designerSubjects} from "@/api/flow/definition";
@@ -244,7 +220,9 @@ import NodeTimeout from "./nodeTimeout.vue";
 import {getPreviousNodes} from "@/components/design/common/js/tool";
 import {getFramework} from "@/utils/auth";
 import { useI18n } from '@/i18n';
-import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy } from '@/data/contracts';
+import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy, type DesignerApproverOption,
+  type DesignerApproverOptionChoice, type ApproverSubject } from '@/data/contracts';
+import { visibleApproverOptions, changeApproverOption, approverOptionError } from '@/data/approverOptions';
 
 defineOptions({ name: 'Between' });
 
@@ -303,7 +281,40 @@ const approverStrategy = ref('')
 const strategyVersion = ref(1);
 const approverExpression = ref('');
 const approverStrategyDescriptor = computed(() => approverStrategies.value.find(item => item.code === approverStrategy.value));
-const ListenerVo = ref<any[]>([]); // 监听器列表
+const approverConfig = ref<Record<string, unknown>>({});
+const policyOptions = computed(() => visibleApproverOptions(approverStrategyDescriptor.value));
+const policyError = ref('');
+const policyUserVisible = ref(false);
+const policyPickerChoice = ref<DesignerApproverOptionChoice>();
+const policyPickerStrategy = computed(() => approverStrategies.value.find(item => item.code === policyPickerChoice.value?.selectionStrategy));
+const policyPickerRows = computed(() => policySubjects(policyPickerChoice.value?.selectionConfigKey || '')
+  .map(subject => ({ storageId: subject.id, handlerName: subject.name || subject.id, resourceType: subject.type })));
+const policyPickerIds = computed(() => policyPickerRows.value.map(row => row.storageId));
+
+function policySubjects(key: string): ApproverSubject[] {
+  return Array.isArray(approverConfig.value[key]) ? approverConfig.value[key] as ApproverSubject[] : [];
+}
+
+function updateApproverOption(option: DesignerApproverOption, value: string) {
+  approverConfig.value = changeApproverOption(approverConfig.value, option, value);
+  policyError.value = '';
+  syncApproverRule();
+}
+
+function openPolicyPicker(choice: DesignerApproverOptionChoice) {
+  policyPickerChoice.value = choice;
+  policyUserVisible.value = true;
+}
+
+function handlePolicyUserSelect(rows: any[]) {
+  const key = policyPickerChoice.value?.selectionConfigKey;
+  if (!key || !policyPickerStrategy.value) return;
+  approverConfig.value = { ...approverConfig.value, [key]: rows.map(row => ({
+    id: row.storageId, type: policyPickerStrategy.value!.resourceType, name: row.handlerName,
+  })) };
+  policyError.value = '';
+  syncApproverRule();
+}
 const emit = defineEmits<{ (e: 'update:modelValue', value: any): void }>();
 
 const rules = reactive({
@@ -450,7 +461,6 @@ function handleTabChange(activeTabName: string) {
             break;
         case '3':
             // 监听器 tab
-            getListenerList()
             break;
         default:
             // 自定义 tab
@@ -467,6 +477,7 @@ function getPermissionFlag() {
       approverStrategy.value = rule.strategy || ''
       strategyVersion.value = rule.strategyVersion ?? 1;
       approverExpression.value = rule.expression || '';
+      approverConfig.value = { ...rule.config };
       form.value.permissionFlag = (rule.subjects || []).map((subject: any) => subject.id);
       permissionRows.value = (rule.subjects || []).map((subject: any) => ({
         storageId: subject.id,
@@ -478,15 +489,6 @@ function getPermissionFlag() {
     }
   }
   form.value.permissionFlag = permissionRows.value.map(item => item.storageId);
-  if (form.value.listenerType && typeof form.value.listenerType === 'string') {
-    const listenerTypes = form.value.listenerType.split(",");
-    const lp = form.value.listenerPath;
-    const listenerPaths = (typeof lp === 'string' && lp) ? lp.split("@@") : [];
-    form.value.listenerRows = listenerTypes.map((type, index) => ({
-      listenerType: type,
-      listenerPath: listenerPaths[index]
-    }));
-  }
 }
 
 /** 办理人权限名称回显 */
@@ -497,36 +499,6 @@ async function getHandlerFeedback() {
   if (form.value.permissionFlag) {
       permissionRows.value = await designerSubjects(form.value.permissionFlag);
   }
-}
-
-/** 获取监听器列表 */
-async function getListenerList() {
-    const items = await designerResourceItems({ resourceType: 'LISTENER', pageNum: 1, pageSize: 1000 });
-    ListenerVo.value = items.map(item => ({
-      type: item.metadata?.type || item.code,
-      path: item.metadata?.path || item.id,
-      description: item.metadata?.description || item.name,
-    }));
-}
-
-
-// 处理监听器路径变化，级联更新类型
-function handleListenerPathChange(path: string, row: any) {
-    if (!path) {
-        // 清空时，也清空类型
-        row.listenerType = '';
-        return;
-    }
-
-    // 在下拉选项中查找匹配的项
-    const matchedItem = ListenerVo.value.find(item => item.path === path);
-    if (matchedItem && matchedItem.type) {
-        // 如果找到了匹配项且有 type，则更新 listenerType
-        row.listenerType = matchedItem.type;
-    } else {
-        // 如果是手动输入的，清空类型（或者保持原值，根据需求决定）
-        row.listenerType = '';
-    }
 }
 
 /** 查询节点扩展属性 */
@@ -601,6 +573,7 @@ function syncApproverRule() {
     relationType: descriptor?.relationType,
     subjects,
     expression: descriptor?.selectionType === 'EXPRESSION' ? approverExpression.value : undefined,
+    config: approverConfig.value,
   };
   form.value.ext = Object.assign({}, form.value.ext, { approverRule: JSON.stringify(rule) });
 }
@@ -610,22 +583,15 @@ function handleApproverStrategyChange() {
   form.value.permissionFlag = [];
   permissionRows.value = [];
   approverExpression.value = '';
+  approverConfig.value = Object.fromEntries(policyOptions.value.map(option => [option.code,
+    option.defaultValue ?? option.choices[0]?.value]));
+  policyError.value = '';
   syncApproverRule();
 }
 
 designerCapabilities().then(response => {
   approverStrategies.value = unwrapData(response)?.approverStrategies || DEFAULT_DESIGNER_CAPABILITIES.approverStrategies;
 });
-
-// 增加行
-function handleAddRow() {
-  form.value.listenerRows.push({ listenerType: '', listenerPath: '' });
-}
-
-// 删除行
-function handleDeleteRow(index: number) {
-  form.value.listenerRows.splice(index, 1);
-}
 
 const filteredNodes = computed(() => {
   let previousNodes = getPreviousNodes(props.nodes, props.skips, form.value.nodeCode)
@@ -645,6 +611,12 @@ getNodeExt();
 function validate() {
   return new Promise(async (resolve, reject) => {
     const descriptor = approverStrategyDescriptor.value
+    policyError.value = approverOptionError(approverConfig.value, policyOptions.value, approverStrategies.value) || '';
+    if (policyError.value) {
+      tabsValue.value = '2';
+      reject(false);
+      return;
+    }
     if (!descriptor || strategyVersion.value !== (descriptor.version ?? 1)
       || (descriptor.selectionType === 'RESOURCE' && permissionRows.value.length === 0)
       || (descriptor.selectionType === 'EXPRESSION' && !approverExpression.value.trim())) {

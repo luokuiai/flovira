@@ -166,4 +166,6 @@ public class FlowHisTask implements HisTask {
      */
     private String formId;
 
+    /** 原生生命周期关联。 */
+    private Long nodeExecutionId;
 }

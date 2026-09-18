@@ -25,8 +25,8 @@ import com.luokuiai.flovira.core.handler.PermissionHandler;
 import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
-import com.luokuiai.flovira.core.listener.GlobalListener;
-import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleListenerRegistry;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleDispatcher;
 import com.luokuiai.flovira.core.service.*;
 import com.luokuiai.flovira.core.transaction.TransactionExecutor;
 import com.luokuiai.flovira.core.utils.ClassUtil;
@@ -45,6 +45,25 @@ import java.util.function.Supplier;
  * @author warm
  */
 public class FlowEngine {
+
+    private static final LifecycleListenerRegistry lifecycleListeners = new LifecycleListenerRegistry();
+
+    private static volatile LifecycleDispatcher.FailureHandler lifecycleFailureHandler = (code, event, failure) ->
+        org.slf4j.LoggerFactory.getLogger(FlowEngine.class).error(
+            "Lifecycle notification failed: listener={}, event={}", code, event.getEventId(), failure);
+    private static final LifecycleDispatcher lifecycleDispatcher = new LifecycleDispatcher(lifecycleListeners,
+        (code, event, failure) -> lifecycleFailureHandler.failed(code, event, failure));
+
+    public static LifecycleDispatcher lifecycleDispatcher() { return lifecycleDispatcher; }
+
+    public static void setLifecycleFailureHandler(LifecycleDispatcher.FailureHandler handler) {
+        lifecycleFailureHandler = java.util.Objects.requireNonNull(handler, "handler");
+    }
+
+    /** 框架独立的监听器注册入口，支持多个实例和程序化全局订阅。 */
+    public static LifecycleListenerRegistry lifecycleListeners() {
+        return lifecycleListeners;
+    }
 
     private static final DefService defService = null;
     private static final NodeService nodeService = null;
@@ -71,10 +90,18 @@ public class FlowEngine {
     private static Supplier<SubprocessRun> subprocessRunSupplier;
     private static Supplier<SubprocessChild> subprocessChildSupplier;
     private static Supplier<SubprocessEvent> subprocessEventSupplier;
+    private static Supplier<NodeExecution> nodeExecutionSupplier;
+
+    public static void setNewNodeExecution(Supplier<NodeExecution> supplier) {
+        nodeExecutionSupplier = supplier;
+    }
+
+    public static NodeExecution newNodeExecution() {
+        if (nodeExecutionSupplier == null) throw new IllegalStateException("Node execution supplier is not configured");
+        return nodeExecutionSupplier.get();
+    }
 
     private static TransactionExecutor transactionExecutor;
-
-    private static TimeoutSchedulerLock timeoutSchedulerLock;
 
     private static Flovira flowConfig;
 
@@ -84,7 +111,6 @@ public class FlowEngine {
 
     private static PermissionHandler permissionHandler;
 
-    private static GlobalListener globalListener;
 
     public static JsonConvert jsonConvert;
 
@@ -239,14 +265,6 @@ public class FlowEngine {
         return transactionExecutor;
     }
 
-    public static void setTimeoutSchedulerLock(TimeoutSchedulerLock schedulerLock) {
-        timeoutSchedulerLock = schedulerLock;
-    }
-
-    public static TimeoutSchedulerLock timeoutSchedulerLock() {
-        return getObj(timeoutSchedulerLock, TimeoutSchedulerLock.class);
-    }
-
 
     /**
      * 可选的业务表单字段名称提供者，通过 FrameInvoker 注册。
@@ -311,9 +329,6 @@ public class FlowEngine {
         permissionHandler = initBean(PermissionHandler.class, handlerPath, null);
     }
 
-    public static void initGlobalListener(String handlerPath) {
-        globalListener = initBean(GlobalListener.class, handlerPath, null);
-    }
 
     /**
      * 获取填充类
@@ -334,13 +349,6 @@ public class FlowEngine {
      */
     public static TenantHandler tenantHandler() {
         return tenantHandler;
-    }
-
-    /**
-     * 获取全局监听器
-     */
-    public static GlobalListener globalListener() {
-        return globalListener;
     }
 
     /**

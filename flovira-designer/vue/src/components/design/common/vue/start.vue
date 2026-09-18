@@ -38,48 +38,16 @@
       </wf-form>
     </div>
 
-    <!-- 监听器 -->
     <div v-show="tabsValue === '2'" class="tabPane tabPane-full">
-        <div class="section-card section-purple">
-          <div class="section-card-body">
-          <slot name="form-item-task-listenerType" :model="form" field="listenerType">
-            <wf-table :data="form.listenerRows" style="width: 100%">
-              <wf-table-column prop="listenerType" :label="t('common.type')" :width="isMobile ? 60 : 160">
-                <template #default="scope">
-                  <wf-form-item :prop="'listenerRows.' + scope.$index + '.listenerType'">
-                    <wf-select v-model="scope.row.listenerType" :placeholder="t('common.pleaseSelect')">
-                      <wf-option :label="t('start.listenerStart')" value="start"></wf-option>
-                      <wf-option :label="t('start.listenerAssignment')" value="assignment"></wf-option>
-                      <wf-option :label="t('start.listenerFinish')" value="finish"></wf-option>
-                      <wf-option :label="t('start.listenerCreate')" value="create"></wf-option>
-                    </wf-select>
-                  </wf-form-item>
-                </template>
-              </wf-table-column>
-              <wf-table-column prop="listenerPath" :label="t('start.listenerPath')">
-                <template #default="scope">
-                  <wf-form-item :prop="'listenerRows.' + scope.$index + '.listenerPath'">
-                    <wf-input v-model="scope.row.listenerPath" :placeholder="t('common.pleaseInput')"></wf-input>
-                  </wf-form-item>
-                </template>
-              </wf-table-column>
-              <wf-table-column :label="t('common.operation')" width="65" align="center" v-if="!disabled">
-                <template #default="scope">
-                  <wf-button link size="small" type="danger" @click="handleDeleteRow(scope.$index)"><svg-icon icon-class="ep:delete"/></wf-button>
-                </template>
-              </wf-table-column>
-            </wf-table>
-          </slot>
-          <div class="action-buttons">
-            <wf-button v-if="!disabled" class="add-row-btn" @click="handleAddRow">{{ t('common.addRow') }}</wf-button>
-          </div>
-        </div>
-      </div>
+      <LifecycleEditor :model-value="form.ext?.lifecycle" node-type="0" :disabled="disabled"
+        @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
+import LifecycleEditor from './LifecycleEditor.vue'
 import { computed, getCurrentInstance, ref, watch } from 'vue';
 import { useI18n } from '@/i18n';
 
@@ -129,24 +97,6 @@ function nodeNameChange() {
   proxy.$refs.nodeInput.focus();
 }
 
-if (form.value.listenerType) {
-  const listenerTypes = form.value.listenerType.split(",");
-  const listenerPaths = form.value.listenerPath.split("@@");
-  form.value.listenerRows = listenerTypes.map((type, index) => ({
-    listenerType: type,
-    listenerPath: listenerPaths[index]
-  }));
-}
-
-// 增加行
-function handleAddRow() {
-  form.value.listenerRows.push({ listenerType: '', listenerPath: '' });
-}
-
-// 删除行
-function handleDeleteRow(index: number) {
-  form.value.listenerRows.splice(index, 1);
-}
 </script>
 
 <style scoped lang="scss">

@@ -1399,3 +1399,10 @@ html.dark .frd-condition-editor, [data-color-scheme="dark"] .frd-condition-edito
 @media (max-width: 480px) {
   .frd-node-controls [role="radiogroup"] { grid-template-columns: minmax(0, 1fr); }
 }
+.frd-lifecycle-row {
+  min-width: 0;
+  margin: 0 0 24px;
+  padding: 0 0 20px;
+  border: 0;
+  border-bottom: 1px solid var(--frd-border);
+}

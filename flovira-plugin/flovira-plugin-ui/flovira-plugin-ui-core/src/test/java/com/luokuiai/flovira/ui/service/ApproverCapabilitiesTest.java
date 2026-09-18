@@ -28,6 +28,26 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class ApproverCapabilitiesTest {
+    @Test public void exposesNativeListenerBeanNamesWithoutInvokingThem() throws Exception {
+        FrameInvoker.setBeanFunction(type -> null);
+        FrameInvoker.setBeansFunction(type -> Collections.emptyList());
+        com.luokuiai.flovira.core.listener.lifecycle.WorkflowLifecycleListener listener =
+            new com.luokuiai.flovira.core.listener.lifecycle.WorkflowLifecycleListener() {
+                public void onEvent(com.luokuiai.flovira.core.listener.lifecycle.LifecycleEvent event, String parameters) {
+                    throw new AssertionError("Capability lookup must not invoke listeners");
+                }
+            };
+        try (AutoCloseable installed = com.luokuiai.flovira.core.FlowEngine.lifecycleListeners().install(
+                Collections.singletonMap("businessListener", listener), Collections.emptyList())) {
+            com.luokuiai.flovira.ui.vo.DesignerCapabilities capabilities = FloviraService.capabilities().getData();
+            assertEquals(10, capabilities.getLifecyclePoints().size());
+            assertTrue(capabilities.getLifecyclePoints().contains("PROCESS_RESUBMITTED"));
+            assertTrue(capabilities.getLifecyclePoints().contains("BEFORE_ASSIGNMENT"));
+            assertEquals(Collections.singletonList("businessListener"), capabilities.getListenerCodes());
+            assertEquals(java.util.Arrays.asList("IN_TRANSACTION", "AFTER_COMMIT"), capabilities.getLifecyclePhases());
+        }
+    }
+
     @After public void reset() {
         FrameInvoker.setBeansFunction(type -> Collections.emptyList());
         FrameInvoker.setBeanFunction(type -> null);
@@ -44,5 +64,14 @@ public class ApproverCapabilitiesTest {
         FrameInvoker.<ApproverResolver>setBeansFunction(type -> Collections.singletonList(resolver));
         assertEquals(1, FloviraService.capabilities().getData().getApproverStrategies().size());
         assertEquals("ROLE", FloviraService.capabilities().getData().getApproverStrategies().get(0).getCode());
+        com.luokuiai.flovira.core.dto.ApproverStrategyDefinition definition =
+            FloviraService.capabilities().getData().getApproverStrategies().get(0);
+        assertEquals("emptyPolicy", definition.getOptions().get(0).getCode());
+        assertEquals("ZERO_OR_MORE", definition.getResultCardinality());
+        assertEquals("ERROR", definition.getOptions().get(0).getDefaultValue());
+        assertEquals("emptyPolicySubjects", definition.getOptions().get(0).getChoices().get(2).getSelectionConfigKey());
+        assertEquals("sameAsStarterAction", definition.getOptions().get(1).getCode());
+        assertEquals("SELF_APPROVE", definition.getOptions().get(1).getDefaultValue());
+        assertEquals("USER", definition.getOptions().get(1).getChoices().get(2).getSelectionStrategy());
     }
 }

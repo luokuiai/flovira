@@ -17,6 +17,11 @@
 package com.luokuiai.flovira.orm.contract;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.entity.NodeExecution;
+import com.luokuiai.flovira.core.orm.dao.FlowNodeExecutionDao;
+import java.util.Map;
+import com.luokuiai.flovira.core.listener.lifecycle.*;
+import com.luokuiai.flovira.core.transaction.TransactionExecutor;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.WorkflowPackage;
 import com.luokuiai.flovira.core.dto.WorkflowImportResult;
@@ -40,6 +45,11 @@ import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
 import com.luokuiai.flovira.core.orm.dao.FlowFormDao;
 import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.service.FormService;
+import com.luokuiai.flovira.core.service.TaskService;
+import com.luokuiai.flovira.core.service.impl.TaskServiceImpl;
+import com.luokuiai.flovira.core.service.impl.TimeoutServiceImpl;
+import com.luokuiai.flovira.core.dto.FlowParams;
+import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.utils.page.Page;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -59,6 +69,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -103,6 +119,7 @@ public class SubprocessPersistenceContractTest {
             "--spring.sql.init.mode=always",
             "--spring.sql.init.schema-locations=classpath:subprocess-contract-schema.sql",
             "--flovira.banner=false",
+            "--flovira.timeout.enabled=true",
             "--flovira.logic-delete=true",
             "--flovira.tenant-handler-path=" + ContractTenantHandler.class.getName(),
             "--flovira.data-source-type=postgresql"
@@ -126,6 +143,9 @@ public class SubprocessPersistenceContractTest {
         formService = context.getBean(FormService.class);
         jdbcTemplate = context.getBean(JdbcTemplate.class);
         transactionTemplate = new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+        jdbcTemplate.update("delete from flow_node_execution");
+        jdbcTemplate.update("delete from flow_user");
+        jdbcTemplate.update("delete from flow_his_task");
         jdbcTemplate.update("delete from flow_subprocess_event");
         jdbcTemplate.update("delete from flow_subprocess_child");
         jdbcTemplate.update("delete from flow_subprocess_run");
@@ -135,6 +155,966 @@ public class SubprocessPersistenceContractTest {
         jdbcTemplate.update("delete from flow_instance");
         jdbcTemplate.update("delete from flow_skip");
         jdbcTemplate.update("delete from flow_node");
+    }
+
+    @Test
+    public void resubmissionFollowsCapturedStrategyUnderSameInstance() {
+        for (String strategy : java.util.Arrays.asList("RESTART_FROM_BEGINNING", "CONTINUE_FROM_REJECTED_NODE")) {
+            setUp();
+            Instance instance = returnedInstance(strategy);
+            Long instanceId = instance.getId();
+            Task initiator = FlowEngine.taskService().getByInsId(instanceId).get(0);
+            assertEquals(Integer.valueOf(9), initiator.getNodeType());
+            assertEquals("AWAITING_RESUBMISSION", instance.getLifecycleState());
+            assertEquals("initiator", FlowEngine.userService().listByTaskIdAndTypes(initiator.getId()).get(0).getProcessedBy());
+            // 设计变更不应覆盖这次退回保存的策略。
+            jdbcTemplate.update("update flow_node set ext = ? where node_code = 'second'", controlExt(
+                strategy.equals("RESTART_FROM_BEGINNING") ? "CONTINUE_FROM_REJECTED_NODE" : "RESTART_FROM_BEGINNING"));
+            Instance resumed = FlowEngine.taskService().resubmit(instanceId,
+                FlowParams.build().handler("initiator").variables(java.util.Collections.singletonMap("edited", "yes")));
+            assertEquals(instanceId, resumed.getId());
+            assertEquals("ACTIVE", resumed.getLifecycleState());
+            Task next = FlowEngine.taskService().getByInsId(instanceId).get(0);
+            assertEquals(strategy.equals("RESTART_FROM_BEGINNING") ? "first" : "second", next.getNodeCode());
+            assertNotEquals(initiator.getId(), next.getId());
+            assertEquals("yes", FlowEngine.instanceService().getById(instanceId).getVariableMap().get("edited"));
+            DefJson chart = FlowEngine.jsonConvert.strToBean(resumed.getDefJson(), DefJson.class);
+            assertEquals(java.util.Collections.singletonList(next.getNodeCode()), chart.getNodeList().stream()
+                .filter(node -> Integer.valueOf(1).equals(node.getStatus())).map(com.luokuiai.flovira.core.dto.NodeJson::getNodeCode)
+                .collect(java.util.stream.Collectors.toList()));
+            assertEquals(Integer.valueOf(1), jdbcTemplate.queryForObject("select count(*) from flow_instance", Integer.class));
+            assertEquals(Integer.valueOf(1), jdbcTemplate.queryForObject(
+                "select count(*) from flow_his_task where node_code = 'start'", Integer.class));
+        }
+    }
+
+    @Test
+    public void resubmissionPreHooksPersistVariableEditsAndFinalAssignment() throws Exception {
+        Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
+        instance.setVariables("{\"removeMe\":true}");
+        FlowEngine.instanceService().updateById(instance);
+        java.util.List<String> operations = new java.util.ArrayList<>();
+        WorkflowLifecycleListener listener = new WorkflowLifecycleListener() {
+            public void beforeOperation(OperationContext operation, String parameters) {
+                operation.removeVariable("removeMe");
+                operation.setVariable("businessChecked", true);
+                operations.add(operation.getOperationId());
+            }
+            public void beforeAssignment(AssignmentContext assignment, String parameters) {
+                assignment.setAssignees(java.util.Collections.singletonList("adjusted-reviewer"));
+            }
+            public void onEvent(LifecycleEvent event, String parameters) {
+                assertEquals(operations.get(0), event.getOperationId());
+            }
+        };
+        java.util.List<LifecycleSubscription> subscriptions = new java.util.ArrayList<>();
+        for (ListenerPoint point : java.util.Arrays.asList(ListenerPoint.BEFORE_OPERATION, ListenerPoint.BEFORE_ASSIGNMENT,
+                ListenerPoint.PROCESS_RESUBMITTED)) {
+            subscriptions.add(new LifecycleSubscription("resubmitHooks", point, DeliveryPhase.IN_TRANSACTION, 0, null));
+        }
+        try (AutoCloseable ignored = FlowEngine.lifecycleListeners().install(
+                java.util.Collections.singletonMap("resubmitHooks", listener), subscriptions)) {
+            FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+        }
+        assertEquals(1, operations.size());
+        Instance resumed = FlowEngine.instanceService().getById(instance.getId());
+        assertEquals(Boolean.TRUE, resumed.getVariableMap().get("businessChecked"));
+        org.junit.Assert.assertFalse(resumed.getVariableMap().containsKey("removeMe"));
+        Task next = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        assertEquals("adjusted-reviewer", FlowEngine.userService().listByTaskIdAndTypes(next.getId()).get(0).getProcessedBy());
+    }
+
+    @Test
+    public void resubmissionEventWaitsForCommitAndUsesDetachedSnapshot() throws Exception {
+        Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
+        java.util.List<LifecycleEvent> events = new java.util.ArrayList<>();
+        WorkflowLifecycleListener listener = new WorkflowLifecycleListener() {
+            public void onEvent(LifecycleEvent event, String parameters) { events.add(event); }
+        };
+        try (AutoCloseable ignored = FlowEngine.lifecycleListeners().install(
+                java.util.Collections.singletonMap("resubmitObserver", listener), java.util.Collections.singletonList(
+                    new LifecycleSubscription("resubmitObserver", ListenerPoint.PROCESS_RESUBMITTED,
+                        DeliveryPhase.AFTER_COMMIT, 0, null)))) {
+            transactionTemplate.execute(status -> {
+                FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+                assertTrue(events.isEmpty());
+                status.setRollbackOnly();
+                return null;
+            });
+            assertTrue(events.isEmpty());
+            Instance resumed = FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+            assertEquals(1, events.size());
+            assertEquals(instance.getId(), events.get(0).getInstanceId());
+            String snapshot = events.get(0).getContextJson();
+            resumed.setLifecycleState("CHANGED_AFTER_DELIVERY");
+            assertEquals("ACTIVE", FlowEngine.jsonConvert.strToMap(snapshot).get("state"));
+            assertTrue(snapshot.contains("CONTINUE_FROM_REJECTED_NODE"));
+            assertEquals(snapshot, events.get(0).getContextJson());
+        }
+    }
+
+    @Test
+    public void recursiveResubmissionListenerRollsBackAndReleasesGuard() throws Exception {
+        Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
+        WorkflowLifecycleListener listener = new WorkflowLifecycleListener() {
+            public void onEvent(LifecycleEvent event, String parameters) {
+                Task next = FlowEngine.taskService().getByInsId(event.getInstanceId()).get(0);
+                FlowEngine.taskService().skip(next.getId(), approval("PASS"));
+            }
+        };
+        try (AutoCloseable ignored = FlowEngine.lifecycleListeners().install(
+                java.util.Collections.singletonMap("recursiveObserver", listener), java.util.Collections.singletonList(
+                    new LifecycleSubscription("recursiveObserver", ListenerPoint.PROCESS_RESUBMITTED,
+                        DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+            IllegalStateException failure = org.junit.Assert.assertThrows(IllegalStateException.class,
+                () -> FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator")));
+            assertTrue(failure.getMessage().contains("Recursive"));
+            assertEquals("AWAITING_RESUBMISSION", FlowEngine.instanceService().getById(instance.getId()).getLifecycleState());
+        }
+        assertEquals("ACTIVE", FlowEngine.taskService().resubmit(instance.getId(),
+            FlowParams.build().handler("initiator")).getLifecycleState());
+    }
+
+    @Test
+    public void returnCancelsParallelTasksAndRollbackRestoresOriginalApproval() {
+        Instance instance = returnedInstance("RESTART_FROM_BEGINNING");
+        FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+        Task original = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        Task parallel = FlowEngine.taskService().addTask(FlowEngine.nodeService()
+            .getByDefIdAndNodeCode(81000L, "second"), instance, FlowEngine.defService().getById(81000L), approval("PASS"));
+        NodeExecution execution = FlowEngine.newNodeExecution();
+        root(execution);
+        FlowEngine.dataFillHandler().idFill(execution);
+        execution.setInstanceId(instance.getId()).setDefinitionId(instance.getDefinitionId()).setNodeCode(parallel.getNodeCode())
+            .setNodeType(parallel.getNodeType()).setState("ACTIVE").setVersion(0).setEnteredAt(new Date());
+        ((FlowNodeExecutionDao<NodeExecution>) context.getBean(FlowNodeExecutionDao.class)).save(execution);
+        parallel.setNodeExecutionId(execution.getId());
+        FlowEngine.taskService().save(parallel);
+        FlowEngine.userService().saveBatch(FlowEngine.userService().taskAddUsers(java.util.Collections.singletonList(parallel)));
+        transactionTemplate.execute(status -> {
+            FlowEngine.taskService().skip(original.getId(), approval("REJECT"));
+            assertEquals(1, FlowEngine.taskService().getByInsId(instance.getId()).size());
+            status.setRollbackOnly();
+            return null;
+        });
+        assertEquals(2, FlowEngine.taskService().getByInsId(instance.getId()).size());
+        FlowEngine.taskService().skip(original.getId(), approval("REJECT"));
+        List<Task> tasks = FlowEngine.taskService().getByInsId(instance.getId());
+        assertEquals(1, tasks.size());
+        assertEquals(Integer.valueOf(9), tasks.get(0).getNodeType());
+        assertTrue(FlowEngine.userService().listByTaskIdAndTypes(parallel.getId()).isEmpty());
+        assertTrue(FlowEngine.userService().listByTaskIdAndTypes(original.getId()).isEmpty());
+    }
+
+    @Test
+    public void resubmissionRejectsWrongActorOrdinaryApprovalAndTargetOverride() {
+        Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
+        Long taskId = FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId();
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService()
+            .resubmit(instance.getId(), FlowParams.build().handler("intruder").ignore(true)));
+        org.junit.Assert.assertThrows(IllegalArgumentException.class, () -> FlowEngine.taskService()
+            .resubmit(instance.getId(), FlowParams.build().handler("initiator").nodeCode("end")));
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService()
+            .skip(taskId, FlowParams.build().handler("initiator").skipType("PASS").ignore(true)));
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService()
+            .revoke(instance.getId(), FlowParams.build().handler("initiator")));
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService()
+            .updateHandler(taskId, FlowParams.build().handler("initiator").ignore(true)));
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService()
+            .pending(taskId, FlowParams.build().handler("initiator").ignore(true)));
+        assertEquals(taskId, FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId());
+    }
+
+    @Test
+    public void initiatorCanTerminateWhileAwaitingResubmission() {
+        Instance instance = returnedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        Instance ended = FlowEngine.taskService().termination(task.getId(), FlowParams.build().handler("initiator")
+            .permissionFlag(java.util.Collections.singletonList("initiator")));
+        assertEquals("ENDED", ended.getLifecycleState());
+        assertTrue(FlowEngine.taskService().getByInsId(instance.getId()).isEmpty());
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService()
+            .resubmit(instance.getId(), FlowParams.build().handler("initiator")));
+    }
+
+    @Test
+    public void resubmissionRollsBackWithHostTransactionAndOnlyOneConcurrentAttemptWins() throws Exception {
+        Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
+        Long initiatorTask = FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId();
+        transactionTemplate.execute(status -> {
+            FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+            status.setRollbackOnly();
+            return null;
+        });
+        assertEquals("AWAITING_RESUBMISSION", FlowEngine.instanceService().getById(instance.getId()).getLifecycleState());
+        assertEquals(initiatorTask, FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch release = new CountDownLatch(1);
+        java.util.concurrent.Callable<Boolean> submit = () -> {
+            ready.countDown();
+            if (!release.await(5, TimeUnit.SECONDS)) throw new AssertionError("release timed out");
+            try {
+                FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+                return true;
+            } catch (IllegalStateException expected) {
+                assertEquals("Instance is not awaiting resubmission", expected.getMessage());
+                return false;
+            }
+        };
+        try {
+            Future<Boolean> first = executor.submit(submit);
+            Future<Boolean> second = executor.submit(submit);
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            release.countDown();
+            assertNotEquals(first.get(10, TimeUnit.SECONDS), second.get(10, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
+        assertEquals(1, FlowEngine.taskService().getByInsId(instance.getId()).size());
+    }
+
+
+    private AutoCloseable observe(java.util.List<LifecycleEvent> events) {
+        WorkflowLifecycleListener observer = new WorkflowLifecycleListener() {
+            public void onEvent(LifecycleEvent event, String parameters) { events.add(event); }
+        };
+        java.util.List<LifecycleSubscription> subscriptions = new java.util.ArrayList<>();
+        for (com.luokuiai.flovira.core.listener.lifecycle.LifecycleEventType type :
+                com.luokuiai.flovira.core.listener.lifecycle.LifecycleEventType.values()) {
+            subscriptions.add(new LifecycleSubscription("sequence", ListenerPoint.valueOf(type.name()), DeliveryPhase.AFTER_COMMIT, 0, null));
+        }
+        return FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("sequence", observer), subscriptions);
+    }
+
+    private void assertEvents(List<LifecycleEvent> events, String... expected) {
+        assertEquals(java.util.Arrays.asList(expected), events.stream().map(event -> event.getType().name())
+            .collect(java.util.stream.Collectors.toList()));
+        for (LifecycleEvent event : events) {
+            Map<String, Object> value = FlowEngine.jsonConvert.strToMap(event.getContextJson());
+            assertNotNull(event.getEventId());
+            assertNotNull(event.getOperationId());
+            assertTrue(event.getOccurredAt() > 0);
+            assertEquals(event.getInstanceId().toString(), value.get("instanceId").toString());
+            assertNotNull(value.get("definitionId"));
+            assertNotNull(value.get("definitionVersion"));
+            assertNotNull(value.get("source"));
+            assertNotNull(value.get("state"));
+            assertEquals("business-1", value.get("businessId"));
+            if (event.getType().name().startsWith("NODE_")) assertNotNull(value.get("nodeExecutionId"));
+        }
+    }
+
+    @Test
+    public void automaticApproverPolicyPreservesLifecycleAndAssignmentOverride() throws Exception {
+        for (boolean override : new boolean[] {false, true}) {
+            setUp();
+            Map<String, String> rule = new java.util.LinkedHashMap<>();
+            rule.put("code", "approverRule");
+            rule.put("value", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\","
+                + "\"config\":{\"contractEmpty\":true,\"emptyPolicy\":\"SKIP\"}}");
+            String ext = FlowEngine.jsonConvert.objToStr(java.util.Collections.singletonList(rule));
+            List<LifecycleEvent> events = new java.util.ArrayList<>();
+            WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
+                public void beforeAssignment(AssignmentContext assignment, String parameters) {
+                    if (override && "second".equals(assignment.getNodeCode())) {
+                        assignment.setAssignees(java.util.Collections.singletonList("replacement"));
+                    }
+                }
+            };
+            try (AutoCloseable observer = observe(events); AutoCloseable installed = FlowEngine.lifecycleListeners().install(
+                    java.util.Collections.singletonMap("policyOverride", hook), java.util.Collections.singletonList(
+                    new LifecycleSubscription("policyOverride", ListenerPoint.BEFORE_ASSIGNMENT, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+                Instance instance = startedInstance("RESTART_FROM_BEGINNING", 1, ext);
+                events.clear();
+                Instance result = FlowEngine.taskService().skip(FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId(), approval("PASS"));
+                if (override) {
+                    assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+                    Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+                    assertEquals("second", task.getNodeCode());
+                    assertEquals("replacement", FlowEngine.userService().listByTaskIdAndTypes(task.getId()).get(0).getProcessedBy());
+                } else {
+                    assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED",
+                        "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+                    assertEquals("SYSTEM", FlowEngine.jsonConvert.strToMap(events.get(3).getContextJson()).get("source"));
+                    assertEquals("ENDED", result.getLifecycleState());
+                    assertTrue(FlowEngine.taskService().getByInsId(instance.getId()).isEmpty());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void serialLifecycleHasPersistentExecutionsAndCausalOrder() throws Exception {
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+            assertEvents(events, "PROCESS_STARTED", "NODE_ENTERED", "NODE_LEFT", "NODE_ENTERED");
+            Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            assertNotNull(first.getNodeExecutionId());
+            events.clear();
+            FlowEngine.taskService().skip(first.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+            assertTrue(events.get(1).getContextJson().contains("approver"));
+            assertEquals(1, events.stream().map(LifecycleEvent::getOperationId).distinct().count());
+            events.clear();
+            Task second = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            assertNotEquals(first.getNodeExecutionId(), second.getNodeExecutionId());
+            FlowEngine.taskService().skip(second.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+            assertEquals("ENDED", FlowEngine.instanceService().getById(instance.getId()).getLifecycleState());
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_node_execution where state='ACTIVE'", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_his_task where node_execution_id is null", Integer.class));
+        }
+    }
+
+    @Test
+    public void returnResubmitAndWithdrawKeepDistinctExecutionIdentities() throws Exception {
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            Instance instance = startedInstance("CONTINUE_FROM_REJECTED_NODE");
+            Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            events.clear();
+            FlowEngine.taskService().skip(first.getId(), approval("REJECT"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+            assertTrue(events.get(1).getContextJson().contains("REJECTED"));
+            events.clear();
+            FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+            assertEvents(events, "PROCESS_RESUBMITTED", "NODE_LEFT", "NODE_ENTERED");
+            Task again = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            assertEquals(first.getNodeCode(), again.getNodeCode());
+            assertNotEquals(first.getNodeExecutionId(), again.getNodeExecutionId());
+            events.clear();
+            FlowEngine.taskService().revoke(instance.getId(), FlowParams.build().handler("initiator"));
+            assertEvents(events, "NODE_LEFT", "PROCESS_WITHDRAWN", "NODE_ENTERED");
+            assertTrue(events.get(0).getContextJson().contains("WITHDRAWN"));
+            assertEquals("AWAITING_RESUBMISSION", FlowEngine.instanceService().getById(instance.getId()).getLifecycleState());
+        }
+    }
+
+    @Test
+    public void participantChangesAndDelegationDoNotCloseExecution() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.taskService().depute(task.getId(), approval("PASS").addHandlers(java.util.Collections.singletonList("delegate")));
+            assertEvents(events, "ASSIGNEES_CHANGED");
+            events.clear();
+            FlowEngine.taskService().skip(task.getId(), FlowParams.build().handler("delegate").skipType("PASS")
+                .permissionFlag(java.util.Collections.singletonList("delegate")));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "ASSIGNEES_CHANGED");
+            assertTrue(events.get(1).getContextJson().contains("delegate"));
+            assertTrue(events.get(1).getContextJson().contains("approver"));
+            assertEquals(task.getNodeExecutionId(), FlowEngine.taskService().getById(task.getId()).getNodeExecutionId());
+            events.clear();
+            FlowEngine.taskService().transfer(task.getId(), approval("PASS").addHandlers(java.util.Collections.singletonList("replacement")));
+            assertEvents(events, "ASSIGNEES_CHANGED");
+        }
+    }
+
+    @Test
+    public void countersignatureVoteAndUnauthorizedAttemptHaveDifferentEffects() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        jdbcTemplate.update("update flow_node set node_ratio='100' where node_code='first'");
+        FlowEngine.userService().save(FlowEngine.userService().structureUser(task.getId(), "second-reviewer", "1", "initiator"));
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            org.junit.Assert.assertThrows(com.luokuiai.flovira.core.exception.FlowException.class, () -> FlowEngine.taskService()
+                .skip(task.getId(), FlowParams.build().handler("intruder").skipType("PASS").permissionFlag(java.util.Collections.singletonList("intruder"))));
+            assertTrue(events.isEmpty());
+            FlowEngine.taskService().skip(task.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED");
+            assertEquals(Boolean.FALSE, FlowEngine.jsonConvert.strToMap(events.get(0).getContextJson()).get("nodeClosed"));
+            events.clear();
+            org.junit.Assert.assertThrows(com.luokuiai.flovira.core.exception.FlowException.class,
+                () -> FlowEngine.taskService().skip(task.getId(), approval("PASS")));
+            assertTrue(events.isEmpty());
+            assertEquals(task.getNodeExecutionId(), FlowEngine.taskService().getById(task.getId()).getNodeExecutionId());
+        }
+    }
+
+    @Test
+    public void forcedTerminationDoesNotVisitEndNodeAndOuterRollbackPublishesNothing() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            transactionTemplate.execute(status -> {
+                FlowEngine.taskService().termination(task.getId(), approval("PASS"));
+                status.setRollbackOnly();
+                return null;
+            });
+            assertTrue(events.isEmpty());
+            assertNotNull(FlowEngine.taskService().getById(task.getId()));
+            FlowEngine.taskService().termination(task.getId(), approval("PASS"));
+            assertEvents(events, "NODE_LEFT", "PROCESS_ENDED");
+            assertTrue(events.get(0).getContextJson().contains("CANCELLED"));
+            assertTrue(events.get(1).getContextJson().contains("TERMINATED"));
+            events.clear();
+            org.junit.Assert.assertThrows(com.luokuiai.flovira.core.exception.FlowException.class,
+                () -> FlowEngine.taskService().termination(task.getId(), approval("PASS")));
+            assertTrue(events.isEmpty());
+        }
+    }
+
+    @Test
+    public void waitAndCarbonCopyProduceOnlyActualNodeTransitions() throws Exception {
+        String wait = "[{\"code\":\"waitConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"waitKey\\\":\\\"ready\\\"}\"}]";
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING", 7, wait);
+        Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        FlowEngine.taskService().skip(first.getId(), approval("PASS"));
+        Task waiting = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.waitService().resumeTask(waiting.getId(), java.util.Collections.emptyMap());
+            assertEvents(events, "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+            assertEquals("WAIT_RESUME", FlowEngine.jsonConvert.strToMap(events.get(0).getContextJson()).get("action"));
+            assertEquals("SYSTEM", FlowEngine.jsonConvert.strToMap(events.get(0).getContextJson()).get("source"));
+            events.clear();
+            FlowEngine.waitService().resumeTimeoutTask(waiting.getId());
+            assertTrue(events.isEmpty());
+        }
+        setUp();
+        String copy = "[{\"code\":\"carbonCopyRule\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"strategy\\\":\\\"USER\\\",\\\"strategyVersion\\\":1,\\\"selectionType\\\":\\\"RESOURCE\\\",\\\"subjects\\\":[{\\\"id\\\":\\\"approver\\\",\\\"type\\\":\\\"USER\\\"}]}\"}]";
+        instance = startedInstance("RESTART_FROM_BEGINNING", 8, copy);
+        first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        events.clear();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.taskService().skip(first.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED",
+                "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+            assertTrue(events.get(2).getContextJson().contains("approver"));
+            assertEquals("SYSTEM", FlowEngine.jsonConvert.strToMap(events.get(3).getContextJson()).get("source"));
+        }
+    }
+
+    @Test
+    public void timeoutApprovalAndSignerChangesUseNativeEvents() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.taskService().addSignature(task.getId(), approval("PASS").addHandlers(java.util.Collections.singletonList("extra")));
+            assertEvents(events, "ASSIGNEES_CHANGED");
+            events.clear();
+            FlowEngine.taskService().reductionSignature(task.getId(), approval("PASS").reductionHandlers(java.util.Collections.singletonList("extra")));
+            assertEvents(events, "ASSIGNEES_CHANGED");
+            events.clear();
+            jdbcTemplate.update("update flow_task set timeout_at=?,timeout_action='AUTO_PASS',timeout_status='PENDING' where id=?", new Date(1), task.getId());
+            assertTrue(FlowEngine.timeoutService().executeTimeout(task.getId()));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+            assertEquals("SYSTEM", FlowEngine.jsonConvert.strToMap(events.get(0).getContextJson()).get("source"));
+            events.clear();
+            assertEquals(false, FlowEngine.timeoutService().executeTimeout(task.getId()));
+            assertTrue(events.isEmpty());
+        }
+    }
+
+    @Test
+    public void listenerFailureRollsBackExecutionAndAssignmentTogether() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        WorkflowLifecycleListener failing = new WorkflowLifecycleListener() {
+            public void onEvent(LifecycleEvent event, String parameters) { throw new IllegalStateException("observer rejected"); }
+        };
+        List<LifecycleEvent> committed = new java.util.ArrayList<>();
+        try (AutoCloseable observer = observe(committed); AutoCloseable failure = FlowEngine.lifecycleListeners().install(
+                java.util.Collections.singletonMap("failure", failing), java.util.Collections.singletonList(
+                new LifecycleSubscription("failure", ListenerPoint.NODE_LEFT, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+            org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService().skip(task.getId(), approval("PASS")));
+            assertTrue(committed.isEmpty());
+            assertEquals(task.getNodeExecutionId(), FlowEngine.taskService().getById(task.getId()).getNodeExecutionId());
+            assertEquals(Integer.valueOf(1), jdbcTemplate.queryForObject("select count(*) from flow_node_execution where state='ACTIVE'", Integer.class));
+            assertEquals(1, FlowEngine.userService().listByTaskIdAndTypes(task.getId()).size());
+        }
+    }
+
+    @Test
+    public void explicitActiveMigrationHasNoHistoricalEventsAndRejectsChangedTaskSet() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        jdbcTemplate.update("delete from flow_node_execution where id=?", task.getNodeExecutionId());
+        jdbcTemplate.update("update flow_task set node_execution_id=null where id=?", task.getId());
+        jdbcTemplate.update("update flow_instance set lifecycle_state=null where id=?", instance.getId());
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService().skip(task.getId(), approval("PASS")));
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> com.luokuiai.flovira.core.listener.lifecycle.LifecycleMigration
+            .migrateActive(instance.getId(), java.util.Collections.singleton(-1L)));
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            com.luokuiai.flovira.core.listener.lifecycle.LifecycleMigration.migrateActive(instance.getId(), java.util.Collections.singleton(task.getId()));
+            assertTrue(events.isEmpty());
+            assertEquals("ACTIVE", FlowEngine.instanceService().getById(instance.getId()).getLifecycleState());
+            assertNotEquals(task.getNodeExecutionId(), FlowEngine.taskService().getById(task.getId()).getNodeExecutionId());
+            FlowEngine.taskService().skip(task.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+        }
+    }
+
+    @Test
+    public void oldLifecycleSubscriptionsAreRejectedBeforeMutation() {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        jdbcTemplate.update("update flow_definition set listener_type='finish',listener_path='oldBusiness' where id=?", instance.getDefinitionId());
+        IllegalArgumentException failure = org.junit.Assert.assertThrows(IllegalArgumentException.class,
+            () -> FlowEngine.taskService().skip(task.getId(), approval("PASS")));
+        assertTrue(failure.getMessage().contains("migrate"));
+        assertNotNull(FlowEngine.taskService().getById(task.getId()));
+    }
+
+    @Test
+    public void childLifecyclesCorrelateParentAndOnlyLastChildClosesParentExecution() throws Exception {
+        String config = "[{\"code\":\"subprocessConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"fixedChildFlowCode\\\":\\\"child-contract\\\",\\\"completionPolicy\\\":\\\"ALL\\\"}\"}]";
+        Definition child = FlowEngine.newDef().setId(82000L).setFlowCode("child-contract").setFlowName("Child")
+            .setBusinessType("child").setVersion("1").setPublishStatus(1).setActivityStatus(1);
+        root(child);
+        FlowEngine.defService().save(child);
+        String[] codes = {"child-start", "child-approval", "child-end"};
+        for (int i = 0; i < 3; i++) {
+            com.luokuiai.flovira.core.entity.Node node = FlowEngine.newNode().setId(82100L + i).setDefinitionId(child.getId())
+                .setNodeCode(codes[i]).setNodeName(codes[i]).setNodeType(i).setNodeRatio("0").setVersion("1");
+            if (i == 1) node.setExt(controlExt("RESTART_FROM_BEGINNING"));
+            root(node);
+            FlowEngine.nodeService().save(node);
+            if (i > 0) {
+                com.luokuiai.flovira.core.entity.Skip edge = FlowEngine.newSkip().setId(82200L + i).setDefinitionId(child.getId())
+                    .setSourceNodeCode(codes[i - 1]).setTargetNodeCode(codes[i]).setSourceNodeType(i - 1).setTargetNodeType(i).setSkipType("PASS");
+                root(edge);
+                FlowEngine.skipService().save(edge);
+            }
+        }
+        Instance parent = startedInstance("RESTART_FROM_BEGINNING", 6, config);
+        Task first = FlowEngine.taskService().getByInsId(parent.getId()).get(0);
+        List<Map<String, Object>> items = new java.util.ArrayList<>();
+        for (String key : java.util.Arrays.asList("one", "two")) {
+            Map<String, Object> item = new java.util.HashMap<>();
+            item.put("itemKey", key);
+            item.put("variables", java.util.Collections.emptyMap());
+            items.add(item);
+        }
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.taskService().skip(first.getId(), approval("PASS").variables(java.util.Collections.singletonMap("subprocessItems", items)));
+            Task subprocess = FlowEngine.taskService().getByInsId(parent.getId()).get(0);
+            assertEquals(Integer.valueOf(6), subprocess.getNodeType());
+            List<Long> children = jdbcTemplate.queryForList("select child_instance_id from flow_subprocess_child order by id", Long.class);
+            assertEquals(2, children.size());
+            List<LifecycleEvent> starts = events.stream().filter(event -> event.getType().name().equals("PROCESS_STARTED"))
+                .collect(java.util.stream.Collectors.toList());
+            assertEquals(2, starts.size());
+            assertTrue(starts.get(0).getContextJson().contains("parentNodeExecutionId"));
+            events.clear();
+            Task childTask = FlowEngine.taskService().getByInsId(children.get(0)).get(0);
+            FlowEngine.taskService().skip(childTask.getId(), approval("PASS"));
+            assertNotNull(FlowEngine.taskService().getById(subprocess.getId()));
+            assertEquals(0, events.stream().filter(event -> event.getInstanceId().equals(parent.getId())).count());
+            events.clear();
+            childTask = FlowEngine.taskService().getByInsId(children.get(1)).get(0);
+            FlowEngine.taskService().skip(childTask.getId(), approval("PASS"));
+            List<LifecycleEvent> parentEvents = events.stream().filter(event -> event.getInstanceId().equals(parent.getId()))
+                .collect(java.util.stream.Collectors.toList());
+            assertEvents(parentEvents, "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+            assertEquals("ENDED", FlowEngine.instanceService().getById(parent.getId()).getLifecycleState());
+            Instance cancelledParent = FlowEngine.instanceService().start("business-2", FlowParams.build()
+                .flowCode("resubmit-contract").handler("initiator").variables(new java.util.HashMap<>()));
+            Task cancelledFirst = FlowEngine.taskService().getByInsId(cancelledParent.getId()).get(0);
+            FlowEngine.taskService().skip(cancelledFirst.getId(), approval("PASS").variables(java.util.Collections.singletonMap("subprocessItems", items)));
+            Task cancelledSubprocess = FlowEngine.taskService().getByInsId(cancelledParent.getId()).get(0);
+            events.clear();
+            FlowEngine.taskService().termination(cancelledSubprocess.getId(), approval("PASS").ignore(true));
+            assertEquals(3, events.stream().filter(event -> event.getType() == LifecycleEventType.PROCESS_ENDED).count());
+            assertEquals(2, events.stream().filter(event -> event.getType() == LifecycleEventType.PROCESS_ENDED
+                && "CANCELLED".equals(FlowEngine.jsonConvert.strToMap(event.getContextJson()).get("reason"))).count());
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_node_execution where state='ACTIVE'", Integer.class));
+
+        }
+    }
+
+    @Test
+    public void concurrentApprovalConsumesParticipantOnlyOnce() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        jdbcTemplate.update("update flow_node set node_ratio='100' where node_code='first'");
+        FlowEngine.userService().save(FlowEngine.userService().structureUser(task.getId(), "second-reviewer", "1", "initiator"));
+        List<LifecycleEvent> events = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2), release = new CountDownLatch(1);
+        try (AutoCloseable ignored = observe(events)) {
+            java.util.concurrent.Callable<Boolean> approve = () -> {
+                ready.countDown();
+                if (!release.await(5, TimeUnit.SECONDS)) throw new AssertionError("release timed out");
+                try { FlowEngine.taskService().skip(task.getId(), approval("PASS")); return true; }
+                catch (com.luokuiai.flovira.core.exception.FlowException consumed) { return false; }
+            };
+            Future<Boolean> a = executor.submit(approve), b = executor.submit(approve);
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            release.countDown();
+            assertNotEquals(a.get(10, TimeUnit.SECONDS), b.get(10, TimeUnit.SECONDS));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED");
+            assertEquals(1, FlowEngine.hisTaskService().listByTaskId(task.getId()).size());
+            assertEquals(task.getNodeExecutionId(), FlowEngine.taskService().getById(task.getId()).getNodeExecutionId());
+        } finally { release.countDown(); executor.shutdownNow(); }
+    }
+
+    @Test
+    public void voteThresholdClosesOnceAndRetainsRemainingAssignees() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+        Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        jdbcTemplate.update("update flow_node set node_ratio='60' where node_code='first'");
+        for (String reviewer : java.util.Arrays.asList("second-reviewer", "third-reviewer")) {
+            FlowEngine.userService().save(FlowEngine.userService().structureUser(task.getId(), reviewer, "1", "initiator"));
+        }
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.taskService().skip(task.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED");
+            events.clear();
+            FlowEngine.taskService().skip(task.getId(), approval("PASS").handler("second-reviewer")
+                .permissionFlag(java.util.Collections.singletonList("second-reviewer")));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+            Map<String, Object> left = FlowEngine.jsonConvert.strToMap(events.get(1).getContextJson());
+            List<?> remaining = (List<?>) left.get("remainingAssignees");
+            assertEquals(1, remaining.size());
+            assertEquals("third-reviewer", ((Map<?, ?>) remaining.get(0)).get("userId"));
+        }
+    }
+
+    @Test
+    public void conditionalGatewayAndPreviewOnlyReportActualBusinessNodes() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING", 3, null, () -> {
+            jdbcTemplate.update("update flow_skip set skip_condition='eq@@route|selected' where id=81203");
+            com.luokuiai.flovira.core.entity.Node unused = FlowEngine.newNode().setId(81104L).setDefinitionId(81000L)
+                .setVersion("1").setNodeCode("unused").setNodeName("unused").setNodeType(1).setNodeRatio("0")
+                .setExt(controlExt("RESTART_FROM_BEGINNING"));
+            root(unused); FlowEngine.nodeService().save(unused);
+            com.luokuiai.flovira.core.entity.Skip fallback = FlowEngine.newSkip().setId(81204L).setDefinitionId(81000L)
+                .setSourceNodeCode("second").setSourceNodeType(3).setTargetNodeCode("unused").setTargetNodeType(1).setSkipType("PASS");
+            root(fallback); FlowEngine.skipService().save(fallback);
+        });
+        Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        Map<String, Object> variables = new java.util.HashMap<>(); variables.put("route", "selected");
+        try (AutoCloseable ignored = observe(events)) {
+            List<com.luokuiai.flovira.core.entity.Node> preview = FlowEngine.nodeService()
+                .getNextNodeList(81000L, "first", null, "PASS", variables);
+            assertEquals("end", preview.get(0).getNodeCode());
+            assertTrue(events.isEmpty());
+            FlowEngine.taskService().skip(first.getId(), approval("PASS").variables(variables));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject(
+                "select count(*) from flow_node_execution where node_code in ('second','unused')", Integer.class));
+        }
+    }
+
+    @Test
+    public void parallelBranchesHaveSeparateExecutionsAndWithdrawTogether() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING", 4, null, () -> {
+            jdbcTemplate.update("update flow_skip set target_node_code='left',target_node_type=1 where id=81203");
+            for (int i = 0; i < 2; i++) {
+                String code = i == 0 ? "left" : "right";
+                com.luokuiai.flovira.core.entity.Node node = FlowEngine.newNode().setId(81104L + i).setDefinitionId(81000L)
+                    .setNodeCode(code).setNodeName(code).setNodeType(1).setNodeRatio("0").setVersion("1")
+                    .setExt(controlExt("RESTART_FROM_BEGINNING"));
+                root(node); FlowEngine.nodeService().save(node);
+                com.luokuiai.flovira.core.entity.Skip edge = FlowEngine.newSkip().setId(81205L + i).setDefinitionId(81000L)
+                    .setSourceNodeCode(code).setSourceNodeType(1).setTargetNodeCode("end").setTargetNodeType(2).setSkipType("PASS");
+                root(edge); FlowEngine.skipService().save(edge);
+            }
+            com.luokuiai.flovira.core.entity.Skip fork = FlowEngine.newSkip().setId(81204L).setDefinitionId(81000L)
+                .setSourceNodeCode("second").setSourceNodeType(4).setTargetNodeCode("right").setTargetNodeType(1).setSkipType("PASS");
+            root(fork); FlowEngine.skipService().save(fork);
+        });
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            FlowEngine.taskService().skip(first.getId(), approval("PASS"));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED", "NODE_ENTERED");
+            List<Task> branches = FlowEngine.taskService().getByInsId(instance.getId());
+            assertEquals(2, branches.size());
+            assertNotEquals(branches.get(0).getNodeExecutionId(), branches.get(1).getNodeExecutionId());
+            events.clear();
+            FlowEngine.taskService().revoke(instance.getId(), FlowParams.build().handler("initiator"));
+            assertEvents(events, "NODE_LEFT", "NODE_LEFT", "PROCESS_WITHDRAWN", "NODE_ENTERED");
+            for (int i = 0; i < 2; i++) assertEquals("WITHDRAWN", FlowEngine.jsonConvert.strToMap(events.get(i).getContextJson()).get("reason"));
+            assertEquals(Integer.valueOf(1), jdbcTemplate.queryForObject("select count(*) from flow_node_execution where state='ACTIVE'", Integer.class));
+        }
+    }
+
+    @Test
+    public void backwardRouteReentersApprovalWithoutReplayingStart() throws Exception {
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING", 1,
+            controlExt("RESTART_FROM_BEGINNING").replace("TO_INITIATOR", "TO_PREVIOUS"));
+        Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        FlowEngine.taskService().skip(first.getId(), approval("PASS"));
+        Task second = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable ignored = observe(events)) {
+            FlowEngine.taskService().skip(second.getId(), approval("REJECT").nodeCode("first").ignore(true));
+            assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+            Task again = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            assertEquals("first", again.getNodeCode());
+            assertNotEquals(first.getNodeExecutionId(), again.getNodeExecutionId());
+        }
+    }
+
+    @Test
+    public void nativeWaitSignalAndTimeoutRaceEmitOnlyOneCompletion() throws Exception {
+        String wait = "[{\"code\":\"waitConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"waitKey\\\":\\\"ready\\\"}\"}]";
+        Instance instance = startedInstance("RESTART_FROM_BEGINNING", 7, wait);
+        FlowEngine.taskService().skip(FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId(), approval("PASS"));
+        Task waiting = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        List<LifecycleEvent> events = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2), release = new CountDownLatch(1);
+        try (AutoCloseable ignored = observe(events)) {
+            Future<?> a = executor.submit(() -> {
+                ready.countDown(); await(release);
+                return FlowEngine.waitService().resumeTask(waiting.getId(), java.util.Collections.emptyMap());
+            });
+            Future<?> b = executor.submit(() -> {
+                ready.countDown(); await(release);
+                return FlowEngine.waitService().resumeTimeoutTask(waiting.getId());
+            });
+            assertTrue(ready.await(5, TimeUnit.SECONDS)); release.countDown();
+            a.get(10, TimeUnit.SECONDS); b.get(10, TimeUnit.SECONDS);
+            assertEvents(events, "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+        } finally { release.countDown(); executor.shutdownNow(); }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try { if (!latch.await(5, TimeUnit.SECONDS)) throw new AssertionError("release timed out"); }
+        catch (InterruptedException failure) { Thread.currentThread().interrupt(); throw new AssertionError(failure); }
+    }
+
+    @Test
+    public void beforeOperationRunsOncePerAuthorizedNativeEntry() throws Exception {
+        List<String> calls = new java.util.ArrayList<>();
+        WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
+            public void beforeOperation(OperationContext operation, String parameters) {
+                assertNotNull(operation.getInstanceId());
+                calls.add(operation.getAction());
+            }
+        };
+        try (AutoCloseable installed = FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("hook", hook),
+                java.util.Collections.singletonList(new LifecycleSubscription("hook", ListenerPoint.BEFORE_OPERATION,
+                    DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+            Instance instance = startedInstance("RESTART_FROM_BEGINNING");
+            assertEquals(java.util.Collections.singletonList("START"), calls);
+            Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            org.junit.Assert.assertThrows(com.luokuiai.flovira.core.exception.FlowException.class, () -> FlowEngine.taskService()
+                .skip(first.getId(), approval("PASS").handler("intruder").permissionFlag(java.util.Collections.singletonList("intruder"))));
+            assertEquals(1, calls.size());
+            FlowEngine.taskService().depute(first.getId(), approval("PASS").addHandlers(java.util.Collections.singletonList("delegate")));
+            assertEquals(2, calls.size());
+            FlowEngine.taskService().skip(first.getId(), approval("PASS").handler("delegate")
+                .permissionFlag(java.util.Collections.singletonList("delegate")));
+            assertEquals(3, calls.size());
+            FlowEngine.taskService().revoke(instance.getId(), FlowParams.build().handler("initiator"));
+            assertEquals(4, calls.size());
+            FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
+            assertEquals(5, calls.size());
+            Task again = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            jdbcTemplate.update("update flow_task set timeout_at=?,timeout_action='AUTO_PASS',timeout_status='PENDING' where id=?", new Date(1), again.getId());
+            FlowEngine.timeoutService().executeTimeout(again.getId());
+            assertEquals(6, calls.size());
+            assertEquals("APPROVAL_TIMEOUT", calls.get(5));
+        }
+    }
+
+    @Test
+    public void deferredEventsKeepCreationTimeSnapshotsAfterCallerMutation() throws Exception {
+        Map<String, Object> nested = new java.util.LinkedHashMap<>(); nested.put("amount", 10);
+        WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
+            public void beforeOperation(OperationContext operation, String parameters) { operation.setVariable("invoice", nested); }
+        };
+        List<LifecycleEvent> events = new java.util.ArrayList<>();
+        try (AutoCloseable observer = observe(events); AutoCloseable installed = FlowEngine.lifecycleListeners().install(
+                java.util.Collections.singletonMap("snapshot", hook), java.util.Collections.singletonList(
+                new LifecycleSubscription("snapshot", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+            transactionTemplate.execute(status -> {
+                startedInstance("RESTART_FROM_BEGINNING");
+                nested.put("amount", 999);
+                assertTrue(events.isEmpty());
+                return null;
+            });
+            assertEvents(events, "PROCESS_STARTED", "NODE_ENTERED", "NODE_LEFT", "NODE_ENTERED");
+            for (LifecycleEvent event : events) {
+                Map<?, ?> variables = (Map<?, ?>) FlowEngine.jsonConvert.strToMap(event.getContextJson()).get("variables");
+                assertEquals("10", ((Map<?, ?>) variables.get("invoice")).get("amount").toString());
+            }
+        }
+    }
+
+    private Instance returnedInstance(String strategy) {
+        Instance instance = startedInstance(strategy);
+        Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        FlowEngine.taskService().skip(first.getId(), approval("PASS"));
+        Task second = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+        assertEquals("second", second.getNodeCode());
+        return FlowEngine.taskService().skip(second.getId(), approval("REJECT"));
+    }
+
+    private Instance startedInstance(String strategy) {
+        return startedInstance(strategy, 1, controlExt(strategy));
+    }
+
+    private Instance startedInstance(String strategy, int secondType, String secondExt) {
+        return startedInstance(strategy, secondType, secondExt, () -> { });
+    }
+
+    private Instance startedInstance(String strategy, int secondType, String secondExt, Runnable configure) {
+        Definition definition = FlowEngine.newDef().setId(81000L).setFlowCode("resubmit-contract")
+            .setFlowName("Resubmission contract").setBusinessType("contract").setVersion("1")
+            .setPublishStatus(1).setActivityStatus(1);
+        root(definition);
+        FlowEngine.defService().save(definition);
+        String[] codes = {"start", "first", "second", "end"};
+        int[] types = {0, 1, secondType, 2};
+        for (int i = 0; i < codes.length; i++) {
+            com.luokuiai.flovira.core.entity.Node node = FlowEngine.newNode().setId(81100L + i)
+                .setDefinitionId(81000L).setVersion("1").setNodeCode(codes[i]).setNodeName(codes[i])
+                .setNodeType(types[i]).setNodeRatio("0");
+            if (types[i] == 1) node.setExt(controlExt(strategy));
+            if (i == 2) node.setExt(secondExt);
+            root(node);
+            FlowEngine.nodeService().save(node);
+            if (i > 0) {
+                com.luokuiai.flovira.core.entity.Skip skip = FlowEngine.newSkip().setId(81200L + i)
+                    .setDefinitionId(81000L).setSourceNodeCode(codes[i - 1]).setTargetNodeCode(codes[i])
+                    .setSourceNodeType(types[i - 1]).setTargetNodeType(types[i]).setSkipType("PASS");
+                root(skip);
+                FlowEngine.skipService().save(skip);
+            }
+        }
+        configure.run();
+        return FlowEngine.instanceService().start("business-1",
+            FlowParams.build().flowCode("resubmit-contract").handler("initiator").variables(new java.util.HashMap<>()));
+    }
+
+    private FlowParams approval(String action) {
+        return FlowParams.build().handler("approver").permissionFlag(java.util.Collections.singletonList("approver"))
+            .skipType(action).variables(new java.util.HashMap<>());
+    }
+
+    private String controlExt(String strategy) {
+        java.util.Map<String, String> control = new java.util.LinkedHashMap<>();
+        control.put("code", "nodeControlConfig");
+        control.put("value", "{\"schemaVersion\":1,\"allowRollback\":true,\"rejectStrategy\":\"TO_INITIATOR\",\"resubmitStrategy\":\"" + strategy + "\"}");
+        java.util.Map<String, String> rule = new java.util.LinkedHashMap<>();
+        rule.put("code", "approverRule");
+        rule.put("value", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\"}");
+        return FlowEngine.jsonConvert.objToStr(java.util.Arrays.asList(control, rule));
+    }
+
+    @Test
+    public void lifecycleDeliveryWaitsForOuterCommitAndRejectsMissingTransaction() {
+        TransactionExecutor transactions = context.getBean(TransactionExecutor.class);
+        LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
+        java.util.List<String> calls = new java.util.ArrayList<>();
+        registry.register("observer", new WorkflowLifecycleListener() {
+            public void onEvent(LifecycleEvent event, String parameters) { calls.add("committed"); }
+        });
+        registry.subscribeGlobally(new LifecycleSubscription("observer", ListenerPoint.NODE_ENTERED,
+            DeliveryPhase.AFTER_COMMIT, 0, null));
+        LifecycleDispatcher dispatcher = new LifecycleDispatcher(registry, (code, event, failure) -> fail());
+        LifecycleEvent event = new LifecycleEvent("event", "operation", LifecycleEventType.NODE_ENTERED,
+            1L, System.currentTimeMillis(), "{}");
+        try {
+            dispatcher.emit(event, null, transactions);
+            fail("Delivery outside a transaction must fail");
+        } catch (IllegalStateException expected) {
+            assertTrue(calls.isEmpty());
+        }
+        transactionTemplate.execute(status -> {
+            transactions.execute(() -> { dispatcher.emit(event, null, transactions); return null; });
+            assertTrue(calls.isEmpty());
+            status.setRollbackOnly();
+            return null;
+        });
+        assertTrue(calls.isEmpty());
+        transactionTemplate.execute(status -> {
+            transactions.execute(() -> { dispatcher.emit(event, null, transactions); return null; });
+            assertTrue(calls.isEmpty());
+            return null;
+        });
+        assertEquals(java.util.Collections.singletonList("committed"), calls);
+    }
+
+    @Test
+    public void lifecycleSynchronousFailureRollsBackDatabaseMutation() {
+        TransactionExecutor transactions = context.getBean(TransactionExecutor.class);
+        LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
+        registry.register("reject", new WorkflowLifecycleListener() {
+            public void onEvent(LifecycleEvent event, String parameters) {
+                throw new IllegalStateException("business rejection");
+            }
+        });
+        registry.subscribeGlobally(new LifecycleSubscription("reject", ListenerPoint.NODE_ENTERED,
+            DeliveryPhase.IN_TRANSACTION, 0, null));
+        LifecycleDispatcher dispatcher = new LifecycleDispatcher(registry, (code, event, failure) -> fail());
+        try {
+            transactions.execute(() -> {
+                jdbcTemplate.update("insert into flow_instance(id, definition_id, business_type, business_id, "
+                    + "node_type, node_code, flow_status, lifecycle_state) values (?, ?, ?, ?, ?, ?, ?, ?)",
+                    98001L, 98000L, "contract", "business-1", 1, "approval", "1", "ACTIVE");
+                dispatcher.emit(new LifecycleEvent("event", "operation", LifecycleEventType.NODE_ENTERED,
+                    98001L, System.currentTimeMillis(), "{}"), null, transactions);
+                return null;
+            });
+            fail("Synchronous listener failure must abort the transaction");
+        } catch (IllegalStateException expected) {
+            assertEquals("business rejection", expected.getMessage());
+        }
+        assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject(
+            "select count(*) from flow_instance where id = 98001", Integer.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void nodeExecutionClosesOnceAndHonorsTenantDeletionAndRollback() throws Exception {
+        com.luokuiai.flovira.core.orm.dao.FlowNodeExecutionDao<com.luokuiai.flovira.core.entity.NodeExecution> dao =
+            context.getBean(com.luokuiai.flovira.core.orm.dao.FlowNodeExecutionDao.class);
+        com.luokuiai.flovira.core.entity.NodeExecution execution = FlowEngine.newNodeExecution();
+        execution.setId(90001L);
+        execution.setTenantId("tenant-a");
+        execution.setDeleted("0");
+        execution.setInstanceId(900L).setDefinitionId(901L).setNodeCode("approve").setNodeType(1)
+            .setState("ACTIVE").setVersion(0).setEnteredAt(new Date());
+        assertEquals(1, dao.save(execution));
+        assertNull(dao.get("tenant-b", 90001L));
+        assertEquals(0, dao.close("tenant-b", 90001L, 0, "COMPLETED", new Date()));
+        assertEquals(1, dao.listActive("tenant-a", 900L).size());
+        transactionTemplate.execute(status -> {
+            assertEquals(1, dao.close("tenant-a", 90001L, 0, "COMPLETED", new Date()));
+            status.setRollbackOnly();
+            return null;
+        });
+        assertEquals("ACTIVE", dao.get("tenant-a", 90001L).getState());
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch release = new CountDownLatch(1);
+        java.util.concurrent.Callable<Integer> close = () -> {
+            ready.countDown();
+            if (!release.await(5, TimeUnit.SECONDS)) throw new AssertionError("release timed out");
+            return transactionTemplate.execute(status -> dao.close("tenant-a", 90001L, 0, "COMPLETED", new Date()));
+        };
+        try {
+            Future<Integer> first = executor.submit(close);
+            Future<Integer> second = executor.submit(close);
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            release.countDown();
+            assertEquals(1, first.get(10, TimeUnit.SECONDS) + second.get(10, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
+        assertEquals(Integer.valueOf(1), dao.get("tenant-a", 90001L).getVersion());
+        assertTrue(dao.listActive("tenant-a", 900L).isEmpty());
+        jdbcTemplate.update("update flow_node_execution set deleted='1' where id=90001");
+        assertNull(dao.get("tenant-a", 90001L));
+        assertEquals(0, dao.close("tenant-a", 90001L, 1, "CANCELLED", new Date()));
     }
 
     @Test
@@ -361,6 +1341,113 @@ public class SubprocessPersistenceContractTest {
     }
 
     @Test
+    public void shouldNotEnableSchedulingWhenTimeoutsAreEnabled() {
+        assertTrue(FlowEngine.getFlowConfig().getTimeout().isEnabled());
+        assertTrue(context.getBeansOfType(
+            org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class).isEmpty());
+        assertNotNull(FlowEngine.timeoutService());
+    }
+
+    @Test
+    public void shouldRollbackTimeoutClaimAndTransitionTogether() {
+        timeoutTask();
+        boolean enabled = FlowEngine.getFlowConfig().getTimeout().isEnabled();
+        FlowEngine.getFlowConfig().getTimeout().setEnabled(true);
+        try {
+            installTimeoutTransition(() -> {
+                jdbcTemplate.update("delete from flow_task where id = 42");
+                throw new IllegalStateException("transition failed");
+            });
+            TimeoutServiceImpl service = new TimeoutServiceImpl();
+            try {
+                service.executeTimeout(42L);
+                fail("transition must fail");
+            } catch (IllegalStateException expected) {
+                assertEquals("transition failed", expected.getMessage());
+            }
+            assertEquals("PENDING", taskDao.selectById(42L).getTimeoutStatus());
+            assertNull(taskDao.selectById(42L).getTimeoutClaimedAt());
+            installTimeoutTransition(() -> jdbcTemplate.update("delete from flow_task where id = 42"));
+            assertTrue(service.executeTimeout(42L));
+            assertNull(taskDao.selectById(42L));
+            org.junit.Assert.assertFalse(service.executeTimeout(42L));
+        } finally {
+            FrameInvoker.setBeanFunction(context::getBean);
+            FlowEngine.getFlowConfig().getTimeout().setEnabled(enabled);
+        }
+    }
+
+    @Test
+    public void shouldHoldTimeoutClaimUntilTransitionCommits() throws Exception {
+        timeoutTask();
+        boolean enabled = FlowEngine.getFlowConfig().getTimeout().isEnabled();
+        FlowEngine.getFlowConfig().getTimeout().setEnabled(true);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch competitor = new CountDownLatch(1);
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            installTimeoutTransition(() -> {
+                entered.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("test timed out");
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(ex);
+                }
+                jdbcTemplate.update("delete from flow_task where id = 42");
+            });
+            TimeoutServiceImpl service = new TimeoutServiceImpl();
+            Future<Boolean> first = workers.submit(() -> service.executeTimeout(42L));
+            assertTrue(entered.await(10, TimeUnit.SECONDS));
+            // 即使扫描时间已超过旧租约，也不能在执行事务提交前偷走抢占。
+            Future<Integer> second = workers.submit(() -> {
+                competitor.countDown();
+                return service.executeDue(new Date(System.currentTimeMillis() + 600000L), 10).getSucceeded();
+            });
+            assertTrue(competitor.await(10, TimeUnit.SECONDS));
+            try {
+                second.get(200, TimeUnit.MILLISECONDS);
+                fail("competing timeout must wait for the task row lock");
+            } catch (TimeoutException expected) {
+                // 第一执行者仍持有行锁。
+            }
+            release.countDown();
+            assertTrue(first.get(10, TimeUnit.SECONDS));
+            assertEquals(Integer.valueOf(0), second.get(10, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            workers.shutdownNow();
+            workers.awaitTermination(10, TimeUnit.SECONDS);
+            FrameInvoker.setBeanFunction(context::getBean);
+            FlowEngine.getFlowConfig().getTimeout().setEnabled(enabled);
+        }
+    }
+
+    private void timeoutTask() {
+        Instance instance = FlowEngine.newIns().setId(100L).setDefinitionId(1000L).setBusinessType("contract").setBusinessId("timeout")
+            .setNodeType(1).setNodeCode("APPROVE").setFlowStatus("1");
+        root(instance);
+        FlowEngine.instanceService().save(instance);
+        Task task = FlowEngine.newTask().setId(42L).setDefinitionId(1000L).setInstanceId(100L)
+            .setNodeCode("APPROVE").setNodeName("Approve").setNodeType(1).setFlowStatus("1")
+            .setTimeoutAt(new Date(1L)).setTimeoutAction("AUTO_PASS").setTimeoutStatus("PENDING");
+        root(task);
+        taskDao.save(task);
+    }
+
+    private void installTimeoutTransition(final Runnable transition) {
+        TaskService service = new TaskServiceImpl() {
+            @Override
+            public Instance skipSystemTask(FlowParams params, Task task) {
+                transition.run();
+                return null;
+            }
+        }.setDao(taskDao);
+        FrameInvoker.setBeanFunction(type -> TaskService.class.equals(type) ? service : context.getBean(type));
+    }
+
+    @Test
     public void shouldManageFormsAndIsolateThemByTenant() {
         Form form = FlowEngine.newForm();
         form.setId(50L).setFormCode("expense").setFormName("Expense")
@@ -458,6 +1545,19 @@ public class SubprocessPersistenceContractTest {
     @SpringBootApplication
     @EnableAutoConfiguration
     public static class TestApplication {
+        @org.springframework.context.annotation.Bean
+        public com.luokuiai.flovira.core.handler.ApproverResolver contractUsers() {
+            return new com.luokuiai.flovira.core.handler.AbstractUserResolver() {
+                public void validate(com.luokuiai.flovira.core.dto.ApproverRule rule) { }
+                public List<String> resolve(com.luokuiai.flovira.core.dto.ApproverContext context) {
+                    if (context.getRule().getConfig() != null
+                            && Boolean.TRUE.equals(context.getRule().getConfig().get("contractEmpty"))) {
+                        return java.util.Collections.emptyList();
+                    }
+                    return java.util.Collections.singletonList("approver");
+                }
+            };
+        }
     }
 
     public static class ContractTenantHandler implements TenantHandler {

@@ -127,7 +127,7 @@ public class Flovira implements Serializable {
     private int subprocessMaxChildren = DEFAULT_SUBPROCESS_MAX_CHILDREN;
 
     /**
-     * 节点超时执行配置
+     * 节点超时执行配置；宿主必须自行接入调度，启用此配置不会启动定时任务
      */
     private Timeout timeout = new Timeout();
 
@@ -135,18 +135,15 @@ public class Flovira implements Serializable {
     @Setter
     public static class Timeout implements Serializable {
         private boolean enabled = false;
-        private long scanIntervalSeconds = 60L;
         private int batchSize = 100;
         private long claimTimeoutMillis = 300000L;
-        private String schedulerLockKey = "flovira:timeout:scheduler";
     }
 
     public void init() {
         if (subprocessMaxChildren < 1) {
             throw new IllegalArgumentException("flovira.subprocess-max-children must be greater than 0");
         }
-        if (timeout == null || timeout.getScanIntervalSeconds() < 1L || timeout.getBatchSize() < 1
-            || timeout.getClaimTimeoutMillis() < 1000L || StringUtils.isEmpty(timeout.getSchedulerLockKey())) {
+        if (timeout == null || timeout.getBatchSize() < 1 || timeout.getClaimTimeoutMillis() < 1000L) {
             throw new IllegalArgumentException("flovira.timeout configuration is invalid");
         }
         // 设置租户模式
@@ -159,7 +156,9 @@ public class Flovira implements Serializable {
         FlowEngine.initPermissionHandler(this.getPermissionHandlerPath());
 
         // 设置全局监听器
-        FlowEngine.initGlobalListener(this.getGlobalListenerPath());
+        if (StringUtils.isNotEmpty(globalListenerPath)) {
+            throw new IllegalArgumentException("global-listener-path is no longer supported; migrate to WorkflowLifecycleListener beans and subscriptions");
+        }
 
         // 打印banner图
         printBanner();

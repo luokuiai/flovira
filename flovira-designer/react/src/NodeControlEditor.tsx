@@ -26,7 +26,7 @@ export function NodeControlEditor({ definition, node, ui, disabled, onChange }: 
       <Field label="驳回策略">
         <RadioGroup ariaLabel="驳回策略" value={config.rejectStrategy} disabled={disabled}
           options={[
-            { value: 'TO_DRAFT', label: '驳回至发起人' },
+            { value: 'TO_INITIATOR', label: '退回发起人' },
             { value: 'TO_PREVIOUS', label: '驳回至上一节点' },
             { value: 'TO_SPECIFIED_NODE', label: '驳回至指定节点' },
             { value: 'TO_REJECTOR_SPECIFIED_NODE', label: '驳回时选择节点' },
@@ -41,7 +41,7 @@ export function NodeControlEditor({ definition, node, ui, disabled, onChange }: 
           {config.rejectTargetNodeCode ? '原驳回目标已失效，请重新选择' : candidates.length ? '请选择驳回目标节点' : '当前没有可选的前置审批节点'}
         </p>}
       </Field>}
-      {['TO_DRAFT', 'TO_SPECIFIED_NODE', 'TO_REJECTOR_SPECIFIED_NODE'].includes(config.rejectStrategy) && <Field label="驳回后重新提交">
+      {['TO_INITIATOR', 'TO_SPECIFIED_NODE', 'TO_REJECTOR_SPECIFIED_NODE'].includes(config.rejectStrategy) && <Field label="驳回后重新提交">
         <RadioGroup ariaLabel="驳回后重新提交" value={config.resubmitStrategy} disabled={disabled}
           options={[
             { value: 'RESTART_FROM_BEGINNING', label: '重新顺序流转' },

@@ -45,6 +45,9 @@ public class DesignerCapabilities {
     private List<String> timeoutNodeTypes = new ArrayList<String>();
     private List<String> operations = new ArrayList<String>();
     private List<String> resourceTypes = new ArrayList<String>();
+    private List<String> lifecyclePoints = new ArrayList<String>();
+    private List<String> lifecyclePhases = Arrays.asList("IN_TRANSACTION", "AFTER_COMMIT");
+    private List<String> listenerCodes = new ArrayList<String>();
 
     public static DesignerCapabilities defaults() {
         return new DesignerCapabilities()

@@ -27,6 +27,8 @@ export interface DesignerApproverOptionChoice {
   value: string
   label: string
   disabled?: boolean
+  selectionStrategy?: string
+  selectionConfigKey?: string
 }
 
 export interface DesignerApproverOption {
@@ -53,6 +55,9 @@ export interface DesignerApproverStrategy {
 }
 
 export interface DesignerCapabilities {
+  lifecyclePoints?: string[]
+  lifecyclePhases?: ('IN_TRANSACTION' | 'AFTER_COMMIT')[]
+  listenerCodes?: string[]
   schemaVersion: 1
   nodeTypes: DesignerNodeType[]
   approverStrategies: DesignerApproverStrategy[]

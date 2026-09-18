@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,19 +16,13 @@
  */
 package com.luokuiai.flovira.core.utils;
 
-import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.constant.FlowCons;
-import com.luokuiai.flovira.core.entity.Definition;
-import com.luokuiai.flovira.core.entity.Task;
-import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
-import com.luokuiai.flovira.core.listener.GlobalListener;
 import com.luokuiai.flovira.core.listener.Listener;
 import com.luokuiai.flovira.core.listener.ListenerVariable;
 import com.luokuiai.flovira.core.listener.ValueHolder;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
@@ -42,58 +37,8 @@ public class ListenerUtil {
 
     }
 
-    /**
-     * 执行完成监听器和下一节点的开始监听器
-     *
-     * @param listenerVariable 监听器变量
-     */
-    public static void endCreateListener(ListenerVariable listenerVariable) {
-        // 执行任务完成监听器
-        executeFinish(listenerVariable);
-        // 执行任务创建监听器
-        List<Task> tasks = listenerVariable.getNextTasks();
-        listenerVariable.getNextNodes().forEach(node -> {
-            if (!NodeType.isEnd(node.getNodeType())) {
-                Task nextTask = StreamUtils.filterOne(tasks, task -> task.getNodeCode().equals(node.getNodeCode()));
-                listenerVariable.setNode(node)
-                    .setNextNodes(null)
-                    .setTask(nextTask)
-                    .setNextTasks(null);
-                executeCreate(listenerVariable);
-            }
-        });
-    }
-
-    public static void executeStart(ListenerVariable listenerVariable) {
-        executeListener(listenerVariable, Listener.LISTENER_START);
-    }
-
-    public static void executeAssignment(ListenerVariable listenerVariable) {
-        executeListener(listenerVariable, Listener.LISTENER_ASSIGNMENT);
-    }
-
-    public static void executeFinish(ListenerVariable listenerVariable) {
-        executeListener(listenerVariable, Listener.LISTENER_FINISH);
-    }
-
-    public static void executeCreate(ListenerVariable listenerVariable) {
-        executeListener(listenerVariable, Listener.LISTENER_CREATE);
-    }
-
-    public static void executeListener(ListenerVariable listenerVariable, String type) {
-        // 执行监听器
-        //listenerPath({"name": "John Doe", "age": 30})@@listenerPath@@listenerPath
-        String listenerType = listenerVariable.getNode().getListenerType();
-        execute(listenerVariable, type, listenerVariable.getNode().getListenerPath(), listenerType);
-        Definition definition = listenerVariable.getDefinition();
-        execute(listenerVariable, type, definition.getListenerPath(), definition.getListenerType());
-        GlobalListener globalListener = FlowEngine.globalListener();
-        if (ObjectUtil.isNotNull(globalListener)) {
-            globalListener.notify(type, listenerVariable);
-        }
-    }
-
     public static void execute(ListenerVariable listenerVariable, String type, String listenerPaths, String listenerTypes) {
+        if (!Listener.LISTENER_FORM_LOAD.equals(type)) throw new IllegalArgumentException("Lifecycle callbacks use WorkflowLifecycleListener");
         if (StringUtils.isNotEmpty(listenerTypes)) {
             String[] listenerTypeArr = listenerTypes.split(",");
             for (int i = 0; i < listenerTypeArr.length; i++) {

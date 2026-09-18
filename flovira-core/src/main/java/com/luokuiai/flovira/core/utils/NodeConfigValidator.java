@@ -40,6 +40,11 @@ public final class NodeConfigValidator {
         }
         Map<String, String> waitKeys = new HashMap<String, String>();
         for (Node node : nodes) {
+            NodeControlConfigUtil.read(node);
+            if (NodeControlConfigUtil.INITIATOR_CODE.equals(node.getNodeCode())
+                    || NodeType.INITIATOR.getKey().equals(node.getNodeType())) {
+                throw new IllegalArgumentException("Initiator is a reserved runtime node");
+            }
             if (NodeType.isWait(node.getNodeType())) {
                 String waitKey = WaitConfigUtil.read(node).getWaitKey();
                 String previousNodeCode = waitKeys.put(waitKey, node.getNodeCode());

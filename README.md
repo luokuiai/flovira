@@ -113,20 +113,31 @@ flovira:
   subprocess-max-children: 128
   timeout:
     enabled: false
-    # Timeout scan interval in seconds.
-    scan-interval-seconds: 60
+    # Execution requires a host scheduler or delayed-message consumer.
     batch-size: 100
     claim-timeout-millis: 300000
-    # Use a distinct lock key when multiple applications share Redis.
-    scheduler-lock-key: flovira:timeout:scheduler
 ```
 
-When timeout processing is enabled, a Spring application automatically prefers
-a Redis scheduler lock if a `StringRedisTemplate` bean is available. If Redis
-is not configured or temporarily unavailable, the engine continues to use
-atomic database task claiming to prevent duplicate timeout processing.
+**You must integrate timeout scheduling in your host application.** Flovira does
+not start background scans or register Redis scheduler locks. Setting
+`flovira.timeout.enabled=true` enables timeout snapshots and execution APIs only;
+without host calls, overdue tasks remain pending.
+
+Call `FlowEngine.timeoutService().executeDue(new Date(), 100)` from your scheduler,
+or `executeTimeout(taskId)` from a delayed-message consumer. Hosts own scheduling,
+cluster coordination (for example ShedLock with Redis), retries and monitoring.
+See [timeout integration and alpha migration](docs/timeout-integration.md) before
+enabling this feature.
+
+Workflow lifecycle callbacks use `WorkflowLifecycleListener` with Spring Bean
+names or standalone registration. See [listener integration](docs/lifecycle-listener-migration.md)
+for the eight events, global subscriptions, return-to-initiator handling and
+host integration requirements.
 
 The Java root package is `com.luokuiai.flovira`.
+
+See [approver policies](docs/approver-policies.md) for handling empty approver
+results and approvers who are also the workflow initiator.
 
 ## Database
 

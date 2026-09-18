@@ -109,7 +109,7 @@ export interface NodeControlConfig {
   allowTransfer: boolean
   allowAddSign: boolean
   allowMinusSign: boolean
-  rejectStrategy: 'TO_DRAFT' | 'TO_PREVIOUS' | 'TO_SPECIFIED_NODE' | 'TO_REJECTOR_SPECIFIED_NODE' | 'REJECT'
+  rejectStrategy: 'TO_INITIATOR' | 'TO_PREVIOUS' | 'TO_SPECIFIED_NODE' | 'TO_REJECTOR_SPECIFIED_NODE' | 'REJECT'
   rejectTargetNodeCode: string
   resubmitStrategy: 'RESTART_FROM_BEGINNING' | 'CONTINUE_FROM_REJECTED_NODE'
 }
@@ -134,6 +134,9 @@ export interface SubprocessDefinition {
 }
 
 export interface DesignerCapabilities {
+  lifecyclePoints?: string[]
+  lifecyclePhases?: ('IN_TRANSACTION' | 'AFTER_COMMIT')[]
+  listenerCodes?: string[]
   schemaVersion: 1
   nodeTypes: FloviraNodeType[]
   approverStrategies: DesignerApproverStrategy[]

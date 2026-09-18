@@ -176,10 +176,12 @@ create index IDX_FLOW_SKIP_DEFINITION on FLOW_SKIP (TENANT_ID, DEFINITION_ID, DE
 
 create table FLOW_INSTANCE
 (
+    lifecycle_state VARCHAR2(32),
+    resubmission_context CLOB,
     ID              NUMBER       not null,
     DEFINITION_ID   NUMBER       not null,
     BUSINESS_TYPE   VARCHAR2(128) not null,
-    BUSINESS_ID     VARCHAR2(40) not null,
+    BUSINESS_ID     VARCHAR2(128) not null,
     NODE_TYPE       NUMBER(1)    not null,
     NODE_CODE       VARCHAR2(96) not null,
     NODE_NAME       VARCHAR2(100),
@@ -223,6 +225,7 @@ create index IDX_FLOW_INSTANCE_DEFINITION on FLOW_INSTANCE (TENANT_ID, DEFINITIO
 
 create table FLOW_TASK
 (
+    node_execution_id NUMBER(19),
     ID            NUMBER(20) not null,
     DEFINITION_ID NUMBER(20) not null,
     INSTANCE_ID   NUMBER(20) not null,
@@ -272,6 +275,7 @@ comment on column FLOW_TASK.TENANT_ID is '租户id';
 
 create table FLOW_HIS_TASK
 (
+    node_execution_id NUMBER(19),
     ID               NUMBER(20) not null,
     DEFINITION_ID    NUMBER(20) not null,
     INSTANCE_ID      NUMBER(20) not null,
@@ -398,3 +402,24 @@ CREATE TABLE flow_subprocess_event (
 );
 CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,deleted,occurred_at,id);
 CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id,deleted,id);
+
+-- 实际业务节点执行；网关不建立生命周期执行记录。
+CREATE TABLE flow_node_execution (
+    id NUMBER(19) PRIMARY KEY,
+    instance_id NUMBER(19) NOT NULL,
+    definition_id NUMBER(19) NOT NULL,
+    node_code VARCHAR2(96) NOT NULL,
+    node_type NUMBER(10) NOT NULL,
+    state VARCHAR2(20) NOT NULL,
+    entered_at TIMESTAMP NOT NULL,
+    closed_at TIMESTAMP,
+    close_reason VARCHAR2(20),
+    version NUMBER(10) DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR2(64),
+    updated_by VARCHAR2(64),
+    tenant_id VARCHAR2(40) DEFAULT '0' NOT NULL,
+    deleted CHAR(1) DEFAULT '0' NOT NULL
+);
+CREATE INDEX idx_node_execution_active ON flow_node_execution (tenant_id,instance_id,deleted,state,entered_at,id);

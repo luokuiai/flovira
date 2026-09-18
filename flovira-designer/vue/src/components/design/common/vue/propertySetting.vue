@@ -14,6 +14,8 @@
           <slot :name="key" v-bind="data || {}"></slot>
         </template>
       </component>
+      <LifecycleEditor v-if="additionalLifecycleType" :model-value="form.ext?.lifecycle"
+        :node-type="additionalLifecycleType" :disabled="disabled" @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
     </div>
   </aside>
   <div v-else-if="effectiveMode === 'drawer'">
@@ -33,11 +35,14 @@
           <slot :name="key" v-bind="data || {}"></slot>
         </template>
       </component>
+      <LifecycleEditor v-if="additionalLifecycleType" :model-value="form.ext?.lifecycle"
+        :node-type="additionalLifecycleType" :disabled="disabled" @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
     </wf-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
+import LifecycleEditor from './LifecycleEditor.vue'
 import { computed, getCurrentInstance, onBeforeUnmount, ref, watch } from 'vue'
 import start from '@/components/design/common/vue/start.vue'
 import between from '@/components/design/common/vue/between.vue'
@@ -122,6 +127,7 @@ const emit = defineEmits<{
   (e: 'visibility-change', visible: boolean): void;
 }>();
 
+const additionalLifecycleType = computed(() => ({ end: '2', subProcess: '6', wait: '7', carbonCopy: '8' }[props.node.type]))
 const drawer = ref(false);
 const form = ref<Record<string, any>>({});
 const objId = ref(undefined);
@@ -209,12 +215,6 @@ watch(() => props.node, n => {
           }
       }
 
-      let listenerTypes = n.properties.listenerType ? n.properties.listenerType.split(",") : [];
-      let listenerPaths = n.properties.listenerPath ? n.properties.listenerPath.split("@@") : [];
-      n.properties.listenerRows = listenerTypes && listenerTypes.length > 0 ? listenerTypes.map((type, index) => ({
-        listenerType: type,
-        listenerPath: listenerPaths[index]
-      })) : [{}];
       form.value = {
         nodeType: n.type,
         nodeCode: n.id,
@@ -276,23 +276,6 @@ watch(() => form.value.anyNodeSkip, (n) => {
     anyNodeSkip: n
   })
 });
-
-// 监听：监听器路类型数组
-watch(() => form.value.listenerRows?.map(e => e.listenerType), (n) => {
-  // 监听监听器类型变化并更新
-  props.lf.setProperties(objId.value, {
-    listenerType: Array.isArray(n) ? n.join(",") : n
-  })
-}, { deep: true });
-
-// 监听：监听器路径数组
-watch(() => form.value.listenerRows?.map(e => e.listenerPath), (n) => {
-  // 监听监听器类型变化并更新
-  props.lf.setProperties(objId.value, {
-    listenerPath: Array.isArray(n) ? n.join("@@") : n
-  })
-}, { deep: true });
-
 
 watch(() => form.value.formId, (n) => {
   props.lf.setProperties(objId.value, {

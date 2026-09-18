@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,6 +17,7 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.TimeoutExecutionResult;
@@ -25,7 +27,6 @@ import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.enums.NodeType;
 import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.enums.TimeoutAction;
-import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
 import com.luokuiai.flovira.core.service.TimeoutService;
 import com.luokuiai.flovira.core.transaction.TransactionCallback;
 import org.slf4j.Logger;
@@ -33,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 节点超时服务实现
@@ -42,108 +42,81 @@ import java.util.UUID;
  */
 public class TimeoutServiceImpl implements TimeoutService {
 
-    public static final String SYSTEM_HANDLER = "flovira:timeout";
+    public static final String SYSTEM_HANDLER = "SYSTEM_TIMEOUT";
     private static final Logger log = LoggerFactory.getLogger(TimeoutServiceImpl.class);
 
     @Override
     public TimeoutExecutionResult executeDue(Date now, int batchSize) {
         Flovira config = FlowEngine.getFlowConfig();
+        TimeoutExecutionResult result = new TimeoutExecutionResult(0, 0, 0, 0);
         if (config == null || config.getTimeout() == null || !config.getTimeout().isEnabled()) {
-            return new TimeoutExecutionResult(0, 0, 0, 0);
+            return result;
         }
-        TimeoutSchedulerLock schedulerLock = FlowEngine.timeoutSchedulerLock();
-        if (schedulerLock == null) {
-            return executeDue(config, now, batchSize);
-        }
-        String lockKey = config.getTimeout().getSchedulerLockKey();
-        String owner = UUID.randomUUID().toString();
-        boolean locked;
-        try {
-            locked = schedulerLock.tryLock(lockKey, owner, config.getTimeout().getClaimTimeoutMillis());
-        } catch (RuntimeException ex) {
-            log.warn("Failed to acquire timeout scheduler lock, falling back to database claims", ex);
-            return executeDue(config, now, batchSize);
-        }
-        if (!locked) {
-            return new TimeoutExecutionResult(0, 0, 0, 0);
-        }
-        try {
-            return executeDue(config, now, batchSize);
-        } finally {
-            try {
-                schedulerLock.unlock(lockKey, owner);
-            } catch (RuntimeException ex) {
-                log.warn("Failed to release timeout scheduler lock {}", lockKey, ex);
-            }
-        }
-    }
-
-    private TimeoutExecutionResult executeDue(Flovira config, Date now, int batchSize) {
-        Date scanTime = now == null ? new Date() : now;
+        Date scanTime = now == null ? new Date() : new Date(now.getTime());
         int limit = batchSize > 0 ? batchSize : config.getTimeout().getBatchSize();
         Date staleBefore = new Date(scanTime.getTime() - config.getTimeout().getClaimTimeoutMillis());
         List<Task> tasks = FlowEngine.taskService().listDueTimeoutTasks(scanTime, staleBefore, limit);
-        int claimed = 0;
-        int succeeded = 0;
-        int failed = 0;
+        result.setScanned(tasks.size());
         for (Task candidate : tasks) {
-            if (NodeType.isWait(candidate.getNodeType())) {
-                try {
-                    if (!TimeoutAction.RESUME_WAIT.name().equals(candidate.getTimeoutAction())) {
-                        throw new IllegalStateException("WAIT timeout action must be RESUME_WAIT");
-                    }
-                    WaitResumeResult result = FlowEngine.waitService().resumeTimeoutTask(candidate.getId());
-                    if ("RESUMED".equals(result.getStatus())) {
-                        claimed++;
-                        succeeded++;
-                    }
-                } catch (RuntimeException ex) {
-                    failed++;
-                    log.error("Failed to execute WAIT timeout action for task {}", candidate.getId(), ex);
-                }
-                continue;
-            }
-            if (!claim(candidate.getId(), scanTime, staleBefore)) {
-                continue;
-            }
-            claimed++;
             try {
-                executeInTransaction(candidate);
-                succeeded++;
+                if (executeTimeout(candidate.getId(), scanTime, config.getTimeout(), result)) {
+                    result.setSucceeded(result.getSucceeded() + 1);
+                }
             } catch (RuntimeException ex) {
-                failed++;
-                release(candidate.getId());
+                result.setFailed(result.getFailed() + 1);
                 log.error("Failed to execute timeout action for task {}", candidate.getId(), ex);
             }
         }
-        return new TimeoutExecutionResult(tasks.size(), claimed, succeeded, failed);
+        return result;
     }
 
-    private boolean claim(final Long taskId, final Date claimedAt, final Date staleBefore) {
+    @Override
+    public boolean executeTimeout(Long taskId) {
+        if (taskId == null) {
+            throw new IllegalArgumentException("taskId must not be null");
+        }
+        Flovira config = FlowEngine.getFlowConfig();
+        if (config == null || config.getTimeout() == null || !config.getTimeout().isEnabled()) {
+            return false;
+        }
+        return executeTimeout(taskId, new Date(), config.getTimeout(), new TimeoutExecutionResult(0, 0, 0, 0));
+    }
+
+    private boolean executeTimeout(final Long taskId, final Date now, final Flovira.Timeout config,
+                                   final TimeoutExecutionResult result) {
         return FlowEngine.transactionExecutor().execute(new TransactionCallback<Boolean>() {
             @Override
             public Boolean execute() {
-                return FlowEngine.taskService().claimTimeout(taskId, claimedAt, staleBefore);
-            }
-        });
-    }
-
-    private void release(final Long taskId) {
-        FlowEngine.transactionExecutor().execute(new TransactionCallback<Object>() {
-            @Override
-            public Object execute() {
-                FlowEngine.taskService().releaseTimeout(taskId);
-                return null;
-            }
-        });
-    }
-
-    private void executeInTransaction(final Task task) {
-        FlowEngine.transactionExecutor().execute(new TransactionCallback<Object>() {
-            @Override
-            public Object execute() {
+                // 消息可能提前、重复或延迟到达，不能直接使用扫描时的任务快照推进。
+                Task task = FlowEngine.taskService().getById(taskId);
+                if (task == null || task.getTimeoutAt() == null || task.getTimeoutAt().after(now)) {
+                    return false;
+                }
+                if (NodeType.isWait(task.getNodeType())) {
+                    if (!TimeoutAction.RESUME_WAIT.name().equals(task.getTimeoutAction())) {
+                        throw new IllegalStateException("WAIT timeout action must be RESUME_WAIT");
+                    }
+                    WaitResumeResult resumed = FlowEngine.waitService().resumeTimeoutTask(taskId);
+                    if (!"RESUMED".equals(resumed.getStatus())) {
+                        return false;
+                    }
+                    result.setClaimed(result.getClaimed() + 1);
+                    return true;
+                }
+                if (!NodeType.BETWEEN.getKey().equals(task.getNodeType())
+                    || (!TimeoutAction.AUTO_PASS.name().equals(task.getTimeoutAction())
+                        && !TimeoutAction.AUTO_REJECT.name().equals(task.getTimeoutAction()))) {
+                    throw new IllegalStateException("Unsupported task timeout action");
+                }
+                Date staleBefore = new Date(now.getTime() - config.getClaimTimeoutMillis());
+                // 抢占与推进共用事务：持有数据库写锁直到提交，失败由事务回滚抢占状态。
+                // 不再单独提交租约或无条件释放，避免旧执行者干扰后续执行者。
+                if (!FlowEngine.taskService().claimTimeout(taskId, now, staleBefore)) {
+                    return false;
+                }
+                result.setClaimed(result.getClaimed() + 1);
                 TimeoutServiceImpl.this.execute(task);
-                return null;
+                return true;
             }
         });
     }
@@ -162,7 +135,7 @@ public class TimeoutServiceImpl implements TimeoutService {
             .handler(SYSTEM_HANDLER)
             .message("Task timeout: " + task.getTimeoutAction())
             .hisTaskExt(timeoutHistory(task));
-        FlowEngine.taskService().skipSystemTask(params, task);
+        LifecycleTransition.system("APPROVAL_TIMEOUT", () -> FlowEngine.taskService().skipSystemTask(params, task));
     }
 
     private String timeoutHistory(Task task) {
