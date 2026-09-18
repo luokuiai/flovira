@@ -17,6 +17,7 @@ package com.luokuiai.flovira.core.handler;
 
 import com.luokuiai.flovira.core.constant.ApproverStrategy;
 import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
+import com.luokuiai.flovira.core.utils.ApproverPolicyUtil;
 
 /**
  * 提交人策略的业务实现基类。不提供人员来源，不自动注册。
@@ -34,6 +35,7 @@ public abstract class AbstractInitiatorResolver implements ApproverResolver {
         return new ApproverStrategyDefinition().setCode(getStrategy()).setName("提交人")
             .setSelectionType("RELATION").setEditorType("NONE")
             .setMultiple(false)
-            .setResultCardinality("EXACTLY_ONE");
+            .setResultCardinality("EXACTLY_ONE")
+            .setOptions(ApproverPolicyUtil.options());
     }
 }

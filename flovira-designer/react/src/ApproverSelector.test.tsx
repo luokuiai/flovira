@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createRef } from 'react'
-import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { ReactFlowDesigner } from './ReactFlowDesigner'
 import { createInitialDefinition, getApproverRule, getCarbonCopyRule, insertNodeAfter, setApproverRule, setCarbonCopyRule } from './model'
@@ -10,6 +10,28 @@ import type { ApproverSelectionResult, ApproverSelector, ReactFlowDesignerRef } 
 afterEach(cleanup)
 const oldUser = { id: 'old', type: 'USER', name: '原审批人' }
 const newUser = { id: 'new', type: 'USER', name: '新审批人' }
+
+test('role empty-result policy persists separate transfer users and passes backend-aligned validation', async () => {
+  const { definition, node } = fixture()
+  definition.nodeList = definition.nodeList.map(item => item.nodeCode === node.nodeCode
+    ? setApproverRule(item, 'ROLE', [{ id: 'finance', type: 'ROLE', name: '财务' }], '', 'ROLE_MEMBERS', 'RESOURCE') : item)
+  const ref = createRef<ReactFlowDesignerRef>()
+  const selector = vi.fn<ApproverSelector>().mockResolvedValue({ subjects: [newUser] })
+  const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} capabilities={DEMO_CAPABILITIES} onSelectApprover={selector} />)
+  fireEvent.click(view.getByRole('button', { name: '编辑节点：' + node.nodeName }))
+  const empty = within(view.getByRole('radiogroup', { name: '审批人为空时' }))
+  expect((empty.getByRole('radio', { name: '报错并阻止流转' }) as HTMLInputElement).checked).toBe(true)
+  fireEvent.click(empty.getByRole('radio', { name: '转交给指定人员' }))
+  fireEvent.click(view.getByRole('button', { name: '选择指定人员' }))
+  await waitFor(() => expect(selector).toHaveBeenCalledTimes(1))
+  await waitFor(() => expect(view.getByRole('button', { name: '确定' }).hasAttribute('disabled')).toBe(false))
+  fireEvent.click(view.getByRole('button', { name: '确定' }))
+  const rule = getApproverRule(ref.current!.getDefinition().nodeList.find(item => item.nodeCode === node.nodeCode)!)
+  expect(rule.subjects).toEqual([{ id: 'finance', type: 'ROLE', name: '财务' }])
+  expect(rule.config?.emptyPolicy).toBe('TRANSFER_TO_USER')
+  expect(rule.config?.emptyPolicySubjects).toEqual([newUser])
+  expect(ref.current!.validate().issues.filter(issue => issue.code.startsWith('APPROVER_'))).toEqual([])
+})
 
 test('shows a configured maximum and rejects oversized host results for approvers and transfer targets', async () => {
   const { definition, node } = fixture()

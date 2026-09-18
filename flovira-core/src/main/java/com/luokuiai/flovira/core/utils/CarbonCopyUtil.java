@@ -35,7 +35,7 @@ import java.util.Map;
  */
 public final class CarbonCopyUtil {
 
-    public static final String SYSTEM_HANDLER = "flovira:carbon-copy";
+    public static final String SYSTEM_HANDLER = "SYSTEM_CARBON_COPY";
 
     private CarbonCopyUtil() {
     }

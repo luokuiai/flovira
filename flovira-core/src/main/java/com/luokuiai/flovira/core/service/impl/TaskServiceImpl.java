@@ -240,11 +240,12 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             FlowEngine.subprocessService().onTasksCreated(addTasks);
         }
         CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariables());
+        Instance advanced = ApproverPolicyUtil.advanceTasks(addTasks, flowParams.getVariables());
         if (NodeType.isEnd(r.instance.getNodeType()) && isSubprocessChild(r.instance)) {
             FlowEngine.subprocessService().onInstanceTerminal(r.instance, SubprocessOutcome.SUCCEEDED);
         }
 
-        return r.instance;
+        return advanced == null ? r.instance : advanced;
     }
 
     @Override
@@ -332,7 +333,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 执行完成和创建监听器
         taskList.forEach(task -> ListenerUtil.endCreateListener(new ListenerVariable(definition, instance,
             nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task, nextNodes, addTasks).setFlowParams(flowParams)));
-        return instance;
+        Instance advanced = ApproverPolicyUtil.advanceTasks(addTasks, flowParams.getVariables());
+        return advanced == null ? instance : advanced;
     }
 
     @Override

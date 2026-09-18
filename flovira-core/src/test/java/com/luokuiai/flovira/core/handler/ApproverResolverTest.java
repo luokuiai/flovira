@@ -21,6 +21,8 @@ import com.luokuiai.flovira.core.entity.*;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.service.NodeService;
+import com.luokuiai.flovira.core.service.TaskService;
+import com.luokuiai.flovira.core.enums.FlowStatus;
 import com.luokuiai.flovira.core.service.impl.TaskServiceImpl;
 import com.luokuiai.flovira.core.support.TestEntityFactory;
 import com.luokuiai.flovira.core.utils.*;
@@ -223,5 +225,140 @@ public class ApproverResolverTest {
         register();
         assertTrue(FlowEngine.approverResolvers().isEmpty());
         assertThrows(IllegalStateException.class, () -> FlowEngine.approverResolver("INITIATOR"));
+    }
+
+    private Node policyNode(String key, Object value) {
+        Node node = node("policy");
+        Map<String, Object> config = new HashMap<String, Object>();
+        config.put("key", "valid");
+        config.put(key, value);
+        rules.get("policy").setConfig(config);
+        return node;
+    }
+
+    private Instance starter() {
+        return TestEntityFactory.create(Instance.class).setId(2L).setCreatedBy("starter");
+    }
+
+    @Test
+    public void selfApprovalKeepsStarterAndSkipRemovesOnlyStarter() {
+        Node node = policyNode("sameAsStarterAction", "SELF_APPROVE");
+        members = Arrays.asList("starter", "other", "starter");
+        assertEquals(Arrays.asList("starter", "other"), ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+        rules.get("policy").getConfig().put("sameAsStarterAction", "AUTO_SKIP_OR_TRANSFER");
+        assertEquals(Collections.singletonList("other"), ApproverRuleUtil.resolve(node, starter(), FlowParams.build().handler("other"), false));
+        members = Collections.singletonList("starter");
+        assertTrue(ApproverPolicyUtil.isSkip(ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false)));
+    }
+
+    @Test
+    public void emptyPolicySkipsOnlyExplicitlyConfiguredApprovalNodes() {
+        Node node = policyNode("emptyPolicy", "SKIP");
+        members = Collections.emptyList();
+        List<String> preview = ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), true);
+        assertTrue(preview.isEmpty());
+        assertTrue(ApproverPolicyUtil.isSkip(preview));
+        assertEquals(preview, ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+        members = Collections.singletonList(" ");
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+        node.setNodeType(8); // 抄送配置与审批配置分离，不使用审批人的跳过策略。
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+    }
+
+    @Test
+    public void rejectsUnknownPolicyAndMissingTransferSubjectsBeforeResolution() {
+        Node node = policyNode("emptyPolicy", "UNKNOWN");
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.read(node));
+        rules.get("policy").getConfig().put("emptyPolicy", "TRANSFER_TO_USER");
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.read(node));
+        assertTrue(resolvedNodes.isEmpty());
+    }
+
+    @Test
+    public void sameStarterPolicyRequiresOriginalStarterAndPreviewNeverAdvances() {
+        Node node = policyNode("sameAsStarterAction", "AUTO_SKIP_OR_TRANSFER");
+        members = Collections.singletonList("starter");
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.resolve(node, null, FlowParams.build(), true));
+        assertTrue(ApproverPolicyUtil.isSkip(ApproverRuleUtil.resolve(node, null, FlowParams.build().handler("starter"), true)));
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.resolve(node,
+            TestEntityFactory.create(Instance.class), FlowParams.build().handler("starter"), false));
+        members = Collections.singletonList("someone-else");
+        assertEquals(members, ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+    }
+
+    @Test
+    public void automaticCycleFailsAndClearsThreadStateForNextInvocation() {
+        Node node = policyNode("emptyPolicy", "SKIP");
+        members = Collections.emptyList();
+        final Task task = new TaskServiceImpl().addTask(node, starter(), TestEntityFactory.create(Definition.class), FlowParams.build());
+        final boolean[] recurse = {true};
+        TaskService service = (TaskService) Proxy.newProxyInstance(TaskService.class.getClassLoader(),
+            new Class<?>[]{TaskService.class}, (proxy, method, args) -> {
+                assertEquals("skipSystemTask", method.getName());
+                if (recurse[0]) ApproverPolicyUtil.advanceTasks(Collections.singletonList(task), Collections.<String, Object>emptyMap());
+                return starter();
+            });
+        FrameInvoker.setBeanFunction(type -> TaskService.class.equals(type) ? service : null);
+        assertThrows(IllegalStateException.class, () -> ApproverPolicyUtil.advanceTasks(Collections.singletonList(task), Collections.<String, Object>emptyMap()));
+        recurse[0] = false;
+        assertEquals("starter", ApproverPolicyUtil.advanceTasks(Collections.singletonList(task), Collections.<String, Object>emptyMap()).getCreatedBy());
+    }
+
+    @Test
+    public void transferUsesUserResolverAndPreviewContextWithoutRecursiveFallback() {
+        final List<Boolean> previews = new ArrayList<Boolean>();
+        final List<String> targets = new ArrayList<String>(Collections.singletonList("replacement"));
+        register(role, new AbstractUserResolver() {
+            public void validate(ApproverRule rule) {
+                assertEquals("selected", rule.getSubjects().get(0).getId());
+                assertEquals("USER", rule.getSubjects().get(0).getType());
+            }
+            public List<String> resolve(ApproverContext context) {
+                previews.add(context.isPreview());
+                return targets;
+            }
+        });
+        Node node = policyNode("emptyPolicy", "TRANSFER_TO_USER");
+        Map<String, Object> config = rules.get("policy").getConfig();
+        config.put("emptyPolicySubjects", Collections.singletonList(new BusinessSubject().setId("selected").setType("USER")));
+        members = Collections.emptyList();
+        assertEquals(targets, ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), true));
+        assertEquals(targets, ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+        assertEquals(Arrays.asList(true, false), previews);
+        config.put("sameAsStarterAction", "TRANSFER_TO_USER");
+        config.put("sameAsStarterSubjects", config.get("emptyPolicySubjects"));
+        members = Arrays.asList("starter", "other");
+        assertEquals(Arrays.asList("other", "replacement"), ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+        targets.clear();
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+        targets.add("starter");
+        assertThrows(IllegalStateException.class, () -> ApproverRuleUtil.resolve(node, starter(), FlowParams.build(), false));
+    }
+
+    @Test
+    public void autoSkipSurvivesExpressionStageAndUsesSystemTransitionWithHistory() {
+        Node node = policyNode("emptyPolicy", "SKIP");
+        members = Collections.emptyList();
+        Task task = new TaskServiceImpl().addTask(node, starter(), TestEntityFactory.create(Definition.class), FlowParams.build());
+        ExpressionUtil.evalVariable(Collections.singletonList(task), FlowParams.build());
+        final List<FlowParams> transitions = new ArrayList<FlowParams>();
+        TaskService service = (TaskService) Proxy.newProxyInstance(TaskService.class.getClassLoader(),
+            new Class<?>[]{TaskService.class}, (proxy, method, args) -> {
+                assertEquals("skipSystemTask", method.getName());
+                assertSame(task, args[1]);
+                transitions.add((FlowParams) args[0]);
+                return starter();
+            });
+        FrameInvoker.setBeanFunction(type -> TaskService.class.equals(type) ? service : null);
+        Task ordinary = TestEntityFactory.create(Task.class).setNodeType(1).setPermissionList(Collections.emptyList());
+        ApproverPolicyUtil.advanceTasks(Arrays.asList(task, ordinary), Collections.<String, Object>singletonMap("value", 1));
+        assertEquals(1, transitions.size());
+        assertEquals(FlowStatus.AUTO_PASS.getKey(), transitions.get(0).getFlowStatus());
+        assertEquals("SYSTEM_AUTO_APPROVE", transitions.get(0).getHandler());
+        assertTrue(transitions.get(0).getHisTaskExt().contains("EMPTY_APPROVER"));
+        assertEquals(1, transitions.get(0).getVariables().get("value"));
+        ExpressionUtil.evalVariable(Collections.singletonList(task), FlowParams.build().nextHandler("override"));
+        ApproverPolicyUtil.advanceTasks(Collections.singletonList(task), Collections.<String, Object>emptyMap());
+        assertEquals(1, transitions.size());
     }
 }

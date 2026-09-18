@@ -131,7 +131,7 @@ The React package does not enumerate business approver types. It renders host-pr
 
 `resultCardinality` describes the number of resolved people, not selected resources: `EXACTLY_ONE`, `ONE_OR_MORE`, `ZERO_OR_ONE`, or `ZERO_OR_MORE`. Options may declare `condition: MULTIPLE | EMPTY | ALWAYS`. Direct single-person selection hides multiple-person and empty-result policies; direct multi-person selection shows the multiple-person policy; groups that may resolve to zero or more people show both.
 
-Strategy descriptors come from registered backend resolvers. Flovira supplies standard codes and abstract resolver classes, but no default personnel lookup or strategy options. Hosts define and implement their own policies.
+Strategy descriptors come from registered backend resolvers. Standard abstract resolver classes expose the engine's empty-approver and same-as-initiator policies. Hosts implement personnel lookup, including a registered USER resolver for transfer targets. See [approver policies](../../docs/approver-policies.md) for configuration and system history identities.
 
 Strategy `options` render as radio groups and write their values into `ApproverRule.config` under the option code:
 
@@ -146,12 +146,13 @@ Strategy `options` render as radio groups and write their values into `ApproverR
   options: [{
     code: 'emptyPolicy',
     name: 'No approver policy',
-    defaultValue: 'FAIL',
+    defaultValue: 'ERROR',
     nodeTypes: ['1'],
     condition: 'EMPTY',
     choices: [
-      { value: 'FAIL', label: 'Block submission' },
-      { value: 'TO_ADMIN', label: 'Transfer to administrator' },
+      { value: 'ERROR', label: 'Block transition' },
+      { value: 'SKIP', label: 'Skip automatically' },
+      { value: 'TRANSFER_TO_USER', label: 'Transfer to selected users', selectionStrategy: 'USER', selectionConfigKey: 'emptyPolicySubjects' },
     ],
   }],
   resultCardinality: 'ZERO_OR_MORE',
