@@ -140,6 +140,8 @@ export interface DesignerCapabilities {
   schemaVersion: 1
   nodeTypes: FloviraNodeType[]
   approverStrategies: DesignerApproverStrategy[]
+  /** 开始节点提交范围；自定义策略由后端显式声明。 */
+  submitterStrategies?: DesignerApproverStrategy[]
   approvalModes: string[]
   returnPolicies: string[]
   timeoutNodeTypes: FloviraNodeType[]

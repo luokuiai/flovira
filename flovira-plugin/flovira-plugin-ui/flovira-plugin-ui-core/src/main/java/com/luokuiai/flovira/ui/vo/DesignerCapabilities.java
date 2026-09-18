@@ -40,6 +40,8 @@ public class DesignerCapabilities {
     private int schemaVersion = SCHEMA_VERSION;
     private List<String> nodeTypes = new ArrayList<String>();
     private List<ApproverStrategyDefinition> approverStrategies = new ArrayList<ApproverStrategyDefinition>();
+
+    private List<ApproverStrategyDefinition> submitterStrategies = new ArrayList<ApproverStrategyDefinition>();
     private List<String> approvalModes = new ArrayList<String>();
     private List<String> returnPolicies = new ArrayList<String>();
     private List<String> timeoutNodeTypes = new ArrayList<String>();

@@ -96,7 +96,7 @@ Global subscriptions do not require definition configuration. Local subscription
 
 ## Hooks and delivery phases
 
-- beforeOperation runs after authorization and before workflow writes. It supports business validation and permitted variable changes. Exceptions roll back the operation. BEFORE_OPERATION accepts only IN_TRANSACTION.
+- beforeOperation runs after task-operation authorization and before workflow writes. At initial start, it initializes business context before the submitter rule is resolved; submission denial still prevents instance/task persistence and rolls back transactional hook work. It supports business validation and permitted variable changes. Exceptions roll back the operation. BEFORE_OPERATION accepts only IN_TRANSACTION.
 - beforeAssignment adjusts the resolved assignment draft before validation and persistence. It cannot change identity, tenant or authorization controls.
 - onEvent receives eight immutable fact types, either in the transaction or after commit. After-commit failures are reported separately without presenting a committed operation as rolled back.
 
@@ -202,6 +202,49 @@ It locks the instance, creates a distinct execution per active task, associates 
 If this tooling is used, migrate old subscriptions explicitly and remove globalListenerPath. Only formLoad may remain in the old listener fields. Unsupported old callbacks fail save, import, publish and execution validation. Verify approval, return, withdrawal, resubmission and subprocess coordination before resuming writers and host schedulers.
 
 Rollback must restore matching code and data. Once new executions, initiator tasks or history exist, dropping columns or downgrading jars alone is insufficient. Never truncate subprocess business keys to fit the old 40-character column. MySQL and Oracle DDL may commit implicitly, so transaction rollback is not a schema recovery plan. No host database changes were executed as part of this work.
+
+### Operation context and trust boundaries
+
+A lifecycle hook needs engine-owned runtime facts before persistence, not an ID
+that assumes a database row already exists. The operation model therefore keeps
+four sources separate:
+
+| Source | API | Contract |
+| --- | --- | --- |
+| Runtime facts | `getDefinition()`, `getInstance()`, `getInitiatorId()`, `getActor()` | Read-only snapshots from engine entities; always available, including first start. The original initiator is independent of the current actor. |
+| Current input | `getInputVariables()` | Read-only, unmerged variables supplied for this operation. Input cannot establish a tenant or replace initiation identity. |
+| Stored business context | `getPersistedVariables()` | Read-only variables from before this operation, including nested maps/lists. Empty for a new instance. Input and hooks cannot rewrite this snapshot. |
+| Working variables | `getVariables()`, `setVariable`, `removeVariable` | Stored variables overlaid with input, then validated/adjusted by hooks. Only this result proceeds to resolvers and persistence. |
+
+`getDefinition()` provides definition ID, tenant ID, flow code/name, version and
+business type. `getInstance()` provides instance ID, definition ID, tenant ID,
+original creator and business key. `isNewInstance()` explicitly identifies initial
+creation; instance information is never hidden behind a null value. Constructors
+require the runtime definition and instance; there is no ID-only context variant.
+
+Hosts validate employment/company relationships using these facts. At initial
+start, validate the selected employment from input against the definition tenant
+and original initiator, then write the validated business snapshot through
+`setVariable`. On later operations, validate and restore that snapshot from
+`getPersistedVariables()`, not the overlaid working variables. Use the runtime
+initiator to check snapshot ownership; never infer it from the current actor.
+Restore or remove related visible input fields in the working variables as needed.
+The engine does not interpret host-specific organization keys or infer employment.
+
+The order is runtime context creation → transactional `beforeOperation` validation
+and initialization → submitter authorization (initial start) → resolver/route
+execution → persistence → lifecycle facts. Exceptions abort the transition.
+`PROCESS_STARTED` is a fact after creation, so it cannot initialize context needed
+by the first resolver. For existing-task operations, task authorization still runs
+before the hook. Variable merging happens once at the operation-context boundary;
+callers must not pre-merge input and history before constructing a transition.
+
+This corrects a design omission in the initial native lifecycle implementation:
+its ID/actor/merged-variable-only context discarded authoritative information
+required for business validation. No schema changes or special Guardian adapter
+are required. Applications implement the native hook contract and own their
+business-context validation, including old instances without a snapshot and
+validated parent-context inheritance for subprocesses.
 
 ## Validation scope
 

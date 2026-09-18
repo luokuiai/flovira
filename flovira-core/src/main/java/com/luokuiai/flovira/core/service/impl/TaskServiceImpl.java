@@ -186,7 +186,6 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         if (ProcessLifecycleState.AWAITING_RESUBMISSION.name().equals(r.instance.getLifecycleState())) {
             throw new IllegalStateException("Instance requires explicit initiator resubmission");
         }
-        flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
         // 非第一个记得跳转类型必传
         if (!NodeType.isStart(task.getNodeType())) {
             AssertUtil.isFalse(StringUtils.isNotEmpty(flowParams.getSkipType()), ExceptionCons.NULL_CONDITION_VALUE);
@@ -512,7 +511,6 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
     private Instance doTermination(Task task, FlowParams flowParams) {
         R r = getAndCheck(task);
         flowParams.skipType(SkipType.PASS.getKey());
-        flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
 
         // 判断当前处理人是否有权限处理
         task.setUserList(FlowEngine.userService().listByTaskIdAndTypes(task.getId()));
@@ -640,7 +638,6 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
     private boolean doUpdateHandler(Long taskId, FlowParams flowParams) {
         // 获取待办任务
         R r = getAndCheck(taskId);
-        flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
 
         // 获取给谁的权限
         if (!flowParams.isIgnore()) {

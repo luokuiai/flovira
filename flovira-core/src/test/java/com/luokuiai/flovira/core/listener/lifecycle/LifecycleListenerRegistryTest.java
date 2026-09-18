@@ -17,6 +17,9 @@ package com.luokuiai.flovira.core.listener.lifecycle;
 
 import com.luokuiai.flovira.core.transaction.TransactionCallback;
 import com.luokuiai.flovira.core.transaction.TransactionExecutor;
+import com.luokuiai.flovira.core.entity.Definition;
+import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.support.TestEntityFactory;
 import org.junit.Test;
 import java.util.*;
 import static org.junit.Assert.*;
@@ -41,7 +44,7 @@ public class LifecycleListenerRegistryTest {
         LifecycleSubscription second = subscription("second", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 2);
         registry.subscribeGlobally(second);
         registry.subscribeGlobally(subscription("first", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 1));
-        OperationContext context = new OperationContext("op", "APPROVE", "MANUAL", 1L, 2L, "user", null);
+        OperationContext context = operation();
         new LifecycleDispatcher(registry, (code,event,error) -> fail()).beforeOperation(context, Arrays.asList(second));
         assertEquals(Arrays.asList("first", "second"), calls);
         assertEquals(Boolean.TRUE, context.getVariables().get("first"));
@@ -77,7 +80,7 @@ public class LifecycleListenerRegistryTest {
             public void beforeOperation(OperationContext context, String parameters) { throw new IllegalStateException("denied"); }
         });
         registry.subscribeGlobally(subscription("deny", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 0));
-        OperationContext context = new OperationContext("op", "APPROVE", "MANUAL", 1L, 2L, "user", null);
+        OperationContext context = operation();
         assertThrows(IllegalStateException.class, () -> new LifecycleDispatcher(registry, (c,e,x) -> fail()).beforeOperation(context, null));
         assertThrows(IllegalArgumentException.class, () -> context.setVariable("flovira.subprocess.parentInstanceId", "other"));
         assertThrows(UnsupportedOperationException.class, () -> context.getVariables().put("x", "y"));
@@ -129,6 +132,60 @@ public class LifecycleListenerRegistryTest {
         DeferredTransaction tx = new DeferredTransaction();
         assertThrows(IllegalStateException.class, () -> new LifecycleDispatcher(registry, (c,e,x) -> fail()).emit(event(), null, tx));
         assertTrue(tx.callbacks.isEmpty());
+    }
+
+    @Test
+    public void operationSeparatesRuntimeFactsInputPersistedAndWorkingVariables() {
+        Definition definition = TestEntityFactory.create(Definition.class).setId(10L).setTenantId("tenant-a");
+        Instance instance = TestEntityFactory.create(Instance.class).setId(1L).setDefinitionId(10L)
+            .setCreatedBy("initiator").setTenantId("tenant-a");
+        Map<String, Object> original = new LinkedHashMap<String, Object>();
+        original.put("department", "department-a");
+        Map<String, Object> stored = new LinkedHashMap<String, Object>();
+        stored.put("context", original); stored.put("historyOnly", true);
+        TestEntityFactory.put(instance, "VariableMap", stored);
+        Map<String, Object> input = new LinkedHashMap<String, Object>();
+        input.put("context", "forged"); input.put("tenantId", "forged");
+        OperationContext operation = new OperationContext("op", "APPROVE", "USER", definition, instance, 2L,
+            "current-operator", false, input);
+        definition.setTenantId("changed"); instance.setCreatedBy("changed"); original.put("department", "changed"); input.clear();
+        assertEquals("tenant-a", operation.getDefinition().getTenantId());
+        assertEquals("initiator", operation.getInitiatorId());
+        assertEquals("current-operator", operation.getActor());
+        assertEquals("forged", operation.getInputVariables().get("context"));
+        assertFalse(operation.getInputVariables().containsKey("historyOnly"));
+        assertEquals("forged", operation.getVariables().get("context"));
+        Map<?, ?> snapshot = (Map<?, ?>) operation.getPersistedVariables().get("context");
+        assertEquals("department-a", snapshot.get("department"));
+        assertThrows(UnsupportedOperationException.class, snapshot::clear);
+        operation.setVariable("context", snapshot);
+        operation.removeVariable("historyOnly");
+        assertEquals(snapshot, operation.getVariables().get("context"));
+        assertTrue(operation.getPersistedVariables().containsKey("historyOnly"));
+        assertFalse(operation.getVariables().containsKey("historyOnly"));
+    }
+
+    @Test
+    public void newInstanceHasCompleteRuntimeFactsAndNoPersistedVariables() {
+        Definition definition = TestEntityFactory.create(Definition.class).setId(10L).setTenantId("tenant-a");
+        Instance instance = TestEntityFactory.create(Instance.class).setId(1L).setDefinitionId(10L).setCreatedBy("starter");
+        TestEntityFactory.put(instance, "VariableMap", Collections.singletonMap("untrusted", true));
+        OperationContext operation = new OperationContext("op", "START", "USER", definition, instance, null,
+            "starter", true, Collections.singletonMap("input", "value"));
+        assertTrue(operation.isNewInstance());
+        assertNotNull(operation.getDefinition());
+        assertNotNull(operation.getInstance());
+        assertEquals("starter", operation.getInitiatorId());
+        assertTrue(operation.getPersistedVariables().isEmpty());
+        assertEquals(Collections.singletonMap("input", "value"), operation.getInputVariables());
+        assertThrows(NullPointerException.class, () -> new OperationContext("op", "START", "USER", null, instance,
+            null, "starter", true, null));
+    }
+
+    private OperationContext operation() {
+        return new OperationContext("op", "APPROVE", "MANUAL", TestEntityFactory.create(Definition.class).setId(10L),
+            TestEntityFactory.create(Instance.class).setId(1L).setDefinitionId(10L).setCreatedBy("starter"),
+            2L, "user", false, null);
     }
 
     private LifecycleEvent event() { return new LifecycleEvent("event", "operation", LifecycleEventType.NODE_ENTERED, 1L, 1L, "{}"); }
