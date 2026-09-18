@@ -18,12 +18,7 @@ const emit = defineEmits<{
 const pendingType = ref<FormFieldDefinition['dataType'] | null>(null)
 const allowedTypes = computed(() => formFieldTypes.filter(type => props.depth === 0 || !['object', 'array'].includes(type.value) || props.item && props.depth === 1 && type.value === 'object'))
 const unsupported = computed(() => !allowedTypes.value.some(type => type.value === props.field.dataType))
-const menuOpen = ref(false)
-function closeMenu(event: FocusEvent) {
-  if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) menuOpen.value = false
-}
-function menuAction(action: 'up' | 'down' | 'delete') {
-  menuOpen.value = false
+function fieldAction(action: 'up' | 'down' | 'delete') {
   if (props.readOnly) return
   if (action === 'delete') emit('remove')
   else emit('move', action === 'up' ? -1 : 1)
@@ -64,14 +59,17 @@ function confirmType() {
         <WfOption v-if="unsupported" :value="field.dataType" label="不支持多层嵌套" disabled />
         <WfOption v-for="option in allowedTypes" :key="option.value" :value="option.value" :label="option.label" />
       </WfSelect>
-      <div class="ffd-actions" @focusout="closeMenu" @keydown.esc="menuOpen = false">
+      <div class="ffd-actions">
         <template v-if="!readOnly && !item">
-          <WfButton text class="ffd-more" :aria-label="'字段操作 ' + path" title="字段操作" :aria-expanded="menuOpen" aria-haspopup="menu" @click="menuOpen = !menuOpen">⋯</WfButton>
-          <div v-if="menuOpen" class="ffd-menu" role="menu" :aria-label="'字段操作 ' + path">
-            <WfButton text role="menuitem" :disabled="first" @click="menuAction('up')">上移</WfButton>
-            <WfButton text role="menuitem" :disabled="last" @click="menuAction('down')">下移</WfButton>
-            <WfButton text role="menuitem" @click="menuAction('delete')">删除</WfButton>
-          </div>
+          <WfButton text class="ffd-action" :aria-label="'上移字段 ' + path" title="上移" :disabled="first" @click="fieldAction('up')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7M12 19V5" /></svg>
+          </WfButton>
+          <WfButton text class="ffd-action" :aria-label="'下移字段 ' + path" title="下移" :disabled="last" @click="fieldAction('down')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7 7 7-7M12 5v14" /></svg>
+          </WfButton>
+          <WfButton text class="ffd-action ffd-action--delete" :aria-label="'删除字段 ' + path" title="删除" @click="fieldAction('delete')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M19 6l-1 14H6L5 6M9 6V3h6v3M10 10v6M14 10v6" /></svg>
+          </WfButton>
         </template>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react'
-import { MoreHorizontal, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import type { FormDefinition, FormFieldDefinition } from './formDefinition'
 import { changeFieldType, copyForm, emptyForm, formFieldTypes, hasNestedFields, newFormField, validateForm, type FormDesignerInstance } from './formDesignerModel'
 import type { DesignerUiAdapter } from './types'
@@ -11,6 +11,8 @@ export interface FormDesignerProps {
   defaultValue?: FormDefinition
   onChange?: (definition: FormDefinition) => void
   appearance?: 'standalone' | 'embedded'
+  /** 容器背景，支持 CSS background 值；不传时使用主题默认背景。 */
+  background?: CSSProperties['background']
   readOnly?: boolean
   ui?: Partial<DesignerUiAdapter>
   className?: string
@@ -33,7 +35,7 @@ interface RowProps {
 function FieldRow({ field, path, item, depth, readOnly, ui, onChange, onRemove, onMove, first, last }: RowProps) {
   const [pendingType, setPendingType] = useState<FormFieldDefinition['dataType'] | null>(null)
   useEffect(() => setPendingType(null), [field])
-  const { Input, Select, Button, DropdownMenu } = ui
+  const { Input, Select, Button } = ui
   const allowedTypes = formFieldTypes.filter(type => depth === 0 || !['object', 'array'].includes(type.value) || item && depth === 1 && type.value === 'object')
   const unsupported = !allowedTypes.some(type => type.value === field.dataType)
   return <div className="ffd-field">
@@ -52,14 +54,14 @@ function FieldRow({ field, path, item, depth, readOnly, ui, onChange, onRemove, 
           else onChange(changeFieldType(field, type))
         }} />
       <div className="ffd-actions">
-        {!readOnly && !item && <DropdownMenu align="right"
-          trigger={<button type="button" className="ffd-more" aria-label={`字段操作 ${path}`} title="字段操作"><MoreHorizontal size={18} /></button>}
-          items={[
-            { value: 'up', label: '上移', disabled: first },
-            { value: 'down', label: '下移', disabled: last },
-            { value: 'delete', label: '删除' },
-          ]}
-          onSelect={action => { if (action === 'delete') onRemove?.(); else onMove?.(action === 'up' ? -1 : 1) }} />}
+        {!readOnly && !item && <>
+          <Button size="icon" variant="text" className="ffd-action" ariaLabel={`上移字段 ${path}`} title="上移" disabled={first}
+            onPress={() => onMove?.(-1)}><ArrowUp size={16} aria-hidden="true" /></Button>
+          <Button size="icon" variant="text" className="ffd-action" ariaLabel={`下移字段 ${path}`} title="下移" disabled={last}
+            onPress={() => onMove?.(1)}><ArrowDown size={16} aria-hidden="true" /></Button>
+          <Button size="icon" variant="text" className="ffd-action ffd-action--delete" ariaLabel={`删除字段 ${path}`} title="删除"
+            onPress={() => onRemove?.()}><Trash2 size={16} aria-hidden="true" /></Button>
+        </>}
       </div>
     </div>
     {pendingType && <div className="ffd-confirm" role="alert">
@@ -101,7 +103,7 @@ function FieldList({ fields, path = '', depth = 0, readOnly, ui, onChange }: {
 
 /** 可独立使用的表单元数据编辑器；持久化与业务布局由接入方控制。 */
 export const FormDesigner = forwardRef<FormDesignerInstance, FormDesignerProps>(function FormDesigner({
-  value, defaultValue, onChange, appearance = 'standalone', readOnly = false, ui: overrides, className = '', style,
+  value, defaultValue, onChange, appearance = 'standalone', background, readOnly = false, ui: overrides, className = '', style,
 }, ref) {
   const [internal, setInternal] = useState(() => copyForm(defaultValue || emptyForm()))
   const definition = value ?? internal
@@ -119,7 +121,7 @@ export const FormDesigner = forwardRef<FormDesignerInstance, FormDesignerProps>(
     const next = copyForm({ ...definition, fields })
     setInternal(next); setError(''); onChange?.(copyForm(next))
   }
-  return <div ref={root} className={`ffd-form ffd-react ${className}`} data-appearance={appearance} style={style}>
+  return <div ref={root} className={`ffd-form ffd-react ${className}`} data-appearance={appearance} style={{ background, ...style }}>
     <div className="ffd-heading"><span>表单字段</span><span className="ffd-count">{definition.fields.length} 个字段</span></div>
     <div className="ffd-scroll">
       <div className="ffd-table">
