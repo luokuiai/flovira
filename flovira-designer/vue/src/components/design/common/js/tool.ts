@@ -1,5 +1,7 @@
+import { validateLifecycleDefinition } from '../../../../data/lifecycle'
+
 const NODE_TYPE_MAP = {0: 'start', 1: 'between', 2: 'end', 3: 'serial', 4: 'parallel', 5: 'inclusive', 6: 'subProcess', 7: 'wait', 8: 'carbonCopy'}
-const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig', 'branchConditions']
+const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig', 'branchConditions', 'lifecycle', 'nodeControlConfig']
 
 /**
  * 将flovira的定义json数据转成LogicFlow支持的数据格式
@@ -7,6 +9,7 @@ const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'w
  * @returns LogicFlow的数据
  */
 export const json2LogicFlowJson = (definition) => {
+  validateLifecycleDefinition(definition)
   const graphData: any = {
     nodes: [],
     edges: []
@@ -18,6 +21,7 @@ export const json2LogicFlowJson = (definition) => {
   graphData.businessType = definition.businessType
   graphData.version = definition.version
   graphData.formId = definition.formId
+  graphData.ext = definition.ext
   graphData.listenerType = definition.listenerType
   graphData.listenerPath = definition.listenerPath
 
@@ -201,6 +205,7 @@ export const logicFlowJsonToFlovira = (data) => {
   definition.businessType = data.businessType
   definition.version = data.version
   definition.formId = data.formId
+  definition.ext = data.ext
   definition.listenerType = data.listenerType
   definition.listenerPath = data.listenerPath
   // 流程节点
@@ -261,6 +266,7 @@ export const logicFlowJsonToFlovira = (data) => {
     }
     definition.nodeList.push(node)
   })
+  validateLifecycleDefinition(definition)
   return JSON.stringify(definition)
 }
 

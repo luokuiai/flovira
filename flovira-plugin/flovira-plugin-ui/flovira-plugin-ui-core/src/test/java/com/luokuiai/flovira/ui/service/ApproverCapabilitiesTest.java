@@ -28,6 +28,26 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class ApproverCapabilitiesTest {
+    @Test public void exposesNativeListenerBeanNamesWithoutInvokingThem() throws Exception {
+        FrameInvoker.setBeanFunction(type -> null);
+        FrameInvoker.setBeansFunction(type -> Collections.emptyList());
+        com.luokuiai.flovira.core.listener.lifecycle.WorkflowLifecycleListener listener =
+            new com.luokuiai.flovira.core.listener.lifecycle.WorkflowLifecycleListener() {
+                public void onEvent(com.luokuiai.flovira.core.listener.lifecycle.LifecycleEvent event, String parameters) {
+                    throw new AssertionError("Capability lookup must not invoke listeners");
+                }
+            };
+        try (AutoCloseable installed = com.luokuiai.flovira.core.FlowEngine.lifecycleListeners().install(
+                Collections.singletonMap("businessListener", listener), Collections.emptyList())) {
+            com.luokuiai.flovira.ui.vo.DesignerCapabilities capabilities = FloviraService.capabilities().getData();
+            assertEquals(10, capabilities.getLifecyclePoints().size());
+            assertTrue(capabilities.getLifecyclePoints().contains("PROCESS_RESUBMITTED"));
+            assertTrue(capabilities.getLifecyclePoints().contains("BEFORE_ASSIGNMENT"));
+            assertEquals(Collections.singletonList("businessListener"), capabilities.getListenerCodes());
+            assertEquals(java.util.Arrays.asList("IN_TRANSACTION", "AFTER_COMMIT"), capabilities.getLifecyclePhases());
+        }
+    }
+
     @After public void reset() {
         FrameInvoker.setBeansFunction(type -> Collections.emptyList());
         FrameInvoker.setBeanFunction(type -> null);

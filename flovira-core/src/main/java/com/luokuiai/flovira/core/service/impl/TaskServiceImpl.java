@@ -25,6 +25,11 @@ import com.luokuiai.flovira.core.enums.*;
 import com.luokuiai.flovira.core.listener.Listener;
 import com.luokuiai.flovira.core.listener.ListenerVariable;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
+import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
+import com.luokuiai.flovira.core.listener.lifecycle.ProcessLifecycleState;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleCallbackGuard;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleEventType;
 import com.luokuiai.flovira.core.orm.service.impl.FloviraServiceImpl;
 import com.luokuiai.flovira.core.service.TaskService;
 import com.luokuiai.flovira.core.utils.*;
@@ -43,6 +48,8 @@ import java.util.stream.Collectors;
  * @since 2023-03-29
  */
 public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task> implements TaskService {
+
+    private static final ThreadLocal<String> OPERATION_SOURCE = new ThreadLocal<String>();
 
     @Override
     public TaskService setDao(FlowTaskDao<Task> floviraDao) {
@@ -165,9 +172,20 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public Instance skip(FlowParams flowParams, Task task) {
-        // TODO min 后续考虑并发问题，待办任务和实例表不同步，可给待办任务id加锁，抽取所接口，方便后续兼容分布式锁
+        AssertUtil.isNull(task, ExceptionCons.NOT_FOUNT_TASK);
+        return FlowEngine.transactionExecutor().execute(() -> {
+            lockInstance(task.getInstanceId());
+            // 等待实例锁期间任务可能已被其他请求消费，不使用调用方的旧对象。
+            return doSkip(flowParams, getById(task.getId()), OPERATION_SOURCE.get() == null ? "USER" : OPERATION_SOURCE.get());
+        });
+    }
+
+    private Instance doSkip(FlowParams flowParams, Task task, String source) {
         // 流程开启前正确性校验
         R r = getAndCheck(task);
+        if (ProcessLifecycleState.AWAITING_RESUBMISSION.name().equals(r.instance.getLifecycleState())) {
+            throw new IllegalStateException("Instance requires explicit initiator resubmission");
+        }
         flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
         // 非第一个记得跳转类型必传
         if (!NodeType.isStart(task.getNodeType())) {
@@ -175,13 +193,20 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         }
         task.setUserList(FlowEngine.userService().listByTaskIdAndTypes(task.getId()));
         FlowCombine flowCombine = FlowEngine.defService().getFlowCombineNoDef(r.definition.getId());
+        NodeControlConfig control = NodeControlConfigUtil.read(r.nowNode);
+        if (SkipType.isReject(flowParams.getSkipType()) && control != null && !control.isAllowRollback()) {
+            throw new IllegalStateException("Rollback is disabled on this node");
+        }
 
-        // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
-            , task).setFlowParams(flowParams));
+        checkAuth(task, flowParams);
+
+        LifecycleTransition transition = new LifecycleTransition(r.instance, r.definition, r.nowNode, task,
+            flowParams, SkipType.isReject(flowParams.getSkipType()) ? "REJECT" : "APPROVE", source);
 
         // 如果是受托人在处理任务，需要处理一条委派记录，并且更新委托人，回到计划审批人,然后直接返回流程实例
         if (!flowParams.isIgnoreDepute() && handleDepute(task, flowParams)) {
+            FlowEngine.instanceService().updateById(r.instance);
+            transition.finish(true, true, "COMPLETED", null, null);
             return r.instance;
         }
 
@@ -190,7 +215,13 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         //或签、会签、票签逻辑处理
         if (!flowParams.isIgnoreCooperate() && cooperate(r.nowNode, task, flowParams)) {
+            FlowEngine.instanceService().updateById(r.instance);
+            transition.finish(true, false, "COMPLETED", null, null);
             return r.instance;
+        }
+
+        if (SkipType.isReject(flowParams.getSkipType()) && NodeControlConfigUtil.toInitiator(control)) {
+            return returnToInitiator(r, control, flowParams, transition, false);
         }
 
         if (NodeType.isSubProcess(task.getNodeType())) {
@@ -217,9 +248,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 办理人变量替换
         ExpressionUtil.evalVariable(addTasks, flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables())));
 
-        // 执行分派监听器
-        ListenerUtil.executeAssignment(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
-            , task, nextNodes, addTasks).setFlowParams(flowParams));
+        transition.prepare(addTasks, nextNodes);
 
         // 更新流程信息
         updateFlowInfo(task, r.instance, addTasks, flowParams, nextNodes);
@@ -232,9 +261,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         // 处理未完成的任务，当流程完成，还存在待办任务未完成，转历史任务，状态完成。
         handUndoneTask(r.instance);
 
-        // 执行完成和创建监听器
-        ListenerUtil.endCreateListener(new ListenerVariable(r.definition, r.instance, r.nowNode
-            , flowParams.getVariables(), task, nextNodes, addTasks).setFlowParams(flowParams));
+        transition.finish(true, false, SkipType.isReject(flowParams.getSkipType()) ? "REJECTED" : "COMPLETED", null, null);
 
         if (containsSubprocessTask(addTasks)) {
             FlowEngine.subprocessService().onTasksCreated(addTasks);
@@ -250,91 +277,212 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public Instance skipSystemTask(FlowParams flowParams, Task task) {
+        AssertUtil.isNull(task, ExceptionCons.NOT_FOUNT_TASK);
         flowParams.ignore(true).ignoreDepute(true).ignoreCooperate(true);
-        return skip(flowParams, task);
+        String previousSource = OPERATION_SOURCE.get();
+        OPERATION_SOURCE.set("SYSTEM");
+        try { return skip(flowParams, task); }
+        finally {
+            if (previousSource == null) OPERATION_SOURCE.remove();
+            else OPERATION_SOURCE.set(previousSource);
+        }
+    }
+
+    private Instance lockInstance(Long instanceId) {
+        LifecycleCallbackGuard.check(instanceId);
+        if (!FlowEngine.transactionExecutor().isTransactionActive()) {
+            throw new IllegalStateException("Workflow transition requires an active transaction");
+        }
+        FlowInstanceDao<Instance> dao = FlowEngine.instanceService().getDao();
+        if (dao == null) throw new IllegalStateException("Instance DAO is unavailable");
+        // 通过现有查询应用宿主 ORM 的租户规则；锁查询必须刷新缓存并返回最新状态。
+        Instance visible = FlowEngine.instanceService().getById(instanceId);
+        AssertUtil.isNull(visible, ExceptionCons.NOT_FOUNT_INSTANCE);
+        Instance instance = dao.lockForUpdate(visible.getTenantId(), instanceId);
+        AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
+        return instance;
+    }
+
+    private Instance returnToInitiator(R r, NodeControlConfig control, FlowParams params,
+                                       LifecycleTransition transition, boolean withdrawn) {
+        AssertUtil.isEmpty(r.instance.getCreatedBy(), "Instance initiator is missing");
+        if (StringUtils.isNotEmpty(params.getNodeCode())) {
+            throw new IllegalArgumentException("TO_INITIATOR does not accept an explicit target node");
+        }
+        if (definitionHasSubprocess(r.definition.getId())) {
+            FlowEngine.subprocessService().cancelByParent(r.instance.getId(), "RETURNED_TO_INITIATOR");
+        }
+        Node initiator = initiatorNode(r.instance);
+        Task next = FlowEngine.newTask().setInstanceId(r.instance.getId()).setDefinitionId(r.definition.getId())
+            .setNodeCode(initiator.getNodeCode()).setNodeName(initiator.getNodeName()).setNodeType(initiator.getNodeType())
+            .setFormId(r.definition.getFormId()).setFlowStatus(FlowStatus.TOBESUBMIT.getKey())
+            .setPermissionList(Collections.singletonList(r.instance.getCreatedBy())).setCreatedAt(new Date());
+        next.setTenantId(r.instance.getTenantId());
+        FlowEngine.dataFillHandler().idFill(next);
+        ResubmissionContext context = new ResubmissionContext();
+        context.setDefinitionId(r.definition.getId());
+        context.setSourceTaskId(r.task.getId());
+        context.setSourceNodeCode(r.task.getNodeCode());
+        context.setInitiatorTaskId(next.getId());
+        context.setStrategy(control.getResubmitStrategy());
+        r.instance.setResubmissionContext(FlowEngine.jsonConvert.objToStr(context));
+        r.instance.setLifecycleState(ProcessLifecycleState.AWAITING_RESUBMISSION.name());
+        updateResubmissionChart(r.instance, Collections.emptyList(), null, false);
+        // 退回发起人结束本次所有在途待办，不能留下可继续审批的并行分支。
+        List<Task> active = getByInsId(r.instance.getId());
+        for (Task current : active) {
+            FlowParams historyParams = current.getId().equals(r.task.getId()) ? params : FlowParams.build()
+                .skipType(SkipType.NONE.getKey()).handler(params.getHandler()).message("退回发起人，取消剩余待办");
+            FlowEngine.hisTaskService().save(FlowEngine.hisTaskService()
+                .setSkipInsHis(current, Collections.singletonList(initiator), historyParams));
+        }
+        removeAndUser(active);
+        List<Task> nextTasks = new ArrayList<Task>(Collections.singletonList(next));
+        transition.prepare(nextTasks, Collections.singletonList(initiator));
+        setInsFinishInfo(r.instance, nextTasks, params);
+        saveBatch(nextTasks);
+        FlowEngine.userService().saveBatch(FlowEngine.userService().taskAddUsers(nextTasks));
+        FlowEngine.instanceService().updateById(r.instance);
+        transition.finish(!withdrawn, false, withdrawn ? "WITHDRAWN" : "REJECTED", null,
+            withdrawn ? LifecycleEventType.PROCESS_WITHDRAWN : null);
+        return r.instance;
+    }
+
+    private Node initiatorNode(Instance instance) {
+        return FlowEngine.newNode().setDefinitionId(instance.getDefinitionId())
+            .setNodeCode(NodeControlConfigUtil.INITIATOR_CODE).setNodeName("发起人")
+            .setNodeType(NodeType.INITIATOR.getKey());
+    }
+
+    @Override
+    public Instance resubmit(Long instanceId, FlowParams params) {
+        Objects.requireNonNull(params, "flowParams");
+        return FlowEngine.transactionExecutor().execute(() -> doResubmit(lockInstance(instanceId), params));
+    }
+
+    private Instance doResubmit(Instance instance, FlowParams params) {
+        if (!ProcessLifecycleState.AWAITING_RESUBMISSION.name().equals(instance.getLifecycleState())) {
+            throw new IllegalStateException("Instance is not awaiting resubmission");
+        }
+        AssertUtil.isEmpty(instance.getCreatedBy(), "Instance initiator is missing");
+        if (!instance.getCreatedBy().equals(params.getHandler())) {
+            throw new IllegalStateException("Only the instance initiator may resubmit");
+        }
+        if (StringUtils.isNotEmpty(params.getNodeCode())) {
+            throw new IllegalArgumentException("Resubmission target is determined by the captured strategy");
+        }
+        Definition definition = FlowEngine.defService().getById(instance.getDefinitionId());
+        AssertUtil.isNull(definition, ExceptionCons.NOT_FOUNT_DEF);
+        AssertUtil.isFalse(judgeActivityStatus(definition, instance), ExceptionCons.NOT_ACTIVITY);
+        ResubmissionContext context = FlowEngine.jsonConvert.strToBean(instance.getResubmissionContext(), ResubmissionContext.class);
+        if (context == null || context.getSchemaVersion() != 1
+                || !Objects.equals(context.getDefinitionId(), instance.getDefinitionId())
+                || context.getSourceTaskId() == null || StringUtils.isEmpty(context.getSourceNodeCode())) {
+            throw new IllegalStateException("Invalid persisted resubmission context");
+        }
+        NodeControlConfigUtil.validateStrategy(context.getStrategy());
+        Task task = getTask(instance.getId());
+        if (!NodeType.INITIATOR.getKey().equals(task.getNodeType())
+                || !Objects.equals(context.getInitiatorTaskId(), task.getId())) {
+            throw new IllegalStateException("Initiator task does not match resubmission context");
+        }
+        LifecycleTransition transition = new LifecycleTransition(instance, definition, initiatorNode(instance), task,
+            params, "RESUBMIT", "USER");
+        params.skipType(SkipType.PASS.getKey());
+        DefJson snapshot = FlowEngine.jsonConvert.strToBean(instance.getDefJson(), DefJson.class);
+        if (snapshot == null || CollUtil.isEmpty(snapshot.getNodeList())) {
+            throw new IllegalStateException("Instance definition snapshot is unavailable");
+        }
+        FlowCombine graph = DefJson.copyCombine(snapshot);
+        graph.getAllNodes().forEach(node -> node.setDefinitionId(instance.getDefinitionId()));
+        PathWayData route = new PathWayData().setInsId(instance.getId()).setSkipType(SkipType.PASS.getKey());
+        List<Node> nextNodes;
+        if (NodeControlConfigUtil.CONTINUE.equals(context.getStrategy())) {
+            Node source = StreamUtils.filterOne(graph.getAllNodes(), node -> context.getSourceNodeCode().equals(node.getNodeCode()));
+            if (source == null || !NodeType.isBetween(source.getNodeType())) {
+                throw new IllegalStateException("Captured rejection node is unavailable");
+            }
+            nextNodes = Collections.singletonList(source);
+        } else {
+            Node start = StreamUtils.filterOne(graph.getAllNodes(), node -> NodeType.isStart(node.getNodeType()));
+            AssertUtil.isNull(start, ExceptionCons.LOST_START_NODE);
+            // 仅使用开始节点的出边选路，不重新激活开始事件。
+            nextNodes = FlowEngine.nodeService().getNextNodeList(start, null, SkipType.PASS.getKey(),
+                params.getVariables(), route, graph);
+        }
+        AssertUtil.isEmpty(nextNodes, ExceptionCons.NULL_DEST_NODE);
+        List<Task> nextTasks = StreamUtils.toList(nextNodes, node -> addTask(node, instance, definition, params));
+        ExpressionUtil.evalVariable(nextTasks, params);
+        transition.prepare(nextTasks, nextNodes);
+        updateResubmissionChart(instance, nextNodes, route, NodeControlConfigUtil.RESTART.equals(context.getStrategy()));
+        instance.setLifecycleState(ProcessLifecycleState.ACTIVE.name()).setResubmissionContext("{}");
+        updateFlowInfo(task, instance, nextTasks, params, nextNodes);
+        transition.finish(false, false, "COMPLETED", null, LifecycleEventType.PROCESS_RESUBMITTED);
+        if (containsSubprocessTask(nextTasks)) FlowEngine.subprocessService().onTasksCreated(nextTasks);
+        CarbonCopyUtil.advanceTasks(nextTasks, params.getVariables());
+        Instance advanced = ApproverPolicyUtil.advanceTasks(nextTasks, params.getVariables());
+        return advanced == null ? instance : advanced;
+    }
+
+    private void updateResubmissionChart(Instance instance, List<Node> targets, PathWayData route, boolean restart) {
+        DefJson snapshot = FlowEngine.jsonConvert.strToBean(instance.getDefJson(), DefJson.class);
+        if (snapshot == null || CollUtil.isEmpty(snapshot.getNodeList())) {
+            throw new IllegalStateException("Instance definition snapshot is unavailable");
+        }
+        Map<String, NodeJson> nodes = StreamUtils.toMap(snapshot.getNodeList(), NodeJson::getNodeCode, node -> node);
+        for (NodeJson node : snapshot.getNodeList()) {
+            if (ChartStatus.isToDo(node.getStatus()) || (restart && !NodeType.isStart(node.getNodeType()))) {
+                node.setStatus(ChartStatus.NOT_DONE.getKey());
+            }
+            if (restart && node.getSkipList() != null) {
+                node.getSkipList().forEach(skip -> skip.setStatus(ChartStatus.NOT_DONE.getKey()));
+            }
+        }
+        if (route != null) {
+            for (Node visited : route.getPathWayNodes()) {
+                nodes.get(visited.getNodeCode()).setStatus(ChartStatus.DONE.getKey());
+            }
+            for (Skip visited : route.getPathWaySkips()) {
+                NodeJson source = nodes.get(visited.getSourceNodeCode());
+                for (SkipJson skip : source.getSkipList()) {
+                    if (Objects.equals(skip.getTargetNodeCode(), visited.getTargetNodeCode())
+                            && Objects.equals(skip.getSkipType(), visited.getSkipType())
+                            && Objects.equals(skip.getSkipCondition(), visited.getSkipCondition())) {
+                        skip.setStatus(ChartStatus.DONE.getKey());
+                    }
+                }
+            }
+        }
+        for (Node target : targets) {
+            nodes.get(target.getNodeCode()).setStatus(NodeType.isEnd(target.getNodeType())
+                ? ChartStatus.DONE.getKey() : ChartStatus.TO_DO.getKey());
+        }
+        instance.setDefJson(FlowEngine.jsonConvert.objToStr(snapshot));
     }
 
     @Override
     public Instance revoke(Long instanceId, FlowParams flowParams) {
-        flowParams.skipType(SkipType.REJECT.getKey());
-        // 删除待办任务，保存历史，删除所有代办任务的权限人
-        if (StringUtils.isEmpty(flowParams.getFlowStatus())) {
-            flowParams.flowStatus(FlowStatus.CANCEL.getKey());
-        }
+        return FlowEngine.transactionExecutor().execute(() -> {
+            Instance instance = lockInstance(instanceId);
+            requireNotAwaitingResubmission(instance);
+            return doRevoke(instanceId, flowParams);
+        });
+    }
 
+    private Instance doRevoke(Long instanceId, FlowParams flowParams) {
         Instance instance = FlowEngine.instanceService().getById(instanceId);
-        flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
-        AssertUtil.isNull(instance, ExceptionCons.NOT_FOUNT_INSTANCE);
-        Definition definition = FlowEngine.defService().getById(instance.getDefinitionId());
-        AssertUtil.isFalse(judgeActivityStatus(definition, instance), ExceptionCons.NOT_ACTIVITY);
-        AssertUtil.isTrue(NodeType.isEnd(instance.getNodeType()), ExceptionCons.FLOW_FINISH);
-        flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables()));
-
-        List<Task> taskList = getByInsId(instanceId);
-        FlowCombine flowCombine = FlowEngine.defService().getFlowCombine(definition);
-        Map<String, Node> nodeMap = StreamUtils.toMap(flowCombine.getAllNodes(), Node::getNodeCode, node -> node);
-        // 执行开始监听器
-        taskList.forEach(task -> ListenerUtil.executeStart(new ListenerVariable(definition, instance
-                , nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task).setFlowParams(flowParams)));
-
-        // 验证权限是不是当前任务的发起人
+        List<Task> tasks = getByInsId(instanceId);
+        AssertUtil.isEmpty(tasks, ExceptionCons.NOT_FOUND_FLOW_TASK);
+        R r = getAndCheck(tasks.get(0));
         if (!flowParams.isIgnore()) {
-            AssertUtil.isFalse(instance.getCreatedBy().equals(flowParams.getHandler())
-                , ExceptionCons.NOT_DEF_PROMOTER_NOT_CANCEL);
+            AssertUtil.isFalse(Objects.equals(instance.getCreatedBy(), flowParams.getHandler()), ExceptionCons.NOT_DEF_PROMOTER_NOT_CANCEL);
         }
-
-        if (definitionHasSubprocess(definition.getId())) {
-            FlowEngine.subprocessService().cancelByParent(instanceId, "PARENT_REVOKED");
-        }
-
-        // 获取开始节点
-        Node startNode = StreamUtils.filterOne(flowCombine.getAllNodes(), node -> NodeType.isStart(node.getNodeType()));
-        // 获取下一个节点，如果是网关节点，则重新获取后续节点
-        PathWayData pathWayData = new PathWayData().setInsId(instanceId).setSkipType(flowParams.getSkipType());
-        Node nextNode = FlowEngine.nodeService().getNextNode(startNode, null, SkipType.PASS.getKey()
-            , null, flowCombine);
-        List<Node> nextNodes = FlowEngine.nodeService().getNextByCheckGateway(flowParams.getVariables(), nextNode
-            , pathWayData, flowCombine);
-        pathWayData.getTargetNodes().addAll(nextNodes);
-        // 设置流程图元数据
-        instance.setDefJson(FlowEngine.chartService().skipMetadata(pathWayData));
-
-        // 查询任务,如果前一个节点是并行网关，可能任务表有多个任务,增加查询和判断
-        List<Task> curTaskList = list(FlowEngine.newTask().setInstanceId(instance.getId()));
-        AssertUtil.isEmpty(curTaskList, ExceptionCons.NOT_FOUND_FLOW_TASK);
-
-        // 给回退到的那个节点赋权限-给当前处理人权限
-        List<Task> addTasks = StreamUtils.toList(nextNodes, node -> addTask(node, instance, definition, flowParams));
-
-        // 办理人变量替换
-        ExpressionUtil.evalVariable(addTasks, flowParams.variables(MapUtil.mergeAll(instance.getVariableMap(), flowParams.getVariables())));
-
-        // 执行分派监听器
-        taskList.forEach(task -> ListenerUtil.executeAssignment(new ListenerVariable(definition, instance,
-            nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task, nextNodes, addTasks)
-            .setFlowParams(flowParams)));
-
-        // 设置流程历史任务信息
-        List<HisTask> insHisList = FlowEngine.hisTaskService().setSkipHisList(curTaskList, nextNodes, flowParams);
-        FlowEngine.hisTaskService().saveBatch(insHisList);
-        // 待办任务和处理人
-        removeAndUser(curTaskList);
-        List<User> users = FlowEngine.userService().taskAddUsers(addTasks);
-
-        // 设置任务完成后的实例相关信息
-        setInsFinishInfo(instance, addTasks, flowParams);
-        if (CollUtil.isNotEmpty(addTasks)) {
-            saveBatch(addTasks);
-        }
-        FlowEngine.instanceService().updateById(instance);
-        // 保存下一个待办任务的权限人
-        FlowEngine.userService().saveBatch(users);
-
-        // 执行完成和创建监听器
-        taskList.forEach(task -> ListenerUtil.endCreateListener(new ListenerVariable(definition, instance,
-            nodeMap.get(task.getNodeCode()), flowParams.getVariables(), task, nextNodes, addTasks).setFlowParams(flowParams)));
-        Instance advanced = ApproverPolicyUtil.advanceTasks(addTasks, flowParams.getVariables());
-        return advanced == null ? instance : advanced;
+        flowParams.skipType(SkipType.REJECT.getKey());
+        LifecycleTransition transition = new LifecycleTransition(r.instance, r.definition, null, r.task,
+            flowParams, "WITHDRAW", "USER");
+        NodeControlConfig control = new NodeControlConfig();
+        control.setResubmitStrategy(NodeControlConfigUtil.RESTART);
+        return returnToInitiator(r, control, flowParams, transition, true);
     }
 
     @Override
@@ -354,15 +502,23 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public Instance termination(Task task, FlowParams flowParams) {
+        AssertUtil.isNull(task, ExceptionCons.NOT_FOUNT_TASK);
+        return FlowEngine.transactionExecutor().execute(() -> {
+            lockInstance(task.getInstanceId());
+            return doTermination(getById(task.getId()), flowParams);
+        });
+    }
+
+    private Instance doTermination(Task task, FlowParams flowParams) {
         R r = getAndCheck(task);
         flowParams.skipType(SkipType.PASS.getKey());
         flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
-            , task).setFlowParams(flowParams));
 
         // 判断当前处理人是否有权限处理
         task.setUserList(FlowEngine.userService().listByTaskIdAndTypes(task.getId()));
         checkAuth(task, flowParams);
+        LifecycleTransition transition = new LifecycleTransition(r.instance, r.definition, r.nowNode, task,
+            flowParams, "TERMINATE", "USER");
 
         if (definitionHasSubprocess(r.definition.getId())) {
             FlowEngine.subprocessService().cancelByParent(r.instance.getId(), "PARENT_TERMINATED");
@@ -377,13 +533,18 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             .setSkipType(flowParams.getSkipType())
             .setPathWayNodes(Collections.singletonList(r.nowNode))
             .setTargetNodes(Collections.singletonList(endNode));
-        r.instance.setDefJson(FlowEngine.chartService().skipMetadata(pathWayData));
+        if (NodeType.INITIATOR.getKey().equals(task.getNodeType())) {
+            updateResubmissionChart(r.instance, Collections.singletonList(endNode), null, false);
+        } else {
+            r.instance.setDefJson(FlowEngine.chartService().skipMetadata(pathWayData));
+        }
 
         // 流程实例完成
         r.instance.setNodeType(endNode.getNodeType())
             .setNodeCode(endNode.getNodeCode())
             .setNodeName(endNode.getNodeName())
-            .setFlowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(), FlowStatus.TERMINATE.getKey()));
+            .setFlowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(), FlowStatus.TERMINATE.getKey()))
+            .setLifecycleState(ProcessLifecycleState.ENDED.name()).setResubmissionContext("{}");
 
         // 待办任务转历史
         flowParams.flowStatus(r.instance.getFlowStatus());
@@ -397,9 +558,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         // 处理未完成的任务，当流程完成，还存在待办任务未完成，转历史任务，状态完成。
         handUndoneTask(r.instance);
-        // 最后判断是否存在节点监听器，存在执行节点监听器
-        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
-            , task).setFlowParams(flowParams));
+        transition.finish(false, false, "CANCELLED", "TERMINATED", null);
         if (isSubprocessChild(r.instance)) {
             FlowEngine.subprocessService().onInstanceTerminal(r.instance, SubprocessOutcome.CANCELLED);
         }
@@ -470,11 +629,18 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public boolean updateHandler(Long taskId, FlowParams flowParams) {
+        Task task = getById(taskId);
+        AssertUtil.isNull(task, ExceptionCons.NOT_FOUNT_TASK);
+        return FlowEngine.transactionExecutor().execute(() -> {
+            requireNotAwaitingResubmission(lockInstance(task.getInstanceId()));
+            return doUpdateHandler(taskId, flowParams);
+        });
+    }
+
+    private boolean doUpdateHandler(Long taskId, FlowParams flowParams) {
         // 获取待办任务
         R r = getAndCheck(taskId);
         flowParams.variables(MapUtil.mergeAll(r.instance.getVariableMap(), flowParams.getVariables()));
-        // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, null, r.task));
 
         // 获取给谁的权限
         if (!flowParams.isIgnore()) {
@@ -486,6 +652,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             AssertUtil.isTrue(CollUtil.isNotEmpty(taskPermissions) && (CollUtil.isEmpty(permissions)
                 || CollUtil.notContainsAny(permissions, taskPermissions)), ExceptionCons.NOT_AUTHORITY);
         }
+        LifecycleTransition transition = new LifecycleTransition(r.instance, r.definition, r.nowNode, r.task,
+            flowParams, "ASSIGNEES_CHANGED:" + flowParams.getCooperationType(), "USER");
         // 留存历史记录
         flowParams.skipType(SkipType.NONE.getKey());
         HisTask hisTask = null;
@@ -516,9 +684,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         if (ObjectUtil.isNotNull(hisTask)) {
             FlowEngine.hisTaskService().save(hisTask);
         }
-        // 最后判断是否存在节点监听器，存在执行节点监听器
-        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
-            , r.task));
+        FlowEngine.instanceService().updateById(r.instance);
+        transition.finish(false, true, "COMPLETED", null, null);
         return true;
     }
 
@@ -536,16 +703,28 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public Instance pending(Task task, FlowParams flowParams) {
-        // TODO min 后续考虑并发问题，待办任务和实例表不同步，可给待办任务id加锁，抽取所接口，方便后续兼容分布式锁
+        AssertUtil.isNull(task, ExceptionCons.NOT_FOUNT_TASK);
+        return FlowEngine.transactionExecutor().execute(() -> {
+            requireNotAwaitingResubmission(lockInstance(task.getInstanceId()));
+            return doPending(getById(task.getId()), flowParams);
+        });
+    }
+
+    private void requireNotAwaitingResubmission(Instance instance) {
+        if (ProcessLifecycleState.AWAITING_RESUBMISSION.name().equals(instance.getLifecycleState())) {
+            throw new IllegalStateException("Instance requires explicit initiator resubmission");
+        }
+    }
+
+    private Instance doPending(Task task, FlowParams flowParams) {
         // 流程开启前正确性校验
         R r = getAndCheck(task);
         flowParams.flowStatus(StringUtils.emptyDefault(flowParams.getFlowStatus(), FlowStatus.PENDING.getKey()));
-        // 执行开始监听器
-        ListenerUtil.executeStart(new ListenerVariable(r.definition, r.instance, r.nowNode, flowParams.getVariables()
-            , r.task).setFlowParams(flowParams));
 
         // 判断当前处理人是否有权限处理
+        r.task.setUserList(FlowEngine.userService().listByTaskIdAndTypes(r.task.getId()));
         checkAuth(r.task, flowParams);
+        new LifecycleTransition(r.instance, r.definition, r.nowNode, r.task, flowParams, "PENDING", "USER");
 
         // 设置流程历史任务信息
         HisTask insHis = FlowEngine.hisTaskService().notSkip(r.task, flowParams);
@@ -553,9 +732,6 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
         FlowEngine.instanceService().updateById(r.instance.setFlowStatus(flowParams.getFlowStatus()));
 
-        // 执行任务完成监听器
-        ListenerUtil.executeFinish(new ListenerVariable(r.definition, r.instance, r.nowNode
-            , flowParams.getVariables(), r.task));
 
         return r.instance;
     }
@@ -567,6 +743,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         Task addTask = FlowEngine.newTask();
         Date now = new Date();
         FlowEngine.dataFillHandler().idFill(addTask);
+        addTask.setTenantId(instance.getTenantId());
         addTask.setDefinitionId(instance.getDefinitionId())
             .setInstanceId(instance.getId())
             .setNodeCode(node.getNodeCode())
@@ -617,11 +794,17 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
 
     @Override
     public boolean claimTimeout(Long taskId, Date claimedAt, Date staleBefore) {
+        Task task = getById(taskId);
+        if (task == null) return false;
+        lockInstance(task.getInstanceId());
         return getDao().claimTimeout(taskId, claimedAt, staleBefore) == 1;
     }
 
     @Override
     public boolean claimWait(Long taskId, Date claimedAt) {
+        Task task = getById(taskId);
+        if (task == null) return false;
+        lockInstance(task.getInstanceId());
         return getDao().claimWait(taskId, claimedAt) == 1;
     }
 
@@ -651,6 +834,10 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
                 .setNodeCode(finallyTask.get().getNodeCode())
                 .setNodeName(finallyTask.get().getNodeName())
                 .setFlowStatus(finallyTask.get().getFlowStatus());
+        }
+        if (NodeType.isEnd(instance.getNodeType())) instance.setLifecycleState(ProcessLifecycleState.ENDED.name());
+        else if (!ProcessLifecycleState.AWAITING_RESUBMISSION.name().equals(instance.getLifecycleState())) {
+            instance.setLifecycleState(ProcessLifecycleState.ACTIVE.name());
         }
     }
 
@@ -747,6 +934,7 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         AssertUtil.isFalse(judgeActivityStatus(definition, instance), ExceptionCons.NOT_ACTIVITY);
         AssertUtil.isTrue(NodeType.isEnd(instance.getNodeType()), ExceptionCons.FLOW_FINISH);
         Node nowNode = FlowEngine.nodeService().getByDefIdAndNodeCode(task.getDefinitionId(), task.getNodeCode());
+        if (NodeType.INITIATOR.getKey().equals(task.getNodeType())) nowNode = initiatorNode(instance);
         AssertUtil.isNull(nowNode, ExceptionCons.LOST_CUR_NODE);
         return new R(instance, definition, nowNode, task);
     }

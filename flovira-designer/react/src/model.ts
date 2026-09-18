@@ -1,3 +1,4 @@
+import { lifecycleValue, parseLifecycle, validateLifecycle } from './lifecycle'
 import type {
   ApproverRule,
   ApproverStrategy,
@@ -274,18 +275,22 @@ export const getSubprocessConfig = (node: FloviraNode): Record<string, unknown> 
   return getNodeExtConfig(node, 'subprocessConfig')
 }
 
-export const getNodeControlConfig = (node: FloviraNode): NodeControlConfig => ({
-  schemaVersion: 1,
-  allowRollback: true,
-  allowTransfer: false,
-  allowAddSign: false,
-  allowMinusSign: false,
-  rejectStrategy: node.returnPolicy === 'ANY' ? 'TO_REJECTOR_SPECIFIED_NODE'
-    : node.returnPolicy === 'REJECT' ? 'REJECT' : 'TO_PREVIOUS',
-  rejectTargetNodeCode: '',
-  resubmitStrategy: 'RESTART_FROM_BEGINNING',
-  ...getNodeExtConfig(node, 'nodeControlConfig'),
-})
+export const getNodeControlConfig = (node: FloviraNode): NodeControlConfig => {
+  const stored = getNodeExtConfig(node, 'nodeControlConfig')
+  return {
+    schemaVersion: 1,
+    allowRollback: true,
+    allowTransfer: false,
+    allowAddSign: false,
+    allowMinusSign: false,
+    rejectStrategy: node.returnPolicy === 'ANY' ? 'TO_REJECTOR_SPECIFIED_NODE'
+      : node.returnPolicy === 'REJECT' ? 'REJECT' : 'TO_PREVIOUS',
+    rejectTargetNodeCode: '',
+    resubmitStrategy: 'RESTART_FROM_BEGINNING',
+    ...stored,
+    ...(stored.rejectStrategy === 'TO_DRAFT' ? { rejectStrategy: 'TO_INITIATOR' as const } : {}),
+  }
+}
 
 export const setNodeControlConfig = (node: FloviraNode, patch: Partial<NodeControlConfig>): FloviraNode =>
   setNodeExtConfig(node, 'nodeControlConfig', { ...getNodeControlConfig(node), ...patch, schemaVersion: 1 })
@@ -472,6 +477,16 @@ export const setTimeoutConfig = (
 
 export const validateDefinition = (definition: FloviraDefinition, capabilities?: DesignerCapabilities): FlowValidationResult => {
   const issues: FlowValidationResult['issues'] = []
+  for (const item of [definition, ...definition.nodeList]) {
+    try {
+      const legacy = item as unknown as { listenerType?: string; listenerPath?: string }
+      if ((legacy.listenerType || '').split(',').some(type => type && type !== 'formLoad')
+          || (!legacy.listenerType && legacy.listenerPath)) throw new Error('旧监听配置需迁移到生命周期回调')
+      validateLifecycle(parseLifecycle(lifecycleValue(item.ext)), 'nodeType' in item ? String(item.nodeType) : undefined)
+    } catch (error) {
+      issues.push({ code: 'LIFECYCLE_INVALID', message: String(error), nodeCode: 'nodeCode' in item ? String(item.nodeCode) : undefined })
+    }
+  }
   const nodes = definition.nodeList
   const codes = new Set(nodes.map((node) => node.nodeCode))
   const incoming = new Map<string, number>()

@@ -112,6 +112,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         String flowStatus = getFlowStatus(flowParams);
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
+            .setNodeExecutionId(task.getNodeExecutionId())
             .setInstanceId(task.getInstanceId())
             .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setCollaborator(StreamUtils.join(collaborators, c -> c))
@@ -139,6 +140,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         String flowStatus = getFlowStatus(flowParams);
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
+            .setNodeExecutionId(task.getNodeExecutionId())
             .setInstanceId(task.getInstanceId())
             .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setNodeCode(task.getNodeCode())
@@ -165,6 +167,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         String flowStatus = getFlowStatus(flowParams);
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
+            .setNodeExecutionId(task.getNodeExecutionId())
             .setInstanceId(task.getInstanceId())
             .setCooperationType(CooperationType.DEPUTE.getKey())
             .setNodeCode(task.getNodeCode())
@@ -194,6 +197,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
         String flowStatus = getFlowStatus(flowParams);
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
+            .setNodeExecutionId(task.getNodeExecutionId())
             .setInstanceId(task.getInstanceId())
             .setCooperationType(CooperationType.isCountersign(nodeRatio)
                 ? CooperationType.COUNTERSIGN.getKey() : CooperationType.VOTE.getKey())
@@ -279,6 +283,7 @@ public class HisTaskServiceImpl extends FloviraServiceImpl<FlowHisTaskDao<HisTas
     private HisTask setSkipHis(Task task, List<Node> nextNodes, FlowParams flowParams, String flowStatus) {
         HisTask hisTask = FlowEngine.newHisTask()
             .setTaskId(task.getId())
+            .setNodeExecutionId(task.getNodeExecutionId())
             .setInstanceId(task.getInstanceId())
             .setCooperationType(ObjectUtil.defaultNull(flowParams.getCooperationType(), CooperationType.APPROVAL.getKey()))
             .setNodeCode(task.getNodeCode())

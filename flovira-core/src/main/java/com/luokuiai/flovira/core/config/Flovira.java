@@ -156,7 +156,9 @@ public class Flovira implements Serializable {
         FlowEngine.initPermissionHandler(this.getPermissionHandlerPath());
 
         // 设置全局监听器
-        FlowEngine.initGlobalListener(this.getGlobalListenerPath());
+        if (StringUtils.isNotEmpty(globalListenerPath)) {
+            throw new IllegalArgumentException("global-listener-path is no longer supported; migrate to WorkflowLifecycleListener beans and subscriptions");
+        }
 
         // 打印banner图
         printBanner();

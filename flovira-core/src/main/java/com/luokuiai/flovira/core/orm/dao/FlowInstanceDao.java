@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -34,4 +35,12 @@ public interface FlowInstanceDao<T extends Instance> extends FloviraDao<T> {
      * @return 流程实例集合
      */
     List<T> getByDefIds(List<Long> defIds);
+
+    /**
+     * 当前事务内锁定实例，显式约束租户和逻辑删除。
+     * 必须清除之前读取的缓存并返回获得行锁后的最新状态，不能使用查询缓存。
+     */
+    default T lockForUpdate(String tenantId, Long instanceId) {
+        throw new UnsupportedOperationException("Instance row locking is required for resubmission");
+    }
 }

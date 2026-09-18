@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luokuiai.flovira.orm.mapper.FlowNodeExecutionMapper">
+    <resultMap id="ExecutionResult" type="com.luokuiai.flovira.orm.entity.FlowNodeExecution">
+        <id property="id" column="id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="deleted" column="deleted"/>
+        <result property="instanceId" column="instance_id"/>
+        <result property="definitionId" column="definition_id"/>
+        <result property="nodeCode" column="node_code"/>
+        <result property="nodeType" column="node_type"/>
+        <result property="state" column="state"/>
+        <result property="enteredAt" column="entered_at"/>
+        <result property="closedAt" column="closed_at"/>
+        <result property="closeReason" column="close_reason"/>
+        <result property="version" column="version"/>
+    </resultMap>
+    <sql id="columns">id,created_at,updated_at,created_by,updated_by,tenant_id,deleted,instance_id,definition_id,node_code,node_type,state,entered_at,closed_at,close_reason,version</sql>
+    <sql id="tenant">
+        <choose><when test="tenantId != null">and tenant_id=#{tenantId}</when><otherwise>and tenant_id is null</otherwise></choose>
+    </sql>
+    <insert id="insert">
+        insert into flow_node_execution (<include refid="columns"/>)
+        values (#{id},#{createdAt},#{updatedAt},#{createdBy},#{updatedBy},#{tenantId},#{deleted},#{instanceId},#{definitionId},#{nodeCode},#{nodeType},#{state},#{enteredAt},#{closedAt},#{closeReason},#{version})
+    </insert>
+    <select id="get" resultMap="ExecutionResult">
+        select <include refid="columns"/> from flow_node_execution where id=#{id} and deleted='0'
+        <include refid="tenant"/>
+    </select>
+    <select id="listActive" resultMap="ExecutionResult">
+        select <include refid="columns"/> from flow_node_execution
+        where instance_id=#{instanceId} and state='ACTIVE' and deleted='0'
+        <include refid="tenant"/> order by entered_at,id
+    </select>
+    <update id="close">
+        update flow_node_execution set state='CLOSED',close_reason=#{reason},closed_at=#{closedAt},
+        updated_at=#{closedAt},version=version+1
+        where id=#{id} and version=#{version} and state='ACTIVE' and deleted='0'
+        <include refid="tenant"/>
+    </update>
+</mapper>

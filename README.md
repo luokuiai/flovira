@@ -129,6 +129,11 @@ cluster coordination (for example ShedLock with Redis), retries and monitoring.
 See [timeout integration and alpha migration](docs/timeout-integration.md) before
 enabling this feature.
 
+Workflow lifecycle callbacks use `WorkflowLifecycleListener` with Spring Bean
+names or standalone registration. See [listener integration](docs/lifecycle-listener-migration.md)
+for the eight events, global subscriptions, return-to-initiator handling and
+host integration requirements.
+
 The Java root package is `com.luokuiai.flovira`.
 
 See [approver policies](docs/approver-policies.md) for handling empty approver

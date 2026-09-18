@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -39,6 +40,11 @@ public class FlowInstanceDaoImpl extends FloviraDaoImpl<FlowInstance> implements
     @Override
     public FlowInstance newEntity() {
         return new FlowInstance();
+    }
+
+    @Override
+    public FlowInstance lockForUpdate(String tenantId, Long instanceId) {
+        return getMapper().lockForUpdate(tenantId, instanceId);
     }
 
     @Override

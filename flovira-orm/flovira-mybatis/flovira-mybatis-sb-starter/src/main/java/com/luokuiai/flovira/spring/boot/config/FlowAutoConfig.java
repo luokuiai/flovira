@@ -59,7 +59,7 @@ public class FlowAutoConfig extends BeanConfig {
             , "flovira/FlowInstanceMapper.xml", "flovira/FlowNodeMapper.xml", "flovira/FlowFormMapper.xml"
             , "flovira/FlowSkipMapper.xml", "flovira/FlowTaskMapper.xml", "flovira/FlowUserMapper.xml"
             , "flovira/FlowSubprocessRunMapper.xml", "flovira/FlowSubprocessChildMapper.xml"
-            , "flovira/FlowSubprocessEventMapper.xml");
+            , "flovira/FlowSubprocessEventMapper.xml", "flovira/FlowNodeExecutionMapper.xml");
         org.apache.ibatis.session.Configuration configuration = sqlSessionFactory.getConfiguration();
         configuration.setJdbcTypeForNull(JdbcType.NULL);
         try {

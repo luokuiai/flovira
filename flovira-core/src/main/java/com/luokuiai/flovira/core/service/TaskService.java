@@ -310,6 +310,9 @@ public interface TaskService extends IFloviraService<Task> {
      */
     Instance revoke(Long instanceId, FlowParams flowParams);
 
+    /** 发起人在原实例重新提交，路径由退回时保存的 resubmitStrategy 决定。 */
+    Instance resubmit(Long instanceId, FlowParams flowParams);
+
     /**
      * 终止流程，提前结束流程，将所有待办任务转历史
      *

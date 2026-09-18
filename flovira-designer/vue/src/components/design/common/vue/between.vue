@@ -181,56 +181,10 @@
         </div>
       </div>
 
-      <!-- 监听器 -->
-      <div v-show="tabsValue === '3'" class="tabPane tabPane-full">
-        <div class="section-card section-purple">
-          <div class="section-card-body">
-            <wf-table :data="form.listenerRows" style="width: 100%">
-              <wf-table-column prop="listenerType" :label="t('common.type')" :width="isMobile ? 60 : 160">
-                <template #default="scope">
-                  <wf-form-item :prop="'listenerRows.' + scope.$index + '.listenerType'" :rules="rules.listenerType">
-                    <wf-select v-model="scope.row.listenerType" :placeholder="t('common.pleaseSelect')">
-                      <wf-option :label="t('start.listenerStart')" value="start"></wf-option>
-                      <wf-option :label="t('start.listenerAssignment')" value="assignment"></wf-option>
-                      <wf-option :label="t('start.listenerFinish')" value="finish"></wf-option>
-                      <wf-option :label="t('start.listenerCreate')" value="create"></wf-option>
-                    </wf-select>
-                  </wf-form-item>
-                </template>
-              </wf-table-column>
-              <wf-table-column prop="listenerPath" :label="t('baseInfo.listenerPathLabel')">
-                <template #default="scope">
-                  <wf-form-item :prop="'listenerRows.' + scope.$index + '.listenerPath'" :rules="rules.listenerPath">
-                      <wf-select
-                          v-model="scope.row.listenerPath"
-                          :placeholder="t('baseInfo.listenerPathPlaceholder')"
-                          allow-create
-                          filterable
-                          clearable
-                          style="width: 100%"
-                          @change="(value) => handleListenerPathChange(value, scope.row)">
-                          <wf-option
-                              v-for="item in ListenerVo"
-                              :key="item.path"
-                              :label="item.description"
-                              :value="item.path"/>
-                      </wf-select>
-                  </wf-form-item>
-                </template>
-              </wf-table-column>
-              <wf-table-column :label="t('common.operation')" width="65" align="center" v-if="!disabled">
-                <template #default="scope">
-                  <wf-button link size="small" type="danger" @click="handleDeleteRow(scope.$index)"><svg-icon icon-class="ep:delete"/></wf-button>
-                </template>
-              </wf-table-column>
-            </wf-table>
-            <div class="action-buttons">
-              <wf-button v-if="!disabled" class="add-row-btn" @click="handleAddRow">{{ t('common.addRow') }}</wf-button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div v-show="tabsValue === '3'" class="tabPane tabPane-full">
+      <LifecycleEditor :model-value="form.ext?.lifecycle" node-type="1" :disabled="disabled"
+        @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
+    </div>
       <!-- 动态页签（按钮权限等）- 都是节点扩展属性。tab 已表明当前分组，无需重复标题与卡片背景，直接渲染扩展属性表单 -->
       <div v-show="tabsValue !== '1' && tabsValue !== '2' && tabsValue !== '3'" class="tabPane tabPane-full">
         <div v-if="buttonList[tabsValue] && buttonList[tabsValue].length > 0" class="ext-tab-content">
@@ -257,6 +211,7 @@
 </template>
 
 <script setup lang="ts">
+import LifecycleEditor from './LifecycleEditor.vue'
 import { computed, getCurrentInstance, reactive, ref, watch } from 'vue';
 import selectUser from "./selectUser.vue";
 import {designerCapabilities, designerResourceItems, designerSubjects} from "@/api/flow/definition";
@@ -360,7 +315,6 @@ function handlePolicyUserSelect(rows: any[]) {
   policyError.value = '';
   syncApproverRule();
 }
-const ListenerVo = ref<any[]>([]); // 监听器列表
 const emit = defineEmits<{ (e: 'update:modelValue', value: any): void }>();
 
 const rules = reactive({
@@ -507,7 +461,6 @@ function handleTabChange(activeTabName: string) {
             break;
         case '3':
             // 监听器 tab
-            getListenerList()
             break;
         default:
             // 自定义 tab
@@ -536,15 +489,6 @@ function getPermissionFlag() {
     }
   }
   form.value.permissionFlag = permissionRows.value.map(item => item.storageId);
-  if (form.value.listenerType && typeof form.value.listenerType === 'string') {
-    const listenerTypes = form.value.listenerType.split(",");
-    const lp = form.value.listenerPath;
-    const listenerPaths = (typeof lp === 'string' && lp) ? lp.split("@@") : [];
-    form.value.listenerRows = listenerTypes.map((type, index) => ({
-      listenerType: type,
-      listenerPath: listenerPaths[index]
-    }));
-  }
 }
 
 /** 办理人权限名称回显 */
@@ -555,36 +499,6 @@ async function getHandlerFeedback() {
   if (form.value.permissionFlag) {
       permissionRows.value = await designerSubjects(form.value.permissionFlag);
   }
-}
-
-/** 获取监听器列表 */
-async function getListenerList() {
-    const items = await designerResourceItems({ resourceType: 'LISTENER', pageNum: 1, pageSize: 1000 });
-    ListenerVo.value = items.map(item => ({
-      type: item.metadata?.type || item.code,
-      path: item.metadata?.path || item.id,
-      description: item.metadata?.description || item.name,
-    }));
-}
-
-
-// 处理监听器路径变化，级联更新类型
-function handleListenerPathChange(path: string, row: any) {
-    if (!path) {
-        // 清空时，也清空类型
-        row.listenerType = '';
-        return;
-    }
-
-    // 在下拉选项中查找匹配的项
-    const matchedItem = ListenerVo.value.find(item => item.path === path);
-    if (matchedItem && matchedItem.type) {
-        // 如果找到了匹配项且有 type，则更新 listenerType
-        row.listenerType = matchedItem.type;
-    } else {
-        // 如果是手动输入的，清空类型（或者保持原值，根据需求决定）
-        row.listenerType = '';
-    }
 }
 
 /** 查询节点扩展属性 */
@@ -678,16 +592,6 @@ function handleApproverStrategyChange() {
 designerCapabilities().then(response => {
   approverStrategies.value = unwrapData(response)?.approverStrategies || DEFAULT_DESIGNER_CAPABILITIES.approverStrategies;
 });
-
-// 增加行
-function handleAddRow() {
-  form.value.listenerRows.push({ listenerType: '', listenerPath: '' });
-}
-
-// 删除行
-function handleDeleteRow(index: number) {
-  form.value.listenerRows.splice(index, 1);
-}
 
 const filteredNodes = computed(() => {
   let previousNodes = getPreviousNodes(props.nodes, props.skips, form.value.nodeCode)
