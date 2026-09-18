@@ -95,17 +95,7 @@
             <if test="entity.message != null  and entity.message != ''">and t.message = #{entity.message}</if>
             <if test="entity.variables != null  and entity.variables != ''">and t.variables = #{entity.variables}</if>
             <if test="entity.ext != null">
-                and <choose>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
-                        JSON_EQUAL(t.ext, #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
-                    </when>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
-                        t.ext = CAST(#{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
-                    </when>
-                    <otherwise>
-                        t.ext = #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
-                    </otherwise>
-                </choose>
+                and ${@com.luokuiai.flovira.orm.type.ExtJsonTypeHandler@comparison('t.ext', 'entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler')}
             </if>
             <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
@@ -483,17 +473,7 @@
             <if test="message != null">and message = #{message}</if>
             <if test="variables != null">and variables = #{variables}</if>
             <if test="ext != null">
-                and <choose>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
-                        JSON_EQUAL(ext, #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
-                    </when>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
-                        ext = CAST(#{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
-                    </when>
-                    <otherwise>
-                        ext = #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
-                    </otherwise>
-                </choose>
+                and ${@com.luokuiai.flovira.orm.type.ExtJsonTypeHandler@comparison('ext', 'ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler')}
             </if>
             <if test="createdAt != null">and created_at = #{createdAt}</if>
             <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
@@ -530,17 +510,7 @@
             <if test="entity.message != null">and message = #{entity.message}</if>
             <if test="entity.variables != null">and variables = #{entity.variables}</if>
             <if test="entity.ext != null">
-                and <choose>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
-                        JSON_EQUAL(ext, #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
-                    </when>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
-                        ext = CAST(#{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
-                    </when>
-                    <otherwise>
-                        ext = #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
-                    </otherwise>
-                </choose>
+                and ${@com.luokuiai.flovira.orm.type.ExtJsonTypeHandler@comparison('ext', 'entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler')}
             </if>
             <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
