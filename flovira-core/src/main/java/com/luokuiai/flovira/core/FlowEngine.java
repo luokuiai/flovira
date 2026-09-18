@@ -26,7 +26,6 @@ import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.json.JsonConvert;
 import com.luokuiai.flovira.core.listener.GlobalListener;
-import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
 import com.luokuiai.flovira.core.service.*;
 import com.luokuiai.flovira.core.transaction.TransactionExecutor;
 import com.luokuiai.flovira.core.utils.ClassUtil;
@@ -73,8 +72,6 @@ public class FlowEngine {
     private static Supplier<SubprocessEvent> subprocessEventSupplier;
 
     private static TransactionExecutor transactionExecutor;
-
-    private static TimeoutSchedulerLock timeoutSchedulerLock;
 
     private static Flovira flowConfig;
 
@@ -237,14 +234,6 @@ public class FlowEngine {
             throw new IllegalStateException("Subprocess transaction executor is not configured");
         }
         return transactionExecutor;
-    }
-
-    public static void setTimeoutSchedulerLock(TimeoutSchedulerLock schedulerLock) {
-        timeoutSchedulerLock = schedulerLock;
-    }
-
-    public static TimeoutSchedulerLock timeoutSchedulerLock() {
-        return getObj(timeoutSchedulerLock, TimeoutSchedulerLock.class);
     }
 
 

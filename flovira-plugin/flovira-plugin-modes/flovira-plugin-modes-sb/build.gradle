@@ -16,10 +16,8 @@ dependencies {
     api libs.org.springframework.spring.tx
     api libs.org.springframework.boot.spring.boot.configuration.processor
     compileOnly libs.com.google.code.findbugs.jsr305
-    compileOnly libs.org.springframework.data.spring.data.redis
     testImplementation libs.junit.junit
     testImplementation project(':flovira-plugin-json-jackson')
-    testImplementation libs.org.springframework.data.spring.data.redis
 }
 
 description = 'flovira-plugin-modes-sb'

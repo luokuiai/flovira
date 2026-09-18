@@ -1,7 +1,7 @@
 # task-timeout Specification
 
 ## Purpose
-Define optional node timeout configuration and cluster-safe execution across supported framework adapters.
+Define optional node timeout configuration and cluster-safe execution triggered by host applications.
 
 ## Requirements
 
@@ -55,7 +55,7 @@ The timeout service SHALL atomically claim due tasks before execution, recover s
 
 #### Scenario: Ordinary claimed action fails
 - **WHEN** a non-WAIT workflow transition throws after a task is claimed
-- **THEN** the claim is released for retry and the failure is returned or logged explicitly
+- **THEN** the transaction rolls back the claim for retry and the failure is returned or logged explicitly
 
 #### Scenario: WAIT timeout action fails
 - **WHEN** a WAIT workflow transition throws after its WAIT claim
@@ -65,39 +65,28 @@ The timeout service SHALL atomically claim due tasks before execution, recover s
 - **WHEN** a non-WAIT timeout claim remains running past the configured claim timeout
 - **THEN** a later scan makes the task eligible for recovery
 
-### Requirement: Redis scheduler locking is optional and preferred
-The timeout service SHALL support a framework-neutral scheduler lock. When a supported Redis client is available, the framework adapter SHALL register a Redis implementation automatically and the timeout service SHALL acquire it before querying due tasks. Database task claims SHALL remain mandatory.
+### Requirement: Hosts must integrate timeout scheduling
+Core SHALL expose batch `executeDue(now, batchSize)` and single-task `executeTimeout(taskId)` APIs. Flovira SHALL NOT register periodic invokers or Redis scheduler locks. Enabling `flovira.timeout.enabled` enables snapshots and explicit execution, not scheduling. Hosts MUST supply scheduling or delayed-message delivery, tenant context, retries and monitoring. Documentation and both designers MUST display this requirement.
 
-#### Scenario: Multiple instances share Redis
-- **WHEN** two instances start the same timeout scan and one instance holds the Redis scheduler lock
-- **THEN** the other instance skips that scan without querying due tasks
+#### Scenario: Timeout execution is enabled without host scheduling
+- **WHEN** a host enables timeout execution but never invokes the APIs
+- **THEN** deadlines are persisted but no automatic transition occurs
 
-#### Scenario: Redis is not configured
-- **WHEN** no scheduler lock implementation is available
-- **THEN** timeout scanning continues and database atomic claims prevent duplicate task execution
+#### Scenario: A host delivers an early or duplicate message
+- **WHEN** a single-task timeout invocation targets a missing, completed, not-yet-due or already-claimed task
+- **THEN** the API returns false without advancing the task
 
-#### Scenario: Redis is temporarily unavailable
-- **WHEN** acquiring or releasing the Redis scheduler lock fails
-- **THEN** the failure is logged and scanning falls back to database atomic claims
+#### Scenario: A host invokes a due task
+- **WHEN** a supported due task is available
+- **THEN** the engine claims and advances it in one transaction, returns true on success, and propagates failures after rollback
 
-#### Scenario: Host supplies a custom lock
-- **WHEN** the host registers a scheduler lock implementation
-- **THEN** it takes precedence over an automatically detected Redis implementation
-
-### Requirement: Framework scheduling follows timeout execution
-Core SHALL expose a framework-neutral due-task execution API. Spring and Solon adapters SHALL invoke it at the `flovira.timeout.scan-interval-seconds` interval while timeout execution is enabled, without requiring a second scheduler switch. The interval SHALL default to 60 seconds and SHALL be at least 1 second.
-
-#### Scenario: Timeout execution is enabled
-- **WHEN** `flovira.timeout.enabled` is true in a Spring or Solon integration
-- **THEN** the corresponding scheduling adapter scans due tasks at the configured interval
-
-#### Scenario: Core is integrated without a framework scheduling adapter
-- **WHEN** a host embeds core without the Spring or Solon adapter
-- **THEN** the host can call the same timeout service without importing a framework into core
+#### Scenario: A slow ordinary timeout is still executing
+- **WHEN** another worker tries to recover its claim
+- **THEN** the uncommitted database claim remains locked until the first execution commits or rolls back
 
 ### Requirement: Designers configure supported timeout actions
 React and Vue designers SHALL expose timeout enablement, positive duration, duration unit and node-compatible actions, and SHALL preserve configuration while backend execution is disabled.
 
 #### Scenario: Reopen timeout configuration
 - **WHEN** a definition with timeout configuration is exported and reopened
-- **THEN** all timeout values are restored without requiring the backend scheduler to be enabled
+- **THEN** all timeout values are restored without requiring host scheduling to be active

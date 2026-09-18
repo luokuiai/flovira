@@ -20,7 +20,6 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.enums.FrameworkType;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
-import com.luokuiai.flovira.core.lock.TimeoutSchedulerLock;
 import com.luokuiai.flovira.core.orm.dao.*;
 import com.luokuiai.flovira.core.service.*;
 import com.luokuiai.flovira.core.service.impl.*;
@@ -49,7 +48,7 @@ import java.util.Objects;
  * @since 2023/6/5 23:01
  */
 @SuppressWarnings("rawtypes unchecked")
-@Import({SpringUtil.class, SpelHelper.class, TimeoutSchedulingConfig.class})
+@Import({SpringUtil.class, SpelHelper.class})
 @ConditionalOnProperty(value = "flovira.enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(FloviraProperties.class)
 public class BeanConfig {
@@ -190,7 +189,6 @@ public class BeanConfig {
         FrameInvoker.setBeanFunction(SpringUtil::getBean);
         FrameInvoker.setBeansFunction(SpringUtil::getBeans);
         FlowEngine.setTransactionExecutor(SpringUtil.getBean(com.luokuiai.flovira.core.transaction.TransactionExecutor.class));
-        FlowEngine.setTimeoutSchedulerLock(FrameInvoker.getBean(TimeoutSchedulerLock.class));
         FloviraProperties flovira = SpringUtil.getBean(FloviraProperties.class);
         flovira.init();
         flovira.setFramework(FrameworkType.SPRING_BOOT);
