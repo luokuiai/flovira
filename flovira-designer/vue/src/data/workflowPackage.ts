@@ -55,10 +55,9 @@ export function parseWorkflowPackage(input: unknown): WorkflowPackage {
       codes.add(node.nodeCode)
       delete node.formId
       if (String(node.nodeType) === '6') {
-        const ext = JSON.parse(node.ext || '[]')
-        check(Array.isArray(ext), '无效的子流程扩展')
-        const entry = ext.find((item: { code?: string }) => item?.code === 'subprocessConfig')
-        const config = JSON.parse(entry?.value || 'null')
+        const ext = typeof node.ext === 'string' ? JSON.parse(node.ext || '{}') : node.ext ?? {}
+        check(ext && typeof ext === 'object' && !Array.isArray(ext), '扩展配置必须为 JSON 对象')
+        const config = typeof ext.subprocessConfig === 'string' ? JSON.parse(ext.subprocessConfig) : ext.subprocessConfig
         check(config?.schemaVersion === 1 && nonblank(config.fixedChildFlowCode), '缺少有效的固定子流程配置')
         children.push(config.fixedChildFlowCode)
       }

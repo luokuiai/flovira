@@ -2,6 +2,7 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
+com-mysql-mysql-connector-j = "8.4.0"
 com-baomidou-mybatis-plus-boot-starter = "3.5.12"
 com-baomidou-mybatis-plus-extension = "3.5.12"
 com-baomidou-mybatis-plus-extension-x1 = "3.5.15"
@@ -33,6 +34,7 @@ org-springframework-spring-webmvc = "5.3.31"
 tools-jackson-core-jackson-databind = "3.0.4"
 
 [libraries]
+com-mysql-mysql-connector-j = { module = "com.mysql:mysql-connector-j", version.ref = "com-mysql-mysql-connector-j" }
 com-baomidou-mybatis-plus-boot-starter = { module = "com.baomidou:mybatis-plus-boot-starter", version.ref = "com-baomidou-mybatis-plus-boot-starter" }
 com-baomidou-mybatis-plus-extension = { module = "com.baomidou:mybatis-plus-extension", version.ref = "com-baomidou-mybatis-plus-extension" }
 com-baomidou-mybatis-plus-extension-x1 = { module = "com.baomidou:mybatis-plus-extension", version.ref = "com-baomidou-mybatis-plus-extension-x1" }

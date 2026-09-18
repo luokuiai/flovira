@@ -18,6 +18,7 @@ package com.luokuiai.flovira.orm.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import com.luokuiai.flovira.orm.type.ExtJsonTypeHandler;
 import lombok.experimental.Accessors;
 import com.luokuiai.flovira.core.entity.Instance;
 
@@ -31,7 +32,7 @@ import java.util.Date;
  */
 @Data
 @Accessors(chain = true)
-@TableName("flow_instance")
+@TableName(value = "flow_instance", autoResultMap = true)
 public class FlowInstance implements Instance {
 
     /**
@@ -138,6 +139,7 @@ public class FlowInstance implements Instance {
     /**
      * 扩展字段，预留给业务系统使用
      */
+    @TableField(typeHandler = ExtJsonTypeHandler.class, condition = ExtJsonTypeHandler.CONDITION)
     private String ext;
 
     /** 原生生命周期关联。 */

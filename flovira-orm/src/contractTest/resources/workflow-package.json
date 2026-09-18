@@ -65,7 +65,7 @@
             }
           ],
           "formId": "source-form-1",
-          "ext": "[{\"code\":\"subprocessConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"fixedChildFlowCode\\\":\\\"package_child\\\",\\\"completionPolicy\\\":\\\"ALL\\\",\\\"allowEmpty\\\":false}\"}]"
+          "ext": "{\"subprocessConfig\":{\"schemaVersion\":1,\"fixedChildFlowCode\":\"package_child\",\"completionPolicy\":\"ALL\",\"allowEmpty\":false}}"
         },
         {
           "nodeType": 2,

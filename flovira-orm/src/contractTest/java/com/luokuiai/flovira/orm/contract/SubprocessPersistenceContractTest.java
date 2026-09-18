@@ -168,7 +168,7 @@ public class SubprocessPersistenceContractTest {
             assertEquals("AWAITING_RESUBMISSION", instance.getLifecycleState());
             assertEquals("initiator", FlowEngine.userService().listByTaskIdAndTypes(initiator.getId()).get(0).getProcessedBy());
             // 设计变更不应覆盖这次退回保存的策略。
-            jdbcTemplate.update("update flow_node set ext = ? where node_code = 'second'", controlExt(
+            jdbcTemplate.update("update flow_node set ext = CAST(? AS jsonb) where node_code = 'second'", controlExt(
                 strategy.equals("RESTART_FROM_BEGINNING") ? "CONTINUE_FROM_REJECTED_NODE" : "RESTART_FROM_BEGINNING"));
             Instance resumed = FlowEngine.taskService().resubmit(instanceId,
                 FlowParams.build().handler("initiator").variables(java.util.Collections.singletonMap("edited", "yes")));
@@ -195,25 +195,20 @@ public class SubprocessPersistenceContractTest {
         FlowEngine.instanceService().updateById(instance);
         java.util.List<String> operations = new java.util.ArrayList<>();
         WorkflowLifecycleListener listener = new WorkflowLifecycleListener() {
-            public void beforeOperation(OperationContext operation, String parameters) {
+            public void beforeOperation(OperationContext operation) {
                 operation.removeVariable("removeMe");
                 operation.setVariable("businessChecked", true);
                 operations.add(operation.getOperationId());
             }
-            public void beforeAssignment(AssignmentContext assignment, String parameters) {
+            public void beforeAssignment(AssignmentContext assignment) {
                 assignment.setAssignees(java.util.Collections.singletonList("adjusted-reviewer"));
             }
-            public void onEvent(LifecycleEvent event, String parameters) {
+            public void onEvent(LifecycleEvent event) {
                 assertEquals(operations.get(0), event.getOperationId());
             }
         };
-        java.util.List<LifecycleSubscription> subscriptions = new java.util.ArrayList<>();
-        for (ListenerPoint point : java.util.Arrays.asList(ListenerPoint.BEFORE_OPERATION, ListenerPoint.BEFORE_ASSIGNMENT,
-                ListenerPoint.PROCESS_RESUBMITTED)) {
-            subscriptions.add(new LifecycleSubscription("resubmitHooks", point, DeliveryPhase.IN_TRANSACTION, 0, null));
-        }
         try (AutoCloseable ignored = FlowEngine.lifecycleListeners().install(
-                java.util.Collections.singletonMap("resubmitHooks", listener), subscriptions)) {
+                java.util.Collections.singletonMap("resubmitHooks", listener))) {
             FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
         }
         assertEquals(1, operations.size());
@@ -229,12 +224,13 @@ public class SubprocessPersistenceContractTest {
         Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
         java.util.List<LifecycleEvent> events = new java.util.ArrayList<>();
         WorkflowLifecycleListener listener = new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { events.add(event); }
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) {
+                if (event.getType() == LifecycleEventType.PROCESS_RESUBMITTED) events.add(event);
+            }
         };
         try (AutoCloseable ignored = FlowEngine.lifecycleListeners().install(
-                java.util.Collections.singletonMap("resubmitObserver", listener), java.util.Collections.singletonList(
-                    new LifecycleSubscription("resubmitObserver", ListenerPoint.PROCESS_RESUBMITTED,
-                        DeliveryPhase.AFTER_COMMIT, 0, null)))) {
+                java.util.Collections.singletonMap("resubmitObserver", listener))) {
             transactionTemplate.execute(status -> {
                 FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator"));
                 assertTrue(events.isEmpty());
@@ -257,15 +253,13 @@ public class SubprocessPersistenceContractTest {
     public void recursiveResubmissionListenerRollsBackAndReleasesGuard() throws Exception {
         Instance instance = returnedInstance("CONTINUE_FROM_REJECTED_NODE");
         WorkflowLifecycleListener listener = new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) {
+            public void onEvent(LifecycleEvent event) {
                 Task next = FlowEngine.taskService().getByInsId(event.getInstanceId()).get(0);
                 FlowEngine.taskService().skip(next.getId(), approval("PASS"));
             }
         };
         try (AutoCloseable ignored = FlowEngine.lifecycleListeners().install(
-                java.util.Collections.singletonMap("recursiveObserver", listener), java.util.Collections.singletonList(
-                    new LifecycleSubscription("recursiveObserver", ListenerPoint.PROCESS_RESUBMITTED,
-                        DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+                java.util.Collections.singletonMap("recursiveObserver", listener))) {
             IllegalStateException failure = org.junit.Assert.assertThrows(IllegalStateException.class,
                 () -> FlowEngine.taskService().resubmit(instance.getId(), FlowParams.build().handler("initiator")));
             assertTrue(failure.getMessage().contains("Recursive"));
@@ -378,14 +372,10 @@ public class SubprocessPersistenceContractTest {
 
     private AutoCloseable observe(java.util.List<LifecycleEvent> events) {
         WorkflowLifecycleListener observer = new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { events.add(event); }
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) { events.add(event); }
         };
-        java.util.List<LifecycleSubscription> subscriptions = new java.util.ArrayList<>();
-        for (com.luokuiai.flovira.core.listener.lifecycle.LifecycleEventType type :
-                com.luokuiai.flovira.core.listener.lifecycle.LifecycleEventType.values()) {
-            subscriptions.add(new LifecycleSubscription("sequence", ListenerPoint.valueOf(type.name()), DeliveryPhase.AFTER_COMMIT, 0, null));
-        }
-        return FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("sequence", observer), subscriptions);
+        return FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("sequence", observer));
     }
 
     private void assertEvents(List<LifecycleEvent> events, String... expected) {
@@ -411,21 +401,19 @@ public class SubprocessPersistenceContractTest {
         for (boolean override : new boolean[] {false, true}) {
             setUp();
             Map<String, String> rule = new java.util.LinkedHashMap<>();
-            rule.put("code", "approverRule");
-            rule.put("value", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\","
+            rule.put("approverRule", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\","
                 + "\"config\":{\"contractEmpty\":true,\"emptyPolicy\":\"SKIP\"}}");
-            String ext = FlowEngine.jsonConvert.objToStr(java.util.Collections.singletonList(rule));
+            String ext = FlowEngine.jsonConvert.objToStr(rule);
             List<LifecycleEvent> events = new java.util.ArrayList<>();
             WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
-                public void beforeAssignment(AssignmentContext assignment, String parameters) {
+                public void beforeAssignment(AssignmentContext assignment) {
                     if (override && "second".equals(assignment.getNodeCode())) {
                         assignment.setAssignees(java.util.Collections.singletonList("replacement"));
                     }
                 }
             };
             try (AutoCloseable observer = observe(events); AutoCloseable installed = FlowEngine.lifecycleListeners().install(
-                    java.util.Collections.singletonMap("policyOverride", hook), java.util.Collections.singletonList(
-                    new LifecycleSubscription("policyOverride", ListenerPoint.BEFORE_ASSIGNMENT, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+                    java.util.Collections.singletonMap("policyOverride", hook))) {
                 Instance instance = startedInstance("RESTART_FROM_BEGINNING", 1, ext);
                 events.clear();
                 Instance result = FlowEngine.taskService().skip(FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId(), approval("PASS"));
@@ -562,7 +550,7 @@ public class SubprocessPersistenceContractTest {
 
     @Test
     public void waitAndCarbonCopyProduceOnlyActualNodeTransitions() throws Exception {
-        String wait = "[{\"code\":\"waitConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"waitKey\\\":\\\"ready\\\"}\"}]";
+        String wait = "{\"waitConfig\":{\"schemaVersion\":1,\"waitKey\":\"ready\"}}";
         Instance instance = startedInstance("RESTART_FROM_BEGINNING", 7, wait);
         Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
         FlowEngine.taskService().skip(first.getId(), approval("PASS"));
@@ -578,7 +566,7 @@ public class SubprocessPersistenceContractTest {
             assertTrue(events.isEmpty());
         }
         setUp();
-        String copy = "[{\"code\":\"carbonCopyRule\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"strategy\\\":\\\"USER\\\",\\\"strategyVersion\\\":1,\\\"selectionType\\\":\\\"RESOURCE\\\",\\\"subjects\\\":[{\\\"id\\\":\\\"approver\\\",\\\"type\\\":\\\"USER\\\"}]}\"}]";
+        String copy = "{\"carbonCopyRule\":{\"schemaVersion\":1,\"strategy\":\"USER\",\"strategyVersion\":1,\"selectionType\":\"RESOURCE\",\"subjects\":[{\"id\":\"approver\",\"type\":\"USER\"}]}}";
         instance = startedInstance("RESTART_FROM_BEGINNING", 8, copy);
         first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
         events.clear();
@@ -618,12 +606,13 @@ public class SubprocessPersistenceContractTest {
         Instance instance = startedInstance("RESTART_FROM_BEGINNING");
         Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
         WorkflowLifecycleListener failing = new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { throw new IllegalStateException("observer rejected"); }
+            public void onEvent(LifecycleEvent event) {
+                if (event.getType() == LifecycleEventType.NODE_LEFT) throw new IllegalStateException("observer rejected");
+            }
         };
         List<LifecycleEvent> committed = new java.util.ArrayList<>();
         try (AutoCloseable observer = observe(committed); AutoCloseable failure = FlowEngine.lifecycleListeners().install(
-                java.util.Collections.singletonMap("failure", failing), java.util.Collections.singletonList(
-                new LifecycleSubscription("failure", ListenerPoint.NODE_LEFT, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+                java.util.Collections.singletonMap("failure", failing))) {
             org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.taskService().skip(task.getId(), approval("PASS")));
             assertTrue(committed.isEmpty());
             assertEquals(task.getNodeExecutionId(), FlowEngine.taskService().getById(task.getId()).getNodeExecutionId());
@@ -660,13 +649,13 @@ public class SubprocessPersistenceContractTest {
         jdbcTemplate.update("update flow_definition set listener_type='finish',listener_path='oldBusiness' where id=?", instance.getDefinitionId());
         IllegalArgumentException failure = org.junit.Assert.assertThrows(IllegalArgumentException.class,
             () -> FlowEngine.taskService().skip(task.getId(), approval("PASS")));
-        assertTrue(failure.getMessage().contains("migrate"));
+        assertTrue(failure.getMessage().contains("clear listenerType and listenerPath"));
         assertNotNull(FlowEngine.taskService().getById(task.getId()));
     }
 
     @Test
     public void childLifecyclesCorrelateParentAndOnlyLastChildClosesParentExecution() throws Exception {
-        String config = "[{\"code\":\"subprocessConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"fixedChildFlowCode\\\":\\\"child-contract\\\",\\\"completionPolicy\\\":\\\"ALL\\\"}\"}]";
+        String config = "{\"subprocessConfig\":{\"schemaVersion\":1,\"fixedChildFlowCode\":\"child-contract\",\"completionPolicy\":\"ALL\"}}";
         Definition child = FlowEngine.newDef().setId(82000L).setFlowCode("child-contract").setFlowName("Child")
             .setBusinessType("child").setVersion("1").setPublishStatus(1).setActivityStatus(1);
         root(child);
@@ -861,7 +850,7 @@ public class SubprocessPersistenceContractTest {
 
     @Test
     public void nativeWaitSignalAndTimeoutRaceEmitOnlyOneCompletion() throws Exception {
-        String wait = "[{\"code\":\"waitConfig\",\"value\":\"{\\\"schemaVersion\\\":1,\\\"waitKey\\\":\\\"ready\\\"}\"}]";
+        String wait = "{\"waitConfig\":{\"schemaVersion\":1,\"waitKey\":\"ready\"}}";
         Instance instance = startedInstance("RESTART_FROM_BEGINNING", 7, wait);
         FlowEngine.taskService().skip(FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId(), approval("PASS"));
         Task waiting = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
@@ -892,14 +881,12 @@ public class SubprocessPersistenceContractTest {
     public void beforeOperationRunsOncePerAuthorizedNativeEntry() throws Exception {
         List<String> calls = new java.util.ArrayList<>();
         WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
-            public void beforeOperation(OperationContext operation, String parameters) {
+            public void beforeOperation(OperationContext operation) {
                 assertNotNull(operation.getInstanceId());
                 calls.add(operation.getAction());
             }
         };
-        try (AutoCloseable installed = FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("hook", hook),
-                java.util.Collections.singletonList(new LifecycleSubscription("hook", ListenerPoint.BEFORE_OPERATION,
-                    DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+        try (AutoCloseable installed = FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("hook", hook))) {
             Instance instance = startedInstance("RESTART_FROM_BEGINNING");
             assertEquals(java.util.Collections.singletonList("START"), calls);
             Task first = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
@@ -927,12 +914,11 @@ public class SubprocessPersistenceContractTest {
     public void deferredEventsKeepCreationTimeSnapshotsAfterCallerMutation() throws Exception {
         Map<String, Object> nested = new java.util.LinkedHashMap<>(); nested.put("amount", 10);
         WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
-            public void beforeOperation(OperationContext operation, String parameters) { operation.setVariable("invoice", nested); }
+            public void beforeOperation(OperationContext operation) { operation.setVariable("invoice", nested); }
         };
         List<LifecycleEvent> events = new java.util.ArrayList<>();
         try (AutoCloseable observer = observe(events); AutoCloseable installed = FlowEngine.lifecycleListeners().install(
-                java.util.Collections.singletonMap("snapshot", hook), java.util.Collections.singletonList(
-                new LifecycleSubscription("snapshot", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+                java.util.Collections.singletonMap("snapshot", hook))) {
             transactionTemplate.execute(status -> {
                 startedInstance("RESTART_FROM_BEGINNING");
                 nested.put("amount", 999);
@@ -960,8 +946,8 @@ public class SubprocessPersistenceContractTest {
     @SuppressWarnings("unchecked")
     public void trustedInitiationContextSurvivesLaterActorsAndForgedRequestVariables() throws Exception {
         List<OperationContext> calls = new java.util.ArrayList<>();
-        WorkflowLifecycleListener guardian = new WorkflowLifecycleListener() {
-            public void beforeOperation(OperationContext operation, String parameters) {
+        WorkflowLifecycleListener contextValidator = new WorkflowLifecycleListener() {
+            public void beforeOperation(OperationContext operation) {
                 calls.add(operation);
                 assertEquals("tenant-a", operation.getDefinition().getTenantId());
                 assertEquals(Long.valueOf(81000L), operation.getDefinition().getId());
@@ -987,22 +973,20 @@ public class SubprocessPersistenceContractTest {
                     assertEquals(operation.getDefinition().getTenantId(), operation.getInstance().getTenantId());
                     assertTrue(operation.getPersistedVariables().containsKey("historyOnly"));
                     assertTrue(!operation.getInputVariables().containsKey("historyOnly"));
-                    assertEquals("attacker", ((Map<?, ?>) operation.getInputVariables().get("guardian.approverContext")).get("initiatorId"));
-                    trusted = (Map<String, Object>) operation.getPersistedVariables().get("guardian.approverContext");
+                    assertEquals("attacker", ((Map<?, ?>) operation.getInputVariables().get("host.approverContext")).get("initiatorId"));
+                    trusted = (Map<String, Object>) operation.getPersistedVariables().get("host.approverContext");
                     assertEquals("department-a", trusted.get("organizationId"));
                     assertEquals("company-a", trusted.get("companyId"));
                     assertEquals("initiator", trusted.get("initiatorId"));
                     org.junit.Assert.assertThrows(UnsupportedOperationException.class, () ->
-                        operation.getPersistedVariables().put("guardian.approverContext", "forged"));
+                        operation.getPersistedVariables().put("host.approverContext", "forged"));
                     org.junit.Assert.assertThrows(UnsupportedOperationException.class, () -> trusted.put("initiatorId", "forged"));
                 }
-                operation.setVariable("guardian.approverContext", trusted);
+                operation.setVariable("host.approverContext", trusted);
                 operation.setVariable("workflowOrganizationId", trusted.get("organizationId"));
             }
         };
-        try (AutoCloseable installed = FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("guardian", guardian),
-                java.util.Collections.singletonList(new LifecycleSubscription("guardian", ListenerPoint.BEFORE_OPERATION,
-                    DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+        try (AutoCloseable installed = FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("contextValidator", contextValidator))) {
             Instance instance = startedInstance("RESTART_FROM_BEGINNING", 1, controlExt("RESTART_FROM_BEGINNING"), () -> {
                 com.luokuiai.flovira.core.entity.Node start = FlowEngine.nodeService().getByDefIdAndNodeCode(81000L, "start");
                 start.setExt(submitterExt("initiator", true));
@@ -1014,7 +998,7 @@ public class SubprocessPersistenceContractTest {
                 }
             });
             Map<String, Object> forged = new java.util.LinkedHashMap<>();
-            forged.put("guardian.approverContext", java.util.Collections.singletonMap("initiatorId", "attacker"));
+            forged.put("host.approverContext", java.util.Collections.singletonMap("initiatorId", "attacker"));
             forged.put("workflowOrganizationId", "department-b");
             forged.put("tenantId", "tenant-b");
             Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
@@ -1022,7 +1006,7 @@ public class SubprocessPersistenceContractTest {
             Instance saved = FlowEngine.instanceService().getById(instance.getId());
             assertEquals("initiator", saved.getCreatedBy());
             assertEquals("department-a", saved.getVariableMap().get("workflowOrganizationId"));
-            Map<String, Object> snapshot = (Map<String, Object>) saved.getVariableMap().get("guardian.approverContext");
+            Map<String, Object> snapshot = (Map<String, Object>) saved.getVariableMap().get("host.approverContext");
             assertEquals("initiator", snapshot.get("initiatorId"));
             assertEquals("company-a", snapshot.get("companyId"));
             assertEquals(2, calls.size());
@@ -1051,8 +1035,8 @@ public class SubprocessPersistenceContractTest {
             .setSubjects(java.util.Collections.singletonList(new com.luokuiai.flovira.core.dto.BusinessSubject().setId(user).setType("USER")))
             .setConfig(java.util.Collections.<String, Object>singletonMap("requireTrustedContext", trusted));
         Map<String, String> ext = new java.util.LinkedHashMap<>();
-        ext.put("code", "submitterRule"); ext.put("value", FlowEngine.jsonConvert.objToStr(rule));
-        return FlowEngine.jsonConvert.objToStr(java.util.Collections.singletonList(ext));
+        ext.put("submitterRule", FlowEngine.jsonConvert.objToStr(rule));
+        return FlowEngine.jsonConvert.objToStr(ext);
     }
 
     private Instance startedInstance(String strategy) {
@@ -1099,12 +1083,11 @@ public class SubprocessPersistenceContractTest {
 
     private String controlExt(String strategy) {
         java.util.Map<String, String> control = new java.util.LinkedHashMap<>();
-        control.put("code", "nodeControlConfig");
-        control.put("value", "{\"schemaVersion\":1,\"allowRollback\":true,\"rejectStrategy\":\"TO_INITIATOR\",\"resubmitStrategy\":\"" + strategy + "\"}");
+        control.put("nodeControlConfig", "{\"schemaVersion\":1,\"allowRollback\":true,\"rejectStrategy\":\"TO_INITIATOR\",\"resubmitStrategy\":\"" + strategy + "\"}");
         java.util.Map<String, String> rule = new java.util.LinkedHashMap<>();
-        rule.put("code", "approverRule");
-        rule.put("value", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\"}");
-        return FlowEngine.jsonConvert.objToStr(java.util.Arrays.asList(control, rule));
+        rule.put("approverRule", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\"}");
+        control.putAll(rule);
+        return FlowEngine.jsonConvert.objToStr(control);
     }
 
     @Test
@@ -1113,28 +1096,27 @@ public class SubprocessPersistenceContractTest {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         java.util.List<String> calls = new java.util.ArrayList<>();
         registry.register("observer", new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { calls.add("committed"); }
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) { calls.add("committed"); }
         });
-        registry.subscribeGlobally(new LifecycleSubscription("observer", ListenerPoint.NODE_ENTERED,
-            DeliveryPhase.AFTER_COMMIT, 0, null));
         LifecycleDispatcher dispatcher = new LifecycleDispatcher(registry, (code, event, failure) -> fail());
         LifecycleEvent event = new LifecycleEvent("event", "operation", LifecycleEventType.NODE_ENTERED,
             1L, System.currentTimeMillis(), "{}");
         try {
-            dispatcher.emit(event, null, transactions);
+            dispatcher.emit(event, transactions);
             fail("Delivery outside a transaction must fail");
         } catch (IllegalStateException expected) {
             assertTrue(calls.isEmpty());
         }
         transactionTemplate.execute(status -> {
-            transactions.execute(() -> { dispatcher.emit(event, null, transactions); return null; });
+            transactions.execute(() -> { dispatcher.emit(event, transactions); return null; });
             assertTrue(calls.isEmpty());
             status.setRollbackOnly();
             return null;
         });
         assertTrue(calls.isEmpty());
         transactionTemplate.execute(status -> {
-            transactions.execute(() -> { dispatcher.emit(event, null, transactions); return null; });
+            transactions.execute(() -> { dispatcher.emit(event, transactions); return null; });
             assertTrue(calls.isEmpty());
             return null;
         });
@@ -1146,12 +1128,10 @@ public class SubprocessPersistenceContractTest {
         TransactionExecutor transactions = context.getBean(TransactionExecutor.class);
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         registry.register("reject", new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) {
+            public void onEvent(LifecycleEvent event) {
                 throw new IllegalStateException("business rejection");
             }
         });
-        registry.subscribeGlobally(new LifecycleSubscription("reject", ListenerPoint.NODE_ENTERED,
-            DeliveryPhase.IN_TRANSACTION, 0, null));
         LifecycleDispatcher dispatcher = new LifecycleDispatcher(registry, (code, event, failure) -> fail());
         try {
             transactions.execute(() -> {
@@ -1159,7 +1139,7 @@ public class SubprocessPersistenceContractTest {
                     + "node_type, node_code, flow_status, lifecycle_state) values (?, ?, ?, ?, ?, ?, ?, ?)",
                     98001L, 98000L, "contract", "business-1", 1, "approval", "1", "ACTIVE");
                 dispatcher.emit(new LifecycleEvent("event", "operation", LifecycleEventType.NODE_ENTERED,
-                    98001L, System.currentTimeMillis(), "{}"), null, transactions);
+                    98001L, System.currentTimeMillis(), "{}"), transactions);
                 return null;
             });
             fail("Synchronous listener failure must abort the transaction");
@@ -1651,7 +1631,7 @@ public class SubprocessPersistenceContractTest {
                 public List<String> resolve(com.luokuiai.flovira.core.dto.ApproverContext context) {
                     if (context.getRule().getConfig() != null
                             && Boolean.TRUE.equals(context.getRule().getConfig().get("requireTrustedContext"))) {
-                        Map<?, ?> trusted = (Map<?, ?>) context.getFlowParams().getVariables().get("guardian.approverContext");
+                        Map<?, ?> trusted = (Map<?, ?>) context.getFlowParams().getVariables().get("host.approverContext");
                         assertNotNull(trusted);
                         assertEquals("initiator", trusted.get("initiatorId"));
                         assertEquals("department-a", trusted.get("organizationId"));

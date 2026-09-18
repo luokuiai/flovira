@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 
 public class SpringLifecycleListenerRegistrarTest {
     @Test
-    public void discoversInjectedProxyAndDeduplicatesGlobalAndLocalReferences() {
+    public void discoversInjectedProxyAndInvokesWithoutSubscriptions() {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         WorkflowLifecycleListener standalone = new WorkflowLifecycleListener() { };
         registry.register("standalone", standalone);
@@ -33,20 +33,15 @@ public class SpringLifecycleListenerRegistrarTest {
             WorkflowLifecycleListener listener = context.getBean("businessListener", WorkflowLifecycleListener.class);
             assertSame(listener, registry.getListeners().get("businessListener"));
             assertTrue(java.lang.reflect.Proxy.isProxyClass(listener.getClass()));
-            java.util.List<LifecycleListenerRegistry.Invocation> invocations = registry.select(
-                ListenerPoint.PROCESS_STARTED, DeliveryPhase.IN_TRANSACTION,
-                Collections.singletonList(subscription("businessListener")));
-            assertEquals(1, invocations.size());
-            invocations.get(0).getListener().onEvent(null, null);
+            registry.getListeners().get("businessListener").onEvent(null);
             assertEquals(1, context.getBean(AtomicInteger.class).get());
         }
         assertEquals(Collections.singletonMap("standalone", standalone), registry.getListeners());
-        assertTrue(registry.select(ListenerPoint.PROCESS_STARTED, DeliveryPhase.IN_TRANSACTION,
-            Collections.emptyList()).isEmpty());
+
     }
 
     @Test
-    public void unknownSubscriptionFailsStartupWithoutPartialRegistration() {
+    public void invalidListenerFailsStartupWithoutPartialRegistration() {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         assertStartupFails(registry, InvalidConfiguration.class);
         assertTrue(registry.getListeners().isEmpty());
@@ -67,7 +62,7 @@ public class SpringLifecycleListenerRegistrarTest {
             try {
                 context.refresh();
                 fail("Invalid listener configuration must fail startup");
-            } catch (IllegalArgumentException expected) {
+            } catch (RuntimeException expected) {
                 assertNotNull(expected.getMessage());
             }
         }
@@ -85,11 +80,6 @@ public class SpringLifecycleListenerRegistrarTest {
                                   LifecycleListenerRegistry registry, Class<?> configuration) {
         context.getBeanFactory().registerSingleton("testRegistry", registry);
         context.register(RegistrarConfiguration.class, configuration);
-    }
-
-    private static LifecycleSubscription subscription(String name) {
-        return new LifecycleSubscription(name, ListenerPoint.PROCESS_STARTED,
-            DeliveryPhase.IN_TRANSACTION, 0, null);
     }
 
     @Configuration
@@ -110,15 +100,13 @@ public class SpringLifecycleListenerRegistrarTest {
         WorkflowLifecycleListener businessListener(AtomicInteger businessDependency) {
             WorkflowLifecycleListener target = new WorkflowLifecycleListener() {
                 @Override
-                public void onEvent(LifecycleEvent event, String parameters) {
+                public void onEvent(LifecycleEvent event) {
                     businessDependency.incrementAndGet();
                 }
             };
             return (WorkflowLifecycleListener) new ProxyFactory(target).getProxy();
         }
 
-        @Bean
-        LifecycleSubscription globalSubscription() { return subscription("businessListener"); }
     }
 
     @Configuration
@@ -127,6 +115,10 @@ public class SpringLifecycleListenerRegistrarTest {
         WorkflowLifecycleListener candidateListener() { return new WorkflowLifecycleListener() { }; }
 
         @Bean
-        LifecycleSubscription unknownSubscription() { return subscription("missingListener"); }
+        WorkflowLifecycleListener invalidListener() {
+            return new WorkflowLifecycleListener() {
+                public DeliveryPhase getDeliveryPhase() { return null; }
+            };
+        }
     }
 }

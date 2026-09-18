@@ -16,19 +16,20 @@
 package com.luokuiai.flovira.core.listener.lifecycle;
 
 import com.luokuiai.flovira.core.transaction.TransactionExecutor;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** 只负责调用和阶段交付；引擎在实际转换位置产生事件。 */
+/** 引擎产生生命周期事实，按代码注册的顺序调用宿主。 */
 public final class LifecycleDispatcher {
     private static final Logger LOG = LoggerFactory.getLogger(LifecycleDispatcher.class);
     private final LifecycleListenerRegistry registry;
     private final FailureHandler failureHandler;
 
     public interface FailureHandler {
-        void failed(String listenerCode, LifecycleEvent event, RuntimeException failure);
+        void failed(String listenerName, LifecycleEvent event, RuntimeException failure);
     }
 
     public LifecycleDispatcher(LifecycleListenerRegistry registry, FailureHandler failureHandler) {
@@ -36,52 +37,48 @@ public final class LifecycleDispatcher {
         this.failureHandler = Objects.requireNonNull(failureHandler, "failureHandler");
     }
 
-    public void beforeOperation(OperationContext context, List<LifecycleSubscription> local) {
+    public void beforeOperation(OperationContext context) {
         Objects.requireNonNull(context, "context");
-        for (LifecycleListenerRegistry.Invocation invocation : registry.select(
-                ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, local)) {
-            LifecycleCallbackGuard.invoke(context.getInstanceId(), () ->
-                invocation.getListener().beforeOperation(context, invocation.getSubscription().getParameters()));
+        for (WorkflowLifecycleListener listener : registry.getListeners().values()) {
+            LifecycleCallbackGuard.invoke(context.getInstanceId(), () -> listener.beforeOperation(context));
         }
     }
 
-    public void beforeAssignment(AssignmentContext context, List<LifecycleSubscription> local) {
+    public void beforeAssignment(AssignmentContext context) {
         Objects.requireNonNull(context, "context");
-        for (LifecycleListenerRegistry.Invocation invocation : registry.select(
-                ListenerPoint.BEFORE_ASSIGNMENT, DeliveryPhase.IN_TRANSACTION, local)) {
-            LifecycleCallbackGuard.invoke(context.getInstanceId(), () ->
-                invocation.getListener().beforeAssignment(context, invocation.getSubscription().getParameters()));
+        for (WorkflowLifecycleListener listener : registry.getListeners().values()) {
+            LifecycleCallbackGuard.invoke(context.getInstanceId(), () -> listener.beforeAssignment(context));
         }
     }
 
-    public void emit(LifecycleEvent event, List<LifecycleSubscription> local, TransactionExecutor transaction) {
+    public void emit(LifecycleEvent event, TransactionExecutor transaction) {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(transaction, "transaction");
         if (!transaction.isTransactionActive()) {
             throw new IllegalStateException("Lifecycle delivery requires an active transaction");
         }
-        ListenerPoint point = ListenerPoint.event(event.getType());
-        // 先验证两个阶段，防止无效配置在部分事务内处理后才被发现。
-        List<LifecycleListenerRegistry.Invocation> immediate = registry.select(point, DeliveryPhase.IN_TRANSACTION, local);
-        final List<LifecycleListenerRegistry.Invocation> committed = registry.select(point, DeliveryPhase.AFTER_COMMIT, local);
-        for (LifecycleListenerRegistry.Invocation invocation : immediate) {
-            LifecycleCallbackGuard.invoke(event.getInstanceId(), () ->
-                invocation.getListener().onEvent(event, invocation.getSubscription().getParameters()));
+        Map<String, WorkflowLifecycleListener> immediate = new LinkedHashMap<String, WorkflowLifecycleListener>();
+        final Map<String, WorkflowLifecycleListener> committed = new LinkedHashMap<String, WorkflowLifecycleListener>();
+        for (Map.Entry<String, WorkflowLifecycleListener> entry : registry.getListeners().entrySet()) {
+            DeliveryPhase phase = Objects.requireNonNull(entry.getValue().getDeliveryPhase(), "deliveryPhase");
+            (phase == DeliveryPhase.IN_TRANSACTION ? immediate : committed).put(entry.getKey(), entry.getValue());
+        }
+        for (WorkflowLifecycleListener listener : immediate.values()) {
+            LifecycleCallbackGuard.invoke(event.getInstanceId(), () -> listener.onEvent(event));
         }
         if (!committed.isEmpty()) {
             transaction.afterCommit(() -> {
-                for (LifecycleListenerRegistry.Invocation invocation : committed) {
+                for (Map.Entry<String, WorkflowLifecycleListener> entry : committed.entrySet()) {
                     try {
-                        LifecycleCallbackGuard.invoke(event.getInstanceId(), () ->
-                            invocation.getListener().onEvent(event, invocation.getSubscription().getParameters()));
+                        LifecycleCallbackGuard.invoke(event.getInstanceId(), () -> entry.getValue().onEvent(event));
                     } catch (RuntimeException failure) {
                         try {
-                            failureHandler.failed(invocation.getSubscription().getCode(), event, failure);
+                            failureHandler.failed(entry.getKey(), event, failure);
                         } catch (RuntimeException reportingFailure) {
                             LOG.error("Lifecycle error reporting failed: listener={}, event={}",
-                                invocation.getSubscription().getCode(), event.getEventId(), reportingFailure);
+                                entry.getKey(), event.getEventId(), reportingFailure);
                             LOG.error("Lifecycle notification failed: listener={}, event={}",
-                                invocation.getSubscription().getCode(), event.getEventId(), failure);
+                                entry.getKey(), event.getEventId(), failure);
                         }
                     }
                 }

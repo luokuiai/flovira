@@ -15,12 +15,13 @@
  */
 package com.luokuiai.flovira.core.listener.lifecycle;
 
-/**
- * 框架无关的工作流监听器。执行前上下文允许受控调整，事实事件不可修改。
- * 宿主通过注册表注册对象，既可全局订阅，也可供定义／节点按稳定代码引用。
- */
+/** 宿主代码回调；业务范围由实现自行判断，不依赖流程／节点扩展配置。 */
 public interface WorkflowLifecycleListener {
-    default void beforeOperation(OperationContext context, String parameters) { }
-    default void beforeAssignment(AssignmentContext context, String parameters) { }
-    default void onEvent(LifecycleEvent event, String parameters) { }
+    /** 回调顺序；相同顺序按注册名称排序。 */
+    default int getOrder() { return 0; }
+    /** 事实事件的交付阶段；执行前回调始终在事务内。 */
+    default DeliveryPhase getDeliveryPhase() { return DeliveryPhase.IN_TRANSACTION; }
+    default void beforeOperation(OperationContext context) { }
+    default void beforeAssignment(AssignmentContext context) { }
+    default void onEvent(LifecycleEvent event) { }
 }

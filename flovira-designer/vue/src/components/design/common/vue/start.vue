@@ -23,16 +23,10 @@
       </wf-form>
     </div>
 
-    <div class="tabPane tabPane-full">
-      <LifecycleEditor :model-value="form.ext?.lifecycle" node-type="0" :disabled="disabled"
-        @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
-    </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
-import LifecycleEditor from './LifecycleEditor.vue'
 import SubmitterEditor from './SubmitterEditor.vue'
 import { getCurrentInstance, ref, watch } from 'vue';
 import { useI18n } from '@/i18n';

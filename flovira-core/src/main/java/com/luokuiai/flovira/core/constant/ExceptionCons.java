@@ -55,8 +55,6 @@ public class ExceptionCons {
 
     public static final String NULL_VARIABLE_STRATEGY = "办理人表达式策略不能为空!";
 
-    public static final String NULL_LISTENER_STRATEGY = "办理人表达式策略不能为空!";
-
     public static final String NULL_VOTESIGN_STRATEGY = "票签表达式策略不能为空!";
 
     public static final String FIRST_FORBID_BACK = "禁止退回到第一个节点";

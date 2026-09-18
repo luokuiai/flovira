@@ -18,7 +18,7 @@ function definition() {
       nodeName: 'Expense subprocess',
       nodeRatio: '0',
       coordinate: '100,100',
-      ext: JSON.stringify([{ code: 'subprocessConfig', value: config }]),
+      ext: JSON.stringify({ 'subprocessConfig': config }),
       skipList: [],
     }],
   }
@@ -33,6 +33,6 @@ describe('subprocess designer conversion', () => {
       const saved = JSON.parse(logicFlowJsonToFlovira(graph))
       expect(saved.nodeList[0].nodeType).toBe('6')
       const ext = JSON.parse(saved.nodeList[0].ext)
-      expect(ext).toEqual([{ code: 'subprocessConfig', value: config }])
+      expect(ext).toEqual({ subprocessConfig: JSON.parse(config) })
     })
 })

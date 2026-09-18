@@ -60,7 +60,7 @@ public class FlowEngine {
         lifecycleFailureHandler = java.util.Objects.requireNonNull(handler, "handler");
     }
 
-    /** 框架独立的监听器注册入口，支持多个实例和程序化全局订阅。 */
+    /** 框架独立的代码回调注册入口，支持多个监听器实例。 */
     public static LifecycleListenerRegistry lifecycleListeners() {
         return lifecycleListeners;
     }

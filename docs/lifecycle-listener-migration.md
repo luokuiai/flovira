@@ -1,6 +1,6 @@
 # Native lifecycle listener integration
 
-The native listener replaces GlobalListener and the old start / assignment / create / finish dispatch. It exposes eight fact events and two optional pre-operation hooks, with automatic Spring Bean discovery, global subscriptions, and definition or node subscriptions by Bean name.
+The native listener replaces GlobalListener and the old start / assignment / create / finish dispatch. It exposes eight fact events and two optional pre-operation hooks, with automatic Spring Bean discovery or direct registration of host callback objects. Business filtering belongs in host code; there is no definition/node callback selection.
 
 The project currently has no existing users requiring migration. New integrations should use the current API and fresh-install schemas. The migration sections below describe tooling already present in this implementation; they are not prerequisites for a new installation.
 
@@ -30,73 +30,52 @@ Task write operations use TransactionExecutor and an instance row lock. Both ORM
 
 ## Automatic Spring Bean discovery
 
-Declare a listener Bean. Its Bean name is the subscription code stored in configuration. The engine retains the injected object and Spring proxy; no manual register call is required:
+Declare a listener Bean. Registration alone activates it; the engine retains injection and Spring proxies:
 
 ```java
 @Bean
 public WorkflowLifecycleListener businessListener(BusinessService businessService) {
     return new WorkflowLifecycleListener() {
         @Override
-        public void onEvent(LifecycleEvent event, String parameters) {
-            businessService.accept(event);
+        public int getOrder() { return 100; }
+
+        @Override
+        public void onEvent(LifecycleEvent event) {
+            if (event.getType() == LifecycleEventType.PROCESS_ENDED) {
+                businessService.accept(event);
+            }
         }
     };
 }
-
-@Bean
-public LifecycleSubscription businessProcessEnded() {
-    return new LifecycleSubscription("businessListener", ListenerPoint.PROCESS_ENDED,
-        DeliveryPhase.IN_TRANSACTION, 100, null);
-}
 ```
 
-The second Bean declares a global subscription. For selected definitions only, omit it and reference businessListener in those definitions.
+Listeners are installed atomically after singleton initialization. Duplicate names or invalid listeners fail startup without partial registration. Context shutdown removes only its own registrations. Hosts start workflow handling after application initialization completes.
 
-Listeners and global subscriptions are installed atomically after singleton initialization. Conflicts or unknown references fail startup without leaving partial registrations. Context shutdown removes only objects installed by that context. Hosts should start handling workflows after application initialization completes.
-
-Definition and node `ext` use the existing code/value array. The entry with code `lifecycle` stores the following JSON as its string value:
-
-```json
-{
-  "schemaVersion": 1,
-  "subscriptions": [
-    {
-      "code": "businessListener",
-      "point": "PROCESS_ENDED",
-      "phase": "IN_TRANSACTION",
-      "order": 100,
-      "parameters": null
-    }
-  ]
-}
-```
-
-Process events allow definition or global scope. Node events also allow supported business-node scope. Individual approval and assignee-change events allow approval-node scope, in addition to definition and global scope. Gateways have no callbacks. Save, import and publish validate versions, codes, points, phases and cross-scope conflicts. Use JSON text in parameters when structured parameters are needed.
-
-## Global registration without Spring
-
-Core accepts listener objects directly, without Spring, container scanning, class-path configuration or persisted subscriptions:
+## Registration without Spring
 
 ```java
-LifecycleListenerRegistry registry = FlowEngine.lifecycleListeners();
-registry.register("business-sync", new WorkflowLifecycleListener() {
+FlowEngine.lifecycleListeners().register("business-sync", new WorkflowLifecycleListener() {
     @Override
-    public void onEvent(LifecycleEvent event, String parameters) {
-        // Update business state using the immutable event snapshot.
+    public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+
+    @Override
+    public void onEvent(LifecycleEvent event) {
+        if (event.getType() == LifecycleEventType.PROCESS_ENDED) {
+            // Notify using the immutable event snapshot; filter business scope here.
+        }
     }
 });
-registry.subscribeGlobally(new LifecycleSubscription(
-    "business-sync", ListenerPoint.PROCESS_ENDED,
-    DeliveryPhase.IN_TRANSACTION, 100, null));
 ```
 
-These types belong to `com.luokuiai.flovira.core.listener.lifecycle`. Registration maps a stable code to an object; subscribeGlobally declares when to invoke it. Multiple objects and subscriptions are supported. Duplicate codes cannot replace existing objects. Order is deterministic by order, then code. Matching the same code, point and phase through multiple scopes invokes it once; conflicting parameters or order are rejected. Complete registration before processing workflows.
+These types belong to `com.luokuiai.flovira.core.listener.lifecycle`. Registration names identify listeners for collision detection and error reporting. They are not workflow configuration. Callbacks run by `getOrder()` (default 0), then registration name. `getDeliveryPhase()` defaults to IN_TRANSACTION and controls facts only. Pre-operation and assignment methods always run in the transaction. Complete registration before workflow handling.
 
-Global subscriptions do not require definition configuration. Local subscriptions reference the same registered objects. Database configuration cannot execute arbitrary class names. Spring discovery is an optional adapter.
+Lifecycle dispatch does not read `ext`. Designers and capability APIs do not expose callback selection. Hosts implement flow, node and business filtering in their callbacks. Existing development integrations must replace persisted subscriptions with code registration and update callback method signatures to omit configuration parameters. Remove unused lifecycle configuration from development definitions after moving the intended behavior into code; no runtime compatibility path executes it.
+
+Extensions are JSON objects, not code/value arrays. See [extension data format](extension-json-object.md) for development-data conversion and rollback notes.
 
 ## Hooks and delivery phases
 
-- beforeOperation runs after task-operation authorization and before workflow writes. At initial start, it initializes business context before the submitter rule is resolved; submission denial still prevents instance/task persistence and rolls back transactional hook work. It supports business validation and permitted variable changes. Exceptions roll back the operation. BEFORE_OPERATION accepts only IN_TRANSACTION.
+- beforeOperation runs after task-operation authorization and before workflow writes. At initial start, it initializes business context before the submitter rule is resolved; submission denial still prevents instance/task persistence and rolls back transactional hook work. It supports business validation and permitted variable changes. Exceptions roll back the operation. This method always runs in the transaction.
 - beforeAssignment adjusts the resolved assignment draft before validation and persistence. It cannot change identity, tenant or authorization controls.
 - onEvent receives eight immutable fact types, either in the transaction or after commit. After-commit failures are reported separately without presenting a committed operation as rolled back.
 
@@ -128,7 +107,7 @@ The following example uses TodoProjection, a host-owned service rather than an S
 public WorkflowLifecycleListener todoListener(TodoProjection todos) {
     return new WorkflowLifecycleListener() {
         @Override
-        public void onEvent(LifecycleEvent event, String parameters) {
+        public void onEvent(LifecycleEvent event) {
             Map<String, Object> snapshot = FlowEngine.jsonConvert.strToMap(event.getContextJson());
             switch (event.getType()) {
                 case NODE_ENTERED:
@@ -151,32 +130,26 @@ public WorkflowLifecycleListener todoListener(TodoProjection todos) {
 }
 ```
 
-Declare a LifecycleSubscription Bean for each required point. When projection tables share the engine database and transaction manager, use IN_TRANSACTION so both writes roll back together. Todo idempotency keys should include tenant, instance, nodeExecutionId and participationId. A nodeCode alone cannot distinguish re-entry. eventId deduplicates repeated delivery of one event; retrying a rolled-back operation creates new event IDs.
+Filter event types in onEvent. When projection tables share the engine database and transaction manager, use IN_TRANSACTION so both writes roll back together. Todo idempotency keys should include tenant, instance, nodeExecutionId and participationId. A nodeCode alone cannot distinguish re-entry. eventId deduplicates repeated delivery of one event; retrying a rolled-back operation creates new event IDs.
 
 ## Reliable external delivery and timeout scheduling
 
-AFTER_COMMIT waits for the outer transaction to commit, but does not provide a persistent queue. A process crash may lose notifications. For reliable delivery, hosts must implement an outbox and retries. Write outbox records through an IN_TRANSACTION subscription:
+AFTER_COMMIT waits for the outer transaction to commit, but does not provide a persistent queue. A process crash may lose notifications. For reliable delivery, hosts must implement an outbox and retries. Write outbox records through an IN_TRANSACTION listener:
 
 ```java
 @Bean
 public WorkflowLifecycleListener workflowOutbox(OutboxRepository outbox) {
     return new WorkflowLifecycleListener() {
         @Override
-        public void onEvent(LifecycleEvent event, String parameters) {
+        public void onEvent(LifecycleEvent event) {
             outbox.insert("workflowOutbox", event.getEventId(), event.getOperationId(),
                 event.getType().name(), event.getContextJson());
         }
     };
 }
-
-@Bean
-public LifecycleSubscription endedOutboxSubscription() {
-    return new LifecycleSubscription("workflowOutbox", ListenerPoint.PROCESS_ENDED,
-        DeliveryPhase.IN_TRANSACTION, 100, null);
-}
 ```
 
-OutboxRepository must join the engine transaction. Deduplicate by subscription code and eventId. A host worker delivers committed records, acknowledges success and retries failure; receivers must also be idempotent. Writing an outbox in AFTER_COMMIT does not make it atomic with the workflow transaction. Business listeners cannot synchronously advance the same instance, including after-commit listeners. Queue follow-up operations for execution after the current call returns.
+OutboxRepository must join the engine transaction. Deduplicate by listener name and eventId. A host worker delivers committed records, acknowledges success and retries failure; receivers must also be idempotent. Writing an outbox in AFTER_COMMIT does not make it atomic with the workflow transaction. Business listeners cannot synchronously advance the same instance, including after-commit listeners. Queue follow-up operations for execution after the current call returns.
 
 **Hosts must integrate timeout scheduling themselves.** The engine supplies timeoutService query/execution methods and waitService resumption methods, but no scheduled scanner. Multi-instance hosts may use an existing scheduler or Redis coordination. Instance locks, task claims and conditional execution closure prevent duplicate successful handling; they do not replace scheduling, failure tracking or retries.
 
@@ -184,7 +157,7 @@ OutboxRepository must join the engine transaction. Deduplicate by subscription c
 
 This section records the current implementation, not a deployment requirement for this pre-adoption project.
 
-GlobalListener is no longer a dispatch source. The old start validation/variable hook corresponds to beforeOperation; assignment corresponds to beforeAssignment. Former finish/create business logic maps to the appropriate process, node, individual approval or assignee event. FORM_LOAD remains a separate extension. New contexts do not permit arbitrary replacement of identity, tenant, graph structure or authorization flags.
+GlobalListener is no longer a dispatch source. The old start validation/variable hook corresponds to beforeOperation; assignment corresponds to beforeAssignment. Former finish/create business logic maps to the appropriate process, node, individual approval or assignee event. The old FORM_LOAD callback is removed; form reads return stored references and data without dispatch. New contexts do not permit arbitrary replacement of identity, tenant, graph structure or authorization flags.
 
 The implementation includes independent development scripts for [MySQL](migrations/explicit-workflow-lifecycle/mysql.sql), [PostgreSQL](migrations/explicit-workflow-lifecycle/postgresql.sql) and [Oracle](migrations/explicit-workflow-lifecycle/oracle.sql). They add flow_node_execution, instance lifecycle_state/resubmission_context, and task/history node_execution_id. They also widen flow_instance.business_id to 128 characters because existing subprocess keys contain two full IDs and a digest. MySQL uses VARCHAR and DATETIME(3); PostgreSQL uses VARCHAR and TIMESTAMP; Oracle uses VARCHAR2, NUMBER, CLOB and TIMESTAMP. No foreign keys are added. Tenant and logical-deletion boundaries are retained, and execution closure compares and increments version.
 
@@ -199,7 +172,7 @@ LifecycleMigration.migrateActive(instanceId,
 
 It locks the instance, creates a distinct execution per active task, associates history for the same taskId and marks the instance ACTIVE in one transaction. It emits no historical events. Changed task sets, missing creation times, inconsistent node types, existing associations, partial active execution data, terminal instances and already migrated instances are rejected. Historical terminal rows do not receive guessed execution IDs. Old return-to-initiator state cannot be inferred from a business status string.
 
-If this tooling is used, migrate old subscriptions explicitly and remove globalListenerPath. Only formLoad may remain in the old listener fields. Unsupported old callbacks fail save, import, publish and execution validation. Verify approval, return, withdrawal, resubmission and subprocess coordination before resuming writers and host schedulers.
+If this tooling is used, migrate old subscriptions explicitly and remove globalListenerPath. Clear listenerType and listenerPath on definitions and nodes, including formLoad. Form loading now returns stored formId and formData without callbacks; host applications query additional business data themselves. Remove implementations and imports of Listener, ListenerVariable, ValueHolder and ListenerStrategy. Database columns remain unchanged; back up development definitions and instance definition snapshots before clearing these values, and restore matching code and data together if rolling back. Unsupported old callbacks fail save, import, publish and execution validation. Verify approval, return, withdrawal, resubmission and subprocess coordination before resuming writers and host schedulers.
 
 Rollback must restore matching code and data. Once new executions, initiator tasks or history exist, dropping columns or downgrading jars alone is insufficient. Never truncate subprocess business keys to fit the old 40-character column. MySQL and Oracle DDL may commit implicitly, so transaction rollback is not a schema recovery plan. No host database changes were executed as part of this work.
 
@@ -241,7 +214,7 @@ callers must not pre-merge input and history before constructing a transition.
 
 This corrects a design omission in the initial native lifecycle implementation:
 its ID/actor/merged-variable-only context discarded authoritative information
-required for business validation. No schema changes or special Guardian adapter
+required for business validation. No schema changes or host-specific adapter
 are required. Applications implement the native hook contract and own their
 business-context validation, including old instances without a snapshot and
 validated parent-context inheritance for subprocesses.

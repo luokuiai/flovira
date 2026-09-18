@@ -40,7 +40,6 @@ test('rejects malformed JSON and dangling edges', () => {
 
 test('rejects cyclic subprocess dependencies', () => {
   const value = JSON.parse(JSON.stringify(fixture))
-  value.definitions[1].nodeList[1].ext = JSON.stringify([{ code: 'subprocessConfig',
-    value: JSON.stringify({ schemaVersion: 1, fixedChildFlowCode: 'package_parent' }) }])
+  value.definitions[1].nodeList[1].ext = JSON.stringify({ 'subprocessConfig': JSON.stringify({ schemaVersion: 1, fixedChildFlowCode: 'package_parent' }) })
   expect(() => parseWorkflowPackage(value)).toThrow()
 })

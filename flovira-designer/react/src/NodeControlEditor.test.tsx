@@ -56,16 +56,16 @@ test('validates fixed return targets and preserves old policies', () => {
   const node = createInitialDefinition().nodeList[1]
   expect(getNodeControlConfig({ ...node, returnPolicy: 'ANY' }).rejectStrategy).toBe('TO_REJECTOR_SPECIFIED_NODE')
   expect(getNodeControlConfig({ ...node, returnPolicy: 'REJECT' }).rejectStrategy).toBe('REJECT')
-  const saved = setNodeControlConfig({ ...node, returnPolicy: 'ANY', ext: '[{"code":"custom","value":"kept"}]' }, { allowTransfer: true })
+  const saved = setNodeControlConfig({ ...node, returnPolicy: 'ANY', ext: '{"custom":"kept"}' }, { allowTransfer: true })
   expect(saved.returnPolicy).toBe('ANY')
   expect(String(saved.ext)).toContain('kept')
 })
 
 test('normalizes legacy initiator return code without changing resubmission strategy', () => {
   const node = createInitialDefinition().nodeList[1]
-  const legacy = { ...node, ext: JSON.stringify([{ code: 'nodeControlConfig', value: JSON.stringify({
+  const legacy = { ...node, ext: JSON.stringify({ 'nodeControlConfig': JSON.stringify({
     schemaVersion: 1, rejectStrategy: 'TO_DRAFT', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE',
-  }) }]) }
+  }) }) }
   expect(getNodeControlConfig(legacy)).toMatchObject({ rejectStrategy: 'TO_INITIATOR', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE' })
   const saved = setNodeControlConfig(legacy, {})
   expect(String(saved.ext)).toContain('TO_INITIATOR')

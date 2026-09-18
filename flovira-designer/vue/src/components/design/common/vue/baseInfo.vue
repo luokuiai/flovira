@@ -29,16 +29,12 @@
         </wf-form-item>
       </div>
 
-      <p v-if="lifecycleRead.error" role="alert">{{ lifecycleRead.error }}</p>
-      <LifecycleEditor v-else :model-value="lifecycleConfig" :disabled="disabled" @update:model-value="setLifecycle" />
-      <p v-if="legacyCallbacks" role="alert">旧监听配置需迁移到生命周期回调后才能保存或发布。</p>
+      <p v-if="legacyCallbacks" role="alert">旧监听配置已移除，请清空 listenerType 和 listenerPath 后再保存或发布。</p>
     </wf-form>
   </div>
 </template>
 
 <script setup lang="ts">
-import LifecycleEditor from './LifecycleEditor.vue'
-import { lifecycleValue, withLifecycle, parseLifecycle } from '@/data/lifecycle'
 import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watch } from "vue";
 import { useI18n } from '@/i18n';
 
@@ -94,7 +90,7 @@ const form = ref({
   formId: "",
   listenerType: "",
   listenerPath: "",
-  ext: '[]'
+  ext: '{}'
 });
 
 watch(() => props.logicJson, newValue => {
@@ -103,13 +99,7 @@ watch(() => props.logicJson, newValue => {
   }
 });
 
-const lifecycleRead = computed(() => {
-  try { return { value: lifecycleValue(form.value.ext), error: '' } }
-  catch (error) { return { value: undefined, error: String(error) } }
-})
-const lifecycleConfig = computed(() => lifecycleRead.value.value)
-const setLifecycle = (value: string) => { form.value.ext = withLifecycle(form.value.ext, parseLifecycle(value)) }
-const legacyCallbacks = computed(() => (form.value.listenerType || '').split(',').some(type => type && type !== 'formLoad'))
+const legacyCallbacks = computed(() => Boolean(form.value.listenerType || form.value.listenerPath))
 const definitionList = ref([]);
 
 
