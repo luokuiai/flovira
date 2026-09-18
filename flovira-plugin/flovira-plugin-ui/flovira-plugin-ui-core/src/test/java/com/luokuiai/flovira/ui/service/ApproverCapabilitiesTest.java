@@ -44,5 +44,14 @@ public class ApproverCapabilitiesTest {
         FrameInvoker.<ApproverResolver>setBeansFunction(type -> Collections.singletonList(resolver));
         assertEquals(1, FloviraService.capabilities().getData().getApproverStrategies().size());
         assertEquals("ROLE", FloviraService.capabilities().getData().getApproverStrategies().get(0).getCode());
+        com.luokuiai.flovira.core.dto.ApproverStrategyDefinition definition =
+            FloviraService.capabilities().getData().getApproverStrategies().get(0);
+        assertEquals("emptyPolicy", definition.getOptions().get(0).getCode());
+        assertEquals("ZERO_OR_MORE", definition.getResultCardinality());
+        assertEquals("ERROR", definition.getOptions().get(0).getDefaultValue());
+        assertEquals("emptyPolicySubjects", definition.getOptions().get(0).getChoices().get(2).getSelectionConfigKey());
+        assertEquals("sameAsStarterAction", definition.getOptions().get(1).getCode());
+        assertEquals("SELF_APPROVE", definition.getOptions().get(1).getDefaultValue());
+        assertEquals("USER", definition.getOptions().get(1).getChoices().get(2).getSelectionStrategy());
     }
 }

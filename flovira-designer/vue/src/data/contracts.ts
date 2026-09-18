@@ -27,6 +27,8 @@ export interface DesignerApproverOptionChoice {
   value: string
   label: string
   disabled?: boolean
+  selectionStrategy?: string
+  selectionConfigKey?: string
 }
 
 export interface DesignerApproverOption {

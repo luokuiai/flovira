@@ -27,12 +27,21 @@ const SAME_AS_STARTER_OPTION: DesignerApproverOption = {
   ],
 }
 
+const EMPTY_APPROVER_OPTION: DesignerApproverOption = {
+  code: 'emptyPolicy', name: '审批人为空时', defaultValue: 'ERROR', nodeTypes: ['1'], condition: 'EMPTY',
+  choices: [
+    { value: 'ERROR', label: '报错并阻止流转' },
+    { value: 'SKIP', label: '跳过' },
+    { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'emptyPolicySubjects' },
+  ],
+}
+
 export const DEMO_CAPABILITIES: DesignerCapabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
   approverStrategies: [
     { code: 'USER', name: '用户', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, editorType: 'DIALOG', resultCardinality: 'ONE_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
-    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
+    { code: 'ROLE', name: '角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [MULTI_APPROVER_OPTION, EMPTY_APPROVER_OPTION, SAME_AS_STARTER_OPTION] },
     { code: 'EXPRESSION', name: '表达式', selectionType: 'EXPRESSION', multiple: false, editorType: 'INLINE', resultCardinality: 'EXACTLY_ONE', options: [SAME_AS_STARTER_OPTION] },
   ],
   approvalModes: ['OR', 'VOTE', 'COUNTERSIGN'],

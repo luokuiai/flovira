@@ -41,7 +41,7 @@ import java.util.List;
  */
 public class TimeoutServiceImpl implements TimeoutService {
 
-    public static final String SYSTEM_HANDLER = "flovira:timeout";
+    public static final String SYSTEM_HANDLER = "SYSTEM_TIMEOUT";
     private static final Logger log = LoggerFactory.getLogger(TimeoutServiceImpl.class);
 
     @Override

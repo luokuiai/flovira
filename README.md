@@ -131,6 +131,9 @@ enabling this feature.
 
 The Java root package is `com.luokuiai.flovira`.
 
+See [approver policies](docs/approver-policies.md) for handling empty approver
+results and approvers who are also the workflow initiator.
+
 ## Database
 
 Full initialization scripts are available under `sql/<database>/`. Database

@@ -45,7 +45,7 @@ import java.util.Map;
  */
 public class WaitServiceImpl implements WaitService {
 
-    public static final String SYSTEM_HANDLER = "flovira:wait";
+    public static final String SYSTEM_HANDLER = "SYSTEM_WAIT";
 
     @Override
     public WaitResumeResult resumeTask(final Long taskId, final Map<String, Object> variables) {

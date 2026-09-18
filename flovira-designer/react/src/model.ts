@@ -539,6 +539,23 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
       } else if (descriptor && (rule.strategyVersion ?? 1) !== (descriptor.version ?? 1)) {
         issues.push({ code: 'APPROVER_STRATEGY_VERSION', nodeCode: node.nodeCode, message: `${node.nodeName} 的人员策略版本不受支持` })
       }
+      if (node.nodeType === '1') {
+        for (const [key, subjectKey] of [['emptyPolicy', 'emptyPolicySubjects'], ['sameAsStarterAction', 'sameAsStarterSubjects']]) {
+          const value = rule.config?.[key]
+          const allowed = key === 'emptyPolicy' ? ['ERROR', 'SKIP', 'TRANSFER_TO_USER']
+            : ['SELF_APPROVE', 'AUTO_SKIP_OR_TRANSFER', 'TRANSFER_TO_USER']
+          if (value != null && !allowed.includes(String(value))) {
+            issues.push({ code: 'APPROVER_POLICY_INVALID', nodeCode: node.nodeCode, message: `${node.nodeName} 的审批人处理策略无效` })
+          }
+          if (value !== 'TRANSFER_TO_USER') continue
+          const subjects = rule.config?.[subjectKey] as ApproverSubject[] | undefined
+          if (!Array.isArray(subjects) || !subjects.length || subjects.some(subject => !subject
+            || typeof subject.id !== 'string' || !subject.id.trim() || subject.type !== 'USER')
+            || (capabilities && !capabilities.approverStrategies.some(strategy => strategy.code === 'USER'))) {
+            issues.push({ code: 'APPROVER_TRANSFER_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 需要选择有效的转交人员` })
+          }
+        }
+      }
     }
     if (node.nodeType === '8') {
       const carbonCopy = getCarbonCopyRule(node)
