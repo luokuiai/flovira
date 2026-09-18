@@ -99,7 +99,7 @@ Automatic approvals and rejections SHALL follow the same callback rules with an 
 - **THEN** it has paired entry and departure with the applicable recipient snapshot and automatic source
 
 ### Requirement: Transactional delivery and errors
-Subscriptions SHALL select IN_TRANSACTION or AFTER_COMMIT delivery. Transaction-internal failures MUST abort and roll back the operation. After-commit delivery MUST wait for the outer transaction commit, report observer failures without misrepresenting committed state, and continue other notifications. Lifecycle-enabled writes MUST reject missing transaction support and recursive advancement of the same instance from a callback. Fact callbacks MUST remain distinct from mutable pre-operation methods.
+Listener implementations SHALL declare IN_TRANSACTION or AFTER_COMMIT fact delivery in code. Transaction-internal failures MUST abort and roll back the operation. After-commit delivery MUST wait for the outer transaction commit, report observer failures without misrepresenting committed state, and continue other notifications. Lifecycle-enabled writes MUST reject missing transaction support and recursive advancement of the same instance from a callback. Fact callbacks MUST remain distinct from mutable pre-operation methods.
 
 #### Scenario: Outer rollback
 - **WHEN** the host rolls back after an engine operation
@@ -128,19 +128,20 @@ Events SHALL expose detached immutable snapshots with event and operation identi
 - **WHEN** hosts require reliable external side effects
 - **THEN** documentation explains transaction retry and after-commit crash limits and describes host-managed outbox and idempotency
 
-### Requirement: Scoped validated subscriptions
-Subscriptions SHALL use versioned configuration and stable registered listener codes with deterministic ordering. Process events SHALL allow definition/global scope, node events SHALL also allow supported-node scope, and participant events SHALL allow approval-node/definition/global scope. Duplicate registrations, unknown codes/events, incompatible scopes or versions and conflicting parameters for one listener and phase MUST fail validation. Matching multiple scopes MUST yield one delivery per event, registration and phase. Both designers SHALL preserve equivalent configuration.
+### Requirement: Code-owned callback registration
+Lifecycle listeners SHALL be registered as callback objects in host code or discovered as Spring beans. Registration alone SHALL activate the callbacks. Hosts SHALL filter events and business applicability in their implementation. The engine MUST NOT read lifecycle configuration from definition/node ext or expose dynamic callback selection in designers or capability APIs. Extensions SHALL be JSON objects, with no code/value array compatibility branch.
 
-#### Scenario: Overlapping scopes
-- **WHEN** a registration matches the same event through node and definition scopes in one phase
-- **THEN** it receives exactly one delivery for that phase
+#### Scenario: Business extensions do not select callbacks
+- **WHEN** a definition or node contains a lifecycle-named business JSON property
+- **THEN** lifecycle dispatch does not parse, validate, or execute that property
+- **AND** registered code callbacks still run
 
-#### Scenario: Invalid configuration
-- **WHEN** imported configuration attaches participant events to a wait node or node events to a gateway
-- **THEN** validation rejects the incompatible subscription rather than ignoring it
+#### Scenario: JSON object round trip
+- **WHEN** a designer imports and exports nested business JSON extensions
+- **THEN** objects, arrays, booleans and numeric values inside the extension object are preserved without converting the root to an array
 
 ### Requirement: Explicit legacy and active-instance migration
-Legacy callbacks MUST NOT be silently reinterpreted. Old definitions SHALL require migration; the old global listener and dispatch mechanism SHALL be replaced without a compatibility switch. Assignment editing SHALL move to the new listener; form loading SHALL retain a separate extension. Migration SHALL map active supported executions and process lifecycle state only when unambiguous, without replaying historical start or entry events. Hosts SHALL implement their own business validation and lock behavior through the new pre-operation methods or their service layer; page routing and timeout audit remain host responsibilities.
+Legacy callbacks MUST NOT be silently reinterpreted. Old definitions SHALL require migration; the old global listener and dispatch mechanism SHALL be replaced without a compatibility switch. Assignment editing SHALL move to the new listener; form loading SHALL read stored references and data without callbacks. Migration SHALL map active supported executions and process lifecycle state only when unambiguous, without replaying historical start or entry events. Hosts SHALL implement their own business validation and lock behavior through the new pre-operation methods or their service layer; page routing and timeout audit remain host responsibilities.
 
 #### Scenario: Old finish subscription
 - **WHEN** an old finish subscription is migrated
@@ -151,7 +152,7 @@ Legacy callbacks MUST NOT be silently reinterpreted. Old definitions SHALL requi
 - **THEN** migration is blocked or the instance finishes before upgrading, without guessed associations or fabricated historical events
 
 ### Requirement: Native mutable pre-operation handling
-The new listener SHALL support synchronous pre-operation methods after authorization and before workflow mutation, plus assignment adjustment after resolution and before persistence. It SHALL support global, definition and applicable node scopes, deterministic ordering and deduplication. Variable edits MUST reach routing and persistence. Assignment edits MUST be validated and reflected in persisted participants and entry snapshots. Identity, tenant and permission-bypass controls MUST NOT be mutable through these contexts.
+The new listener SHALL support synchronous pre-operation methods after authorization and before workflow mutation, plus assignment adjustment after resolution and before persistence. It SHALL invoke registered listeners in deterministic order; any business filtering belongs in callback code. Variable edits MUST reach routing and persistence. Assignment edits MUST be validated and reflected in persisted participants and entry snapshots. Identity, tenant and permission-bypass controls MUST NOT be mutable through these contexts.
 
 #### Scenario: Business validation rejects an operation
 - **WHEN** a pre-operation listener throws during a manual or system operation
@@ -165,9 +166,9 @@ The new listener SHALL support synchronous pre-operation methods after authoriza
 - **WHEN** a listener changes a permitted assignment draft
 - **THEN** validated final recipients are persisted and included in NODE_ENTERED without a redundant ASSIGNEES_CHANGED event
 
-#### Scenario: Invalid execution phase
-- **WHEN** a pre-operation subscription requests after-commit execution
-- **THEN** configuration validation rejects it
+#### Scenario: Pre-hooks remain synchronous
+- **WHEN** a listener declares AFTER_COMMIT for facts
+- **THEN** its pre-operation and assignment methods still execute synchronously inside the workflow transaction
 
 ### Requirement: Return to initiator
 
@@ -187,28 +188,36 @@ Resubmission routing SHALL follow the existing node-control resubmitStrategy: RE
 - **WHEN** the initiator resubmits
 - **THEN** PROCESS_RESUBMITTED precedes initiator departure and subsequent node entry under the same instance
 
-### Requirement: Framework-independent global registration
-Hosts SHALL be able to register multiple listener instances and global subscriptions programmatically without Spring or persisted listener configuration. Local subscriptions SHALL reference the same stable registration codes. Duplicate codes MUST fail explicitly and global/local matches MUST share the same deduplication rules.
+### Requirement: Framework-independent registration
+Hosts SHALL register multiple listener instances using the core API without persisted listener configuration. Duplicate registration names MUST fail without replacing an existing object. Callbacks SHALL run in getOrder() order, with registration names breaking ties.
 
 #### Scenario: Standalone host
-- **WHEN** a host registers listeners and global subscriptions using only the core API
-- **THEN** matching pre-operation hooks and facts execute without a framework bean container or database listener configuration
+- **WHEN** a host registers callback objects using only the core API
+- **THEN** pre-operation hooks and facts execute without a framework bean container, subscription declarations or database listener configuration
 
 #### Scenario: Registration collision
-- **WHEN** another listener is registered under an existing code
+- **WHEN** another listener is registered under an existing name
 - **THEN** registration fails without replacing the existing listener
 
 ### Requirement: Automatic Spring bean discovery
-Spring integration SHALL discover WorkflowLifecycleListener beans automatically under their bean names, retain injected dependencies and proxies, and resolve persisted subscription codes using those names. Hosts MUST NOT need manual registration. LifecycleSubscription beans SHALL declare global subscriptions. Batch installation MUST reject conflicts atomically, and context shutdown MUST remove only registrations owned by that context.
+Spring integration SHALL discover WorkflowLifecycleListener beans and retain injected dependencies and proxies. Hosts MUST NOT need manual registration or subscription beans. Batch installation MUST reject invalid listeners and conflicts atomically. Context shutdown MUST remove only registrations owned by that context.
 
-#### Scenario: Bean-name subscription
-- **WHEN** a host provides a named listener bean and persisted configuration references its name
-- **THEN** the injected bean receives matching callbacks without manual registration
+#### Scenario: Listener bean
+- **WHEN** a host provides a listener bean
+- **THEN** the injected bean receives callbacks without workflow configuration or manual registration
 
-#### Scenario: Global subscription bean
-- **WHEN** a host declares a global subscription bean for a discovered listener
-- **THEN** matching callbacks run without per-definition configuration and overlapping local references remain deduplicated
-
-#### Scenario: Invalid startup configuration
-- **WHEN** discovered names conflict or a global subscription references an unknown listener
+#### Scenario: Invalid startup registration
+- **WHEN** discovered names conflict or a listener declares an invalid fact-delivery phase
 - **THEN** startup fails and no partial batch remains installed
+
+### Requirement: Form reads without callbacks
+Task and historical form reads SHALL return stored form references and approval data without listener or expression dispatch. Persisted listener configuration, including formLoad, MUST be rejected when validating definitions and nodes.
+
+#### Scenario: Load a task form
+- **WHEN** a host reads a task form
+- **THEN** the response uses the task formId and stored instance formData without reading listener configuration
+- **AND** historical reads use the history snapshot
+
+#### Scenario: Removed form callback configuration
+- **WHEN** a definition or node contains a formLoad listener configuration
+- **THEN** validation rejects it rather than executing or converting it

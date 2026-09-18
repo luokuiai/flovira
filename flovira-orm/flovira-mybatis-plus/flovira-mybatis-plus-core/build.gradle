@@ -13,3 +13,5 @@ dependencies {
 }
 
 description = 'flovira-mybatis-plus-core'
+
+sourceSets.main.java.srcDir rootProject.file('flovira-orm/src/main/java')

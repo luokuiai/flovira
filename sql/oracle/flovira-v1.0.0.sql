@@ -1,3 +1,4 @@
+-- Requires Oracle Database 21c+ and COMPATIBLE >= 20 (native JSON).
 -- Flovira 1.0.0 baseline schema for fresh Oracle installations.
 create table FLOW_DEFINITION
 (
@@ -12,7 +13,7 @@ create table FLOW_DEFINITION
     ACTIVITY_STATUS NUMBER(1)   default 1 not null,
     LISTENER_TYPE   VARCHAR2(100),
     LISTENER_PATH   VARCHAR2(500),
-    EXT             VARCHAR2(500),
+    EXT             JSON,
     CREATED_AT     DATE,
     CREATED_BY       VARCHAR2(64) default '',
     UPDATED_AT     DATE,
@@ -53,7 +54,7 @@ create table FLOW_FORM
     VERSION        VARCHAR2(20)  not null,
     PUBLISH_STATUS NUMBER(1) default 0 not null,
     FORM_CONTENT   CLOB,
-    EXT            VARCHAR2(500),
+    EXT            JSON,
     CREATED_AT     DATE,
     CREATED_BY     VARCHAR2(64) default '',
     UPDATED_AT     DATE,
@@ -101,7 +102,7 @@ create table FLOW_NODE
     CREATED_BY       VARCHAR2(64) default '',
     UPDATED_AT     DATE,
     UPDATED_BY       VARCHAR2(64) default '',
-    EXT        CLOB,
+    EXT        JSON,
     DELETED        VARCHAR2(1)   default '0' not null,
     TENANT_ID       VARCHAR2(40)
 );
@@ -193,7 +194,7 @@ create table FLOW_INSTANCE
     CREATED_BY       VARCHAR2(64) default '',
     UPDATED_AT     DATE,
     UPDATED_BY       VARCHAR2(64) default '',
-    EXT             VARCHAR2(500),
+    EXT             JSON,
     DELETED        VARCHAR2(1)  default '0' not null,
     TENANT_ID       VARCHAR2(40)
 );
@@ -293,7 +294,7 @@ create table FLOW_HIS_TASK
     FORM_ID        VARCHAR2(100),
     MESSAGE          VARCHAR2(500),
     VARIABLES         CLOB,
-    EXT              CLOB,
+    EXT              JSON,
     CREATED_AT      DATE,
     UPDATED_AT      DATE,
     DELETED         VARCHAR2(1) default '0' not null,

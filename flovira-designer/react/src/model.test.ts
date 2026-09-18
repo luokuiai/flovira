@@ -126,7 +126,7 @@ describe('Flovira definition model', () => {
 
   test('round trips fixed subprocess configuration', () => {
     const node = createNode('6')
-    node.ext = JSON.stringify([{ code: 'future', value: 'kept' }])
+    node.ext = JSON.stringify({ 'future': 'kept' })
     const configured = setSubprocessConfig(node, 'expense_child')
 
     expect(getSubprocessConfig(configured)).toMatchObject({
@@ -134,7 +134,7 @@ describe('Flovira definition model', () => {
       selectionMode: 'FIXED',
       completionPolicy: 'ALL',
     })
-    expect(JSON.parse(String(configured.ext))).toContainEqual({ code: 'future', value: 'kept' })
+    expect(JSON.parse(String(configured.ext))).toMatchObject({ future: 'kept' })
   })
 
   test('round trips the shared semantic approver rule', () => {
@@ -152,7 +152,7 @@ describe('Flovira definition model', () => {
       expression: '',
       config: { tenantScope: 'current' },
     })
-    expect(JSON.parse(String(node.ext))).toContainEqual(expect.objectContaining({ code: 'approverRule' }))
+    expect(JSON.parse(String(node.ext))).toHaveProperty('approverRule')
   })
 
   test('round trips and validates carbon copy recipients', () => {

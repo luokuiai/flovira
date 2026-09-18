@@ -438,7 +438,8 @@ public class WaitTimeoutServiceTest {
     private static final class TestJsonConvert implements JsonConvert {
         @Override
         public Map<String, Object> strToMap(String jsonStr) {
-            return Collections.emptyMap();
+            return Collections.<String, Object>singletonMap("waitConfig",
+                jsonStr.substring("{\"waitConfig\":\"".length(), jsonStr.length() - 2));
         }
 
         @Override
@@ -446,7 +447,7 @@ public class WaitTimeoutServiceTest {
             if (DefJson.class.equals(clazz)) {
                 String[] parts = jsonStr.split("=", 2);
                 NodeJson node = new NodeJson().setNodeType(NodeType.WAIT.getKey())
-                    .setNodeCode(parts[0]).setExt(parts.length > 1 ? parts[1] : null);
+                    .setNodeCode(parts[0]).setExt(parts.length > 1 ? "{\"waitConfig\":\"" + parts[1] + "\"}" : null);
                 DefJson defJson = new DefJson().setNodeList(Collections.singletonList(node));
                 return clazz.cast(defJson);
             }
@@ -457,14 +458,7 @@ public class WaitTimeoutServiceTest {
 
         @Override
         public <T> List<T> strToList(String jsonStr) {
-            Map<String, Object> ext = new HashMap<String, Object>();
-            ext.put("code", "waitConfig");
-            ext.put("value", jsonStr);
-            List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-            list.add(ext);
-            @SuppressWarnings("unchecked")
-            List<T> result = (List<T>) list;
-            return result;
+            throw new UnsupportedOperationException("Extensions are JSON objects");
         }
 
         @Override

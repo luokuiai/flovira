@@ -15,8 +15,6 @@
  */
 package com.luokuiai.flovira.core.constant;
 
-import java.util.regex.Pattern;
-
 /**
  * flovira常量
  *
@@ -31,17 +29,11 @@ public class FlowCons {
     public static final String SPLIT_VERTICAL = "\\|";
     public static final String DEFAULT = "default";
     public static final String SPEL = "spel";
-    public static final Pattern LISTENER_PATTERN = Pattern.compile("^([^()]*)(.*)$");
 
     /**
      * 权限标识中的发起人标识符，办理过程中进行替换
      */
     public static final String WARMFLOWINITIATOR = "floviraInitiator";
-
-    /**
-     * 监听器参数
-     */
-    public static final String WARM_LISTENER_PARAM = "WarmListenerParam";
 
     /**
      * 雪花id 14位

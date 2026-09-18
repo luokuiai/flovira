@@ -129,10 +129,13 @@ cluster coordination (for example ShedLock with Redis), retries and monitoring.
 See [timeout integration and alpha migration](docs/timeout-integration.md) before
 enabling this feature.
 
-Workflow lifecycle callbacks use `WorkflowLifecycleListener` with Spring Bean
-names or standalone registration. See [listener integration](docs/lifecycle-listener-migration.md)
-for the eight events, global subscriptions, return-to-initiator handling and
-host integration requirements.
+Workflow lifecycle callbacks use `WorkflowLifecycleListener` beans or standalone
+code registration. Hosts filter business applicability in callback code; designers
+do not configure callbacks. See [listener integration](docs/lifecycle-listener-migration.md)
+for the eight events, return-to-initiator handling and host integration requirements.
+Extensions use [JSON objects](docs/extension-json-object.md), stored as MySQL `JSON`,
+PostgreSQL `JSONB`, and Oracle `JSON` (21c+, `COMPATIBLE >= 20`).
+See [database migration and driver requirements](docs/native-json-storage.md).
 
 The Java root package is `com.luokuiai.flovira`.
 

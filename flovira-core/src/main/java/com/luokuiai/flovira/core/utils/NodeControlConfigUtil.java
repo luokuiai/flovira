@@ -17,8 +17,6 @@ import com.luokuiai.flovira.core.dto.NodeControlConfig;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.enums.NodeType;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 public final class NodeControlConfigUtil {
     public static final String RESTART = "RESTART_FROM_BEGINNING";
@@ -28,26 +26,17 @@ public final class NodeControlConfigUtil {
     private NodeControlConfigUtil() { }
 
     public static NodeControlConfig read(Node node) {
-        if (StringUtils.isEmpty(node.getExt())) return null;
-        List<Map<String, Object>> entries = FlowEngine.jsonConvert.strToList(node.getExt());
-        NodeControlConfig result = null;
-        if (entries == null) throw new IllegalArgumentException("Invalid node ext");
-        for (Map<String, Object> entry : entries) {
-            if (entry == null) throw new IllegalArgumentException("Invalid node ext entry");
-            if (!"nodeControlConfig".equals(entry.get("code"))) continue;
-            if (result != null) throw new IllegalArgumentException("Duplicate nodeControlConfig");
-            Object value = entry.get("value");
-            if (!(value instanceof String)) throw new IllegalArgumentException("nodeControlConfig must be JSON text");
-            result = FlowEngine.jsonConvert.strToBean((String) value, NodeControlConfig.class);
-            if (result == null || result.getSchemaVersion() != 1 || !NodeType.isBetween(node.getNodeType())) {
-                throw new IllegalArgumentException("Unsupported nodeControlConfig");
-            }
-            if (!Arrays.asList("TO_INITIATOR", "TO_DRAFT", "TO_PREVIOUS", "TO_SPECIFIED_NODE",
-                    "TO_REJECTOR_SPECIFIED_NODE", "REJECT").contains(result.getRejectStrategy())) {
-                throw new IllegalArgumentException("Unknown rejectStrategy");
-            }
-            validateStrategy(result.getResubmitStrategy());
+        String value = ExtConfigUtil.read(node.getExt()).get("nodeControlConfig");
+        if (StringUtils.isEmpty(value)) return null;
+        NodeControlConfig result = FlowEngine.jsonConvert.strToBean(value, NodeControlConfig.class);
+        if (result == null || result.getSchemaVersion() != 1 || !NodeType.isBetween(node.getNodeType())) {
+            throw new IllegalArgumentException("Unsupported nodeControlConfig");
         }
+        if (!Arrays.asList("TO_INITIATOR", "TO_DRAFT", "TO_PREVIOUS", "TO_SPECIFIED_NODE",
+                "TO_REJECTOR_SPECIFIED_NODE", "REJECT").contains(result.getRejectStrategy())) {
+            throw new IllegalArgumentException("Unknown rejectStrategy");
+        }
+        validateStrategy(result.getResubmitStrategy());
         return result;
     }
 

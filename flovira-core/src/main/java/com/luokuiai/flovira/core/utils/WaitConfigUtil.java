@@ -21,8 +21,6 @@ import com.luokuiai.flovira.core.dto.WaitConfig;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.enums.NodeType;
 
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -65,21 +63,7 @@ public final class WaitConfigUtil {
     }
 
     private static String getExtValue(String ext) {
-        if (StringUtils.isEmpty(ext)) {
-            return null;
-        }
-        List<Map<String, Object>> extList = FlowEngine.jsonConvert.strToList(ext);
-        if (CollUtil.isEmpty(extList)) {
-            return null;
-        }
-        for (Map<String, Object> item : extList) {
-            Object code = item.get("code");
-            Object value = item.get("value");
-            if (EXT_CONFIG.equals(code) && value != null) {
-                return value.toString();
-            }
-        }
-        return null;
+        return ExtConfigUtil.read(ext).get(EXT_CONFIG);
     }
 
     public static void validate(WaitConfig config) {

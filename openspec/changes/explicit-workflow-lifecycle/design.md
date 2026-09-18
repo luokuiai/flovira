@@ -85,7 +85,7 @@ Participant snapshots include stable user IDs, participant identities, and deleg
 
 Every lifecycle write entry requires a real transaction adapter and fails explicitly when one is missing. Reuse and verify transactionExecutor / afterCommit without a Spring dependency in core. Boot 2 / 3 / 4 must behave consistently. Transaction retries can repeat synchronous callbacks; a crash after commit can lose notifications. Hosts requiring durable external delivery must use a transactional outbox and idempotent consumers.
 
-Register stable codes with deterministic order. Store versioned lifecycle configuration in definition/node ext. Process events allow definition/global scope; node events allow supported-node/definition/global scope; participant events allow approval-node/definition/global scope. Reject duplicate codes, unknown codes/events, unsupported scopes/versions, and conflicting parameters. A registration matching multiple scopes receives an event once per delivery phase.
+Register callback objects in code with deterministic order. Registration alone activates the callback; hosts filter events and business applicability inside their implementation. Lifecycle dispatch never reads definition/node ext. No persisted subscriptions, scope selection, parameters, designer controls, or listener capability catalog are provided. Extensions are JSON objects; the code/value array format has no runtime compatibility branch.
 
 ### 6. Host integration and legacy listeners
 
@@ -99,7 +99,7 @@ Register stable codes with deterministic order. Store versioned lifecycle config
 | Remaining work-item cleanup after termination or branch cancellation | NODE_LEFT reason and affected-task snapshots |
 | Material validation, business locking, empty-approver handling | Optional pre-operation/assignment hooks; resolvers still provide approver sources |
 
-Remove GlobalListener and old start/assignment/finish/create dispatch. Register WorkflowLifecycleListener without a legacy switch. Reject old configuration during import/publication/execution validation rather than silently ignoring it. Map old start validation/variable changes to beforeOperation, assignment to beforeAssignment, and finish/create facts to the eight events according to their actual meaning. FORM_LOAD remains a separate extension. Arbitrary mutation of identities, tenants, or graph structures is not retained; use the supported context operations.
+Remove GlobalListener and old start/assignment/finish/create dispatch. Register WorkflowLifecycleListener without a legacy switch. Reject old configuration during import/publication/execution validation rather than silently ignoring it. Map old start validation/variable changes to beforeOperation, assignment to beforeAssignment, and finish/create facts to the eight events according to their actual meaning. Remove FORM_LOAD and its dedicated listener/expression dispatch; form reads return stored references and data without callbacks. Arbitrary mutation of identities, tenants, or graph structures is not retained; use the supported context operations.
 
 ## Risks / Trade-offs
 
@@ -122,7 +122,7 @@ The project has no existing users requiring migration. New integrations use the 
 
 ## Complete listener replacement contract
 
-WorkflowLifecycleListener provides beforeOperation, beforeAssignment, and onEvent. The first two execute synchronously in the transaction; onEvent receives the eight immutable facts. Global/definition/node scopes share stable registration codes and deterministic ordering. Pre-hooks cannot use AFTER_COMMIT.
+WorkflowLifecycleListener provides beforeOperation, beforeAssignment, and onEvent. The first two execute synchronously in the transaction; onEvent receives the eight immutable facts. Registered listeners run in getOrder() order, then registration-name order. getDeliveryPhase() controls fact delivery only; pre-hooks always run synchronously in the transaction.
 
 beforeOperation covers start, approval/rejection, withdrawal, resubmission, termination, transfer, delegation, signer changes, pending, wait resumption, and system advancement. Authorization and basic input validation precede the hook; routing and state writes follow it. Business variable changes affect expression evaluation, persistence, and downstream assignment. Instance identity, tenant, actor identity, and authorization-bypass flags are immutable. Failure rolls back the operation without success facts or after-commit notifications.
 
@@ -136,14 +136,10 @@ Return to initiator (TO_INITIATOR) activates an initiator work step distinct fro
 
 Use the node control configuration's resubmitStrategy rather than adding a global choice. RESTART_FROM_BEGINNING restarts the approval sequence; CONTINUE_FROM_REJECTED_NODE resumes at the approval node that returned the process. Before this change, React exposed these settings with RESTART_FROM_BEGINNING as default, but the backend did not implement them. Persist the selected policy and originating node at return time; resubmission uses that captured context so later definition changes cannot alter the current path. Neither strategy replays process-start or start-node events. Re-entered approval nodes receive new execution identities. Legacy TO_DRAFT configuration maps to TO_INITIATOR.
 
-## Global programmatic registration
+## Programmatic registration
 
-FlowEngine exposes a framework-independent registry. Hosts can register listener objects and global subscriptions without Spring, FrameInvoker, or database configuration. Multiple listeners use the same interface. Spring is an optional discovery adapter; the database stores stable codes and subscriptions, never arbitrary executable class paths.
-
-Registration maps a stable code to an instance. Global subscriptions select hook/event, phase, and ordering; definitions/nodes reference the same code. Reject duplicate codes. Deduplicate overlapping global/local subscriptions by registration, handling point, and phase, rejecting parameter conflicts rather than silently overwriting. Hosts register at startup; runtime reads immutable registry snapshots.
+FlowEngine exposes a framework-independent registry. Hosts register listener objects directly without Spring, FrameInvoker, or persisted configuration. Registration names identify objects for duplicate detection and error reporting; they are never selected from workflow data. Duplicate names fail. Dispatch captures an ordered snapshot before invocation.
 
 ## Spring Bean discovery
 
-After singleton initialization, discover WorkflowLifecycleListener Beans automatically and use their actual Bean names as subscription codes. Preserve proxies and dependency injection. Hosts need not call register. Database lifecycle configuration references Bean names; unknown names fail explicitly instead of instantiating arbitrary classes. Non-Spring hosts retain direct object registration.
-
-Hosts may declare LifecycleSubscription Beans for global subscriptions. Validate registrations and subscriptions as a batch and install atomically. Name conflicts or unknown references fail startup without partial registration. Context shutdown removes only its own registrations/subscriptions, preserving unrelated programmatic registrations. Boot 2 / 3 / 4 adapters share this behavior.
+After singleton initialization, discover WorkflowLifecycleListener beans and register their injected/proxied instances directly. No subscription bean is needed. Install the batch atomically; invalid or conflicting registrations fail startup without partial registration. Context shutdown removes only its own registrations. Boot 2 / 3 / 4 share this behavior.

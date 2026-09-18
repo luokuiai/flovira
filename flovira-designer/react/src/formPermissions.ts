@@ -1,5 +1,5 @@
 import { getFormConditionFields, type FormDefinition, type FormFieldDefinition } from './formDefinition'
-import { setNodeExtConfig } from './model'
+import { readNodeExt, setNodeExtConfig } from './model'
 import type { FloviraDefinition, FloviraNode } from './types'
 
 export interface DesignerFormField { code: string; label: string; dataType?: FormFieldDefinition['dataType'] }
@@ -24,12 +24,9 @@ export function getFormPermissionFields(form: FormDefinition | string): Designer
 }
 
 export function getNodeFormPermissions(node: FloviraNode): NodeFormPermissions {
-  const ext = typeof node.ext === 'string' ? JSON.parse(node.ext) : node.ext
-  if (ext == null) return { schemaVersion: 1, fields: [] }
-  if (!Array.isArray(ext)) throw new Error('节点扩展配置格式无效')
-  const entry = ext.find(item => item.code === 'formPermissions')
-  if (!entry) return { schemaVersion: 1, fields: [] }
-  const config = typeof entry.value === 'string' ? JSON.parse(entry.value) : entry.value
+  const value = readNodeExt(node).formPermissions
+  if (value == null) return { schemaVersion: 1, fields: [] }
+  const config = typeof value === 'string' ? JSON.parse(value) : value
   if (!config || config.schemaVersion !== 1 || !Array.isArray(config.fields)) throw new Error('表单权限配置格式无效')
   const codes = new Set<string>()
   for (const field of config.fields) {

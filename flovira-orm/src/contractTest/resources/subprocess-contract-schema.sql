@@ -27,7 +27,7 @@ CREATE TABLE flow_node
     created_by       varchar(64)   NULL     DEFAULT '':: character varying,
     updated_at     timestamp     NULL,
     updated_by       varchar(64)   NULL     DEFAULT '':: character varying,
-    ext             text          NULL,
+    ext             jsonb          NULL,
     deleted        bpchar(1)     NOT NULL DEFAULT '0':: character varying,
     tenant_id       varchar(40)   NULL,
     CONSTRAINT flow_node_pkey PRIMARY KEY (id)
@@ -73,7 +73,7 @@ CREATE TABLE flow_instance
     created_by       varchar(64)  NULL     DEFAULT '':: character varying,
     updated_at     timestamp    NULL,
     updated_by       varchar(64)  NULL     DEFAULT '':: character varying,
-    ext             varchar(500) NULL,
+    ext             jsonb NULL,
     deleted        bpchar(1)    NOT NULL DEFAULT '0':: character varying,
     tenant_id       varchar(40)  NULL,
     CONSTRAINT flow_instance_pkey PRIMARY KEY (id)
@@ -84,14 +84,14 @@ CREATE TABLE flow_definition (
     category varchar(100), business_type varchar(128) NOT NULL, version varchar(20) NOT NULL,
     publish_status smallint NOT NULL DEFAULT 0, form_id varchar(100),
     activity_status smallint NOT NULL DEFAULT 1, listener_type varchar(100), listener_path varchar(400),
-    ext varchar(500), created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp,
+    ext jsonb, created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp,
     updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40)
 );
 
 CREATE TABLE flow_form (
     id bigint PRIMARY KEY, form_code varchar(40) NOT NULL, form_name varchar(100) NOT NULL,
     version varchar(20) NOT NULL, publish_status smallint NOT NULL DEFAULT 0,
-    form_content text, ext varchar(500),
+    form_content text, ext jsonb,
     created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp,
     updated_by varchar(64) DEFAULT '', deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40)
 );
@@ -183,7 +183,7 @@ CREATE TABLE flow_his_task
     skip_type        varchar(10)  NOT NULL,
     flow_status      varchar(20)  NOT NULL,
     form_id        varchar(100) NULL,
-    ext              text         NULL,
+    ext              jsonb         NULL,
     message          varchar(500) NULL,
     variables         text         NULL,
     created_at      timestamp    NULL,

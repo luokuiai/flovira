@@ -1,7 +1,7 @@
-import { validateLifecycleDefinition } from '../../../../data/lifecycle'
+import { validateLegacyListeners } from '../../../../data/legacyListeners'
 
 const NODE_TYPE_MAP = {0: 'start', 1: 'between', 2: 'end', 3: 'serial', 4: 'parallel', 5: 'inclusive', 6: 'subProcess', 7: 'wait', 8: 'carbonCopy'}
-const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig', 'branchConditions', 'lifecycle', 'nodeControlConfig']
+const JSON_EXT_CODES = ['approverRule', 'submitterRule', 'formPermissions', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig', 'branchConditions', 'nodeControlConfig']
 
 /**
  * 将flovira的定义json数据转成LogicFlow支持的数据格式
@@ -9,7 +9,7 @@ const JSON_EXT_CODES = ['approverRule', 'carbonCopyRule', 'subprocessConfig', 'w
  * @returns LogicFlow的数据
  */
 export const json2LogicFlowJson = (definition) => {
-  validateLifecycleDefinition(definition)
+  validateLegacyListeners(definition)
   const graphData: any = {
     nodes: [],
     edges: []
@@ -69,20 +69,10 @@ export const json2LogicFlowJson = (definition) => {
       lfNode.properties.chartStatusColor = definition.chartStatusColor
       lfNode.properties.promptContent = node.promptContent
       lfNode.properties.subprocessSummary = node.subprocessSummary
-      lfNode.properties.ext = {};
-      if (node.ext && typeof node.ext === "string") {
-        try {
-          node.ext = JSON.parse(node.ext);
-          node.ext.forEach(e => {
-            const value = String(e.value);
-            lfNode.properties.ext[e.code] = JSON_EXT_CODES.includes(e.code)
-              ? value
-              : (value.includes(",") ? value.split(",") : value);
-          });
-        } catch (error) {
-          console.error("Error parsing JSON:", error);
-        }
-      }
+      const ext = typeof node.ext === 'string' ? JSON.parse(node.ext || '{}') : node.ext ?? {}
+      if (!ext || typeof ext !== 'object' || Array.isArray(ext)) throw new Error('扩展配置必须为 JSON 对象')
+      lfNode.properties.ext = Object.fromEntries(Object.entries(ext).map(([code, value]) =>
+        [code, JSON_EXT_CODES.includes(code) && typeof value !== 'string' ? JSON.stringify(value) : value]))
       graphData.nodes.push(lfNode)
     }
   }
@@ -221,19 +211,11 @@ export const logicFlowJsonToFlovira = (data) => {
     node.anyNodeSkip = anyNode.properties.anyNodeSkip
     node.listenerType = anyNode.properties.listenerType
     node.listenerPath = anyNode.properties.listenerPath
-    node.ext = [];
-    for (const key in anyNode.properties.ext) {
-      if (Object.prototype.hasOwnProperty.call(anyNode.properties.ext, key)) {
-        let e = anyNode.properties.ext[key];
-        node.ext.push({ code: key, value: Array.isArray(e) ? e.join(",") : e });
-      }
+    const extensions = { ...anyNode.properties.ext }
+    for (const code of JSON_EXT_CODES) {
+      if (typeof extensions[code] === 'string' && extensions[code].trim()) extensions[code] = JSON.parse(extensions[code])
     }
-    // node.ext中value为空则移除这条记录
-    node.ext = node.ext.filter(item => {
-      const value = item.value
-      return value !== undefined && value !== null && value !== '' && value !== 'null' && value !== 'undefined'
-    });
-    node.ext = JSON.stringify(node.ext);
+    node.ext = JSON.stringify(extensions)
     node.coordinate = anyNode.x + ',' + anyNode.y
     if (anyNode.text && anyNode.text.x && anyNode.text.y) {
       node.coordinate = node.coordinate + '|' + anyNode.text.x + ',' + anyNode.text.y
@@ -257,16 +239,14 @@ export const logicFlowJsonToFlovira = (data) => {
       }
     })
     const outgoing = data.edges.filter(edge => edge.sourceNodeId === anyNode.id)
-    const extensions = JSON.parse(node.ext)
-    if (outgoing.some(edge => edge.properties.branchRule) || extensions.some(item => item.code === 'branchConditions')) {
+    if (outgoing.some(edge => edge.properties.branchRule) || extensions.branchConditions) {
       const rules = outgoing.map(edge => edge.properties.branchRule?.expression === (edge.properties.skipCondition || '')
         ? edge.properties.branchRule : { mode: 'expression', groups: [], expression: edge.properties.skipCondition || '' })
-      node.ext = JSON.stringify([...extensions.filter(item => item.code !== 'branchConditions'),
-        { code: 'branchConditions', value: JSON.stringify({ schemaVersion: 1, rules }) }])
+      node.ext = JSON.stringify({ ...extensions, branchConditions: { schemaVersion: 1, rules } })
     }
     definition.nodeList.push(node)
   })
-  validateLifecycleDefinition(definition)
+  validateLegacyListeners(definition)
   return JSON.stringify(definition)
 }
 

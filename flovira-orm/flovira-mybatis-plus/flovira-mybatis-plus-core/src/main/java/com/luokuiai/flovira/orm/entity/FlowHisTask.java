@@ -17,6 +17,7 @@ package com.luokuiai.flovira.orm.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import com.luokuiai.flovira.orm.type.ExtJsonTypeHandler;
 import lombok.experimental.Accessors;
 import com.luokuiai.flovira.core.entity.HisTask;
 
@@ -31,7 +32,7 @@ import java.util.List;
  */
 @Data
 @Accessors(chain = true)
-@TableName("flow_his_task")
+@TableName(value = "flow_his_task", autoResultMap = true)
 public class FlowHisTask implements HisTask {
 
     /**
@@ -159,6 +160,7 @@ public class FlowHisTask implements HisTask {
     /**
      * 业务详情 存业务类的json
      */
+    @TableField(typeHandler = ExtJsonTypeHandler.class, condition = ExtJsonTypeHandler.CONDITION)
     private String ext;
 
     /**

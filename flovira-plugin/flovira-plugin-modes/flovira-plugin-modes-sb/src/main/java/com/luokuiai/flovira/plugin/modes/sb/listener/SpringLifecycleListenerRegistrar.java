@@ -16,9 +16,7 @@
 package com.luokuiai.flovira.plugin.modes.sb.listener;
 
 import com.luokuiai.flovira.core.listener.lifecycle.LifecycleListenerRegistry;
-import com.luokuiai.flovira.core.listener.lifecycle.LifecycleSubscription;
 import com.luokuiai.flovira.core.listener.lifecycle.WorkflowLifecycleListener;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.beans.factory.DisposableBean;
@@ -40,8 +38,7 @@ public final class SpringLifecycleListenerRegistrar implements SmartInitializing
     public synchronized void afterSingletonsInstantiated() {
         if (registration != null) throw new IllegalStateException("Lifecycle listeners already initialized");
         Map<String, WorkflowLifecycleListener> listeners = beans.getBeansOfType(WorkflowLifecycleListener.class);
-        Map<String, LifecycleSubscription> subscriptions = beans.getBeansOfType(LifecycleSubscription.class);
-        registration = registry.install(listeners, new ArrayList<LifecycleSubscription>(subscriptions.values()));
+        registration = registry.install(listeners);
     }
 
     @Override

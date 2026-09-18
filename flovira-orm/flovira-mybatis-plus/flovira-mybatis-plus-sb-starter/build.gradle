@@ -14,6 +14,7 @@ dependencies {
     api project(':flovira-plugin-modes-sb')
     testImplementation libs.junit.junit
     testImplementation project(':flovira-plugin-json-jackson')
+    testRuntimeOnly libs.com.mysql.mysql.connector.j
     testImplementation libs.org.postgresql.postgresql
     testImplementation libs.org.testcontainers.postgresql
 }
@@ -22,3 +23,5 @@ sourceSets.test.java.srcDir rootProject.file('flovira-orm/src/contractTest/java'
 sourceSets.test.resources.srcDir rootProject.file('flovira-orm/src/contractTest/resources')
 
 description = 'flovira-mybatis-plus-sb-starter'
+
+sourceSets.test.resources.srcDir rootProject.file('sql')

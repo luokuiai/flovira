@@ -214,7 +214,6 @@ public class BeanConfig {
     private void setExpression() {
         ExpressionUtil.setExpression(new ConditionStrategyDefault());
         ExpressionUtil.setExpression(new ConditionStrategySpel());
-        ExpressionUtil.setExpression(new ListenerStrategySpel());
         ExpressionUtil.setExpression(new HandlerStrategySpel());
         ExpressionUtil.setExpression(new VoteSignStrategyDefault());
         ExpressionUtil.setExpression(new VoteSignStrategySpel());

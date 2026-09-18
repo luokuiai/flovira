@@ -98,7 +98,7 @@ export interface FloviraNode extends Record<string, unknown> {
   coordinate?: string
   nodeRatio?: string | number
   permissionFlag?: string | null
-  ext?: string | Array<{ code: string; value: unknown }>
+  ext?: string | Record<string, unknown>
   skipList: FloviraSkip[]
 }
 
@@ -134,9 +134,6 @@ export interface SubprocessDefinition {
 }
 
 export interface DesignerCapabilities {
-  lifecyclePoints?: string[]
-  lifecyclePhases?: ('IN_TRANSACTION' | 'AFTER_COMMIT')[]
-  listenerCodes?: string[]
   schemaVersion: 1
   nodeTypes: FloviraNodeType[]
   approverStrategies: DesignerApproverStrategy[]

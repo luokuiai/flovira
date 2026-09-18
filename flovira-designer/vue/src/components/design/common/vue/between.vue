@@ -8,12 +8,12 @@
             v-for="(item, index) in tabsList"
             :key="item.name"
             class="modern-tab-item"
-            :class="{ 'is-active': tabsValue === item.name, 'is-ext-tab': index >= 3 }"
+            :class="{ 'is-active': tabsValue === item.name, 'is-ext-tab': index >= 2 }"
             @click="tabsValue = item.name; handleTabChange(item.name)"
           >
             <svg class="tab-icon" viewBox="0 0 24 24"><path :d="item.iconPath || TAB_ICONS.ext" fill="currentColor"/></svg>
             <span class="tab-label">{{ item.label }}</span>
-            <span v-if="index >= 3" class="tab-ext-tag">{{ t('between.extTag') }}</span>
+            <span v-if="index >= 2" class="tab-ext-tag">{{ t('between.extTag') }}</span>
           </div>
         </div>
       </div>
@@ -181,12 +181,8 @@
         </div>
       </div>
 
-    <div v-show="tabsValue === '3'" class="tabPane tabPane-full">
-      <LifecycleEditor :model-value="form.ext?.lifecycle" node-type="1" :disabled="disabled"
-        @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
-    </div>
       <!-- 动态页签（按钮权限等）- 都是节点扩展属性。tab 已表明当前分组，无需重复标题与卡片背景，直接渲染扩展属性表单 -->
-      <div v-show="tabsValue !== '1' && tabsValue !== '2' && tabsValue !== '3'" class="tabPane tabPane-full">
+      <div v-show="tabsValue !== '1' && tabsValue !== '2'" class="tabPane tabPane-full">
         <div v-if="buttonList[tabsValue] && buttonList[tabsValue].length > 0" class="ext-tab-content">
           <nodeExtList :ref="`nodeExtList_${tabsValue}`" v-model="form.ext" :formList="buttonList[tabsValue]" :disabled="disabled"></nodeExtList>
         </div>
@@ -211,7 +207,6 @@
 </template>
 
 <script setup lang="ts">
-import LifecycleEditor from './LifecycleEditor.vue'
 import { computed, getCurrentInstance, reactive, ref, watch } from 'vue';
 import selectUser from "./selectUser.vue";
 import {designerCapabilities, designerResourceItems, designerSubjects} from "@/api/flow/definition";
@@ -259,13 +254,11 @@ const baseExtCollapsed = ref(true);
 const TAB_ICONS = {
   base: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
   handler: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
-  listener: 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z',
   ext: 'M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7 1.49 0 2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z',
 };
 const tabsList = ref([
   { label: t('start.tabBase'), name: "1", iconPath: TAB_ICONS.base },
   { label: t('between.tabHandler'), name: "2", iconPath: TAB_ICONS.handler },
-  { label: t('start.tabListener'), name: "3", iconPath: TAB_ICONS.listener },
 ]);
 const form = ref<Record<string, any>>(props.modelValue);
 const timeoutRef = ref<any>();
