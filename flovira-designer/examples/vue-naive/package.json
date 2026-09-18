@@ -1,6 +1,6 @@
 {
   "name": "flovira-naive-designer-demo",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "private": true,
   "description": "Flovira 设计器（@luokuiai/flovira-vue-designer）Naive UI 消费示例",
   "type": "module",
