@@ -98,21 +98,21 @@ export function BranchConditionEditor({ node, index, fields, ui, disabled, compi
                     : <Input ariaLabel={`条件值 ${groupIndex + 1}-${conditionIndex + 1}`} value={condition.value} disabled={disabled}
                       type={condition.fieldType === 'NUMBER' ? 'number' : 'text'}
                       onValueChange={(value) => update(groupIndex, conditionIndex, { ...condition, value })} />}
-                  <Button ariaLabel={`删除条件 ${groupIndex + 1}-${conditionIndex + 1}`} variant="text" className="frd-condition-remove" disabled={disabled}
+                  <Button ariaLabel={`删除条件 ${groupIndex + 1}-${conditionIndex + 1}`} variant="text" size="compact" className="frd-condition-remove" disabled={disabled}
                     onPress={() => setRule({ ...rule, groups: rule.groups.map((item, i) => i === groupIndex
                       ? { ...item, conditions: item.conditions.filter((_, j) => j !== conditionIndex) } : item) })}>删除条件</Button>
                 </div>
               </div>)}
               <div className="frd-condition-group-actions">
-              <Button disabled={disabled || !groupFields.length} onPress={() => setRule({ ...rule,
+              <Button size="compact" disabled={disabled || !groupFields.length} onPress={() => setRule({ ...rule,
                 groups: rule.groups.map((item, i) => i === groupIndex ? { ...item, conditions: [...item.conditions, newCondition(groupFields[0])] } : item),
               })}><Plus size={14} /> 添加条件</Button>
-              <Button ariaLabel={`删除条件组 ${groupIndex + 1}`} variant="text" disabled={disabled}
+              <Button ariaLabel={`删除条件组 ${groupIndex + 1}`} variant="text" size="compact" disabled={disabled}
                 onPress={() => setRule({ ...rule, groups: rule.groups.filter((_, i) => i !== groupIndex) })}>删除条件组</Button>
               </div>
             </div>
           </div>})}
-          <Button disabled={disabled || !fields.length} onPress={() => {
+          <Button size="compact" disabled={disabled || !fields.length} onPress={() => {
             const available = fieldsForScope(fields)
             setRule({ ...rule, groups: [...rule.groups, { conditions: available.length ? [newCondition(available[0])] : [] }] })
           }}>
@@ -125,7 +125,7 @@ export function BranchConditionEditor({ node, index, fields, ui, disabled, compi
         </Button>}
       </>}
       {error && <p className="frd-condition-error" role="alert">{error}</p>}
-      {!disabled && <div className="frd-condition-footer"><Button variant="primary" onPress={save}>保存</Button></div>}
+      {!disabled && <div className="frd-condition-footer"><Button variant="primary" size="compact" onPress={save}>保存</Button></div>}
     </div>
   )
 }

@@ -875,7 +875,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           </div>
 
           <UiDrawer open={Boolean(activeBranch)} title={branchNode && activeBranch ? branchNode.skipList[activeBranch.index].skipName || '分支条件' : '分支条件'}
-            width={560} ariaLabel="分支条件" onClose={() => setSelectedBranch(null)}>
+            width={460} ariaLabel="分支条件" onClose={() => setSelectedBranch(null)}>
             {branchNode && activeBranch && queryConditionFields && branchNode.nodeType !== '4' && conditionFieldState === 'loading'
               ? <p role="status">正在加载表单字段…</p>
               : branchNode && activeBranch && queryConditionFields && branchNode.nodeType !== '4' && conditionFieldState === 'error'

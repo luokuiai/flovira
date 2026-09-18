@@ -1353,19 +1353,24 @@
 .frd-condition-card[data-default="true"] { --frd-node-header: #64748b; --frd-node-border: #cbd5e1; }
 .frd-condition-card__header { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 7px 28px 7px 12px; background: var(--frd-node-header); color: #fff; }
 .frd-condition-card__name-wrapper { min-width: 0; flex: 1; }
-.frd-condition-card__name { display: block; min-width: 0; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; font-weight: 400; }
-.frd-condition-card__priority { flex-shrink: 0; padding: 2px 6px; border-radius: 999px; background: rgb(255 255 255 / 20%); font-size: 10px; }
+.frd-condition-card__name { display: block; min-width: 0; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; font-weight: 400; }
+.frd-condition-card__priority { flex-shrink: 0; padding: 2px 6px; border-radius: 999px; background: rgb(255 255 255 / 20%); font-size: 13px; }
 .frd-condition-card__body { display: flex; min-width: 0; width: 100%; flex: 1; align-items: center; padding: 10px 12px; }
-.frd-condition-card__summary { display: block; min-width: 0; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--frd-muted); font-size: 12px; text-align: center; }
-.frd-condition-editor { display: flex; flex-direction: column; gap: 16px; }
-.frd-condition-group { padding: 12px; border: 1px solid var(--frd-border, #dbe4ef); border-radius: 8px; background: var(--frd-canvas, #f8fafc); }
-.frd-condition-group__heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12px; }
-.frd-condition-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px; border: 1px solid var(--frd-border, #dbe4ef); border-radius: 8px; background: var(--frd-surface, #fff); }
+.frd-condition-card__summary { display: block; min-width: 0; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--frd-muted); font-size: 14px; text-align: center; }
+.frd-condition-editor { display: flex; flex-direction: column; gap: 16px; font-size: 14px; line-height: 1.5; container-type: inline-size; }
+.frd-condition-group { display: grid; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--frd-border, #dbe4ef); border-radius: 8px; background: var(--frd-canvas, #f8fafc); }
+.frd-condition-group__heading { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+.frd-condition-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px; border: 1px solid var(--frd-border, #dbe4ef); border-radius: 8px; background: var(--frd-surface, #fff); }
 .frd-condition-row > * { min-width: 0; }
-.frd-condition-or { margin: 0 0 12px; color: var(--frd-primary, #2563eb); font-size: 12px; font-weight: 600; }
-.frd-condition-and { margin: 8px 0; color: var(--frd-muted, #64748b); font-size: 12px; }
-.frd-condition-hint { margin: 0; color: var(--frd-muted, #64748b); font-size: 13px; line-height: 1.6; }
-.frd-condition-error { color: #dc2626; font-size: 13px; }
+.frd-condition-row > :first-child { grid-column: 1 / -1; }
+.frd-condition-group > * { min-width: 0; }
+@container (max-width: 320px) {
+  .frd-condition-row { grid-template-columns: minmax(0, 1fr); }
+}
+.frd-condition-or { margin: 0 0 12px; color: var(--frd-primary, #2563eb); font-size: 14px; font-weight: 600; }
+.frd-condition-and { margin: 8px 0; color: var(--frd-muted, #64748b); font-size: 14px; }
+.frd-condition-hint { margin: 0; color: var(--frd-muted, #64748b); font-size: 14px; line-height: 1.6; }
+.frd-condition-error { color: #dc2626; font-size: 14px; }
 .frd-condition-footer { display: flex; justify-content: flex-end; padding-top: 12px; }
 
 
@@ -1381,10 +1386,10 @@ html.dark .frd-condition-editor, [data-color-scheme="dark"] .frd-condition-edito
   --frd-primary: #60a5fa;
 }
 
-.frd-condition-title { font-size: 13px; }
+.frd-condition-title { font-size: 14px; }
 
-.frd-condition-group-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.frd-condition-remove { justify-self: start; color: #dc2626; }
+.frd-condition-group-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.frd-condition-remove { grid-column: 1 / -1; justify-self: end; color: #dc2626; }
 
 .frd-condition-card__body > *, .frd-condition-card__name-wrapper > * { min-width: 0; width: 100%; }
 
