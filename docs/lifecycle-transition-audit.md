@@ -43,7 +43,7 @@ The original `utils/ListenerUtil.java` executeListener dispatches the same callb
 - executeAssignment is a mutable extension before downstream persistence; retain it as a separate typed hook rather than an immutable fact.
 - executeFinish describes an old operation, including participant-only changes; it cannot simply become PROCESS_ENDED or NODE_LEFT.
 - endCreateListener calls finish, then create for non-END successors, locating tasks by nodeCode and reusing mutable context. It cannot distinguish repeated activations and skips end-node create.
-- FORM_LOAD in TaskServiceImpl.load is a form-loading extension, separate from lifecycle.
+- Historically, FORM_LOAD in TaskServiceImpl.load was a form-loading extension separate from lifecycle. It has since been removed; task form reads now return stored references and data without callbacks.
 
 Repository call sites and tests explain engine behavior, not the business meaning of listeners in external applications. Existing migration tooling cannot infer those meanings automatically.
 

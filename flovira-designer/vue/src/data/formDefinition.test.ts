@@ -52,7 +52,7 @@ test('round trips named detail groups through Vue graph conversion without losin
   const rule = { mode: 'rules', groups: [fixture.group], expression: fixture.anyExpression }
   const definition = { flowCode: 'test', flowName: '测试', nodeList: [
     { nodeCode: 'start', nodeType: '0', nodeName: '开始', nodeRatio: '0',
-      ext: JSON.stringify([{ code: 'business', value: 'preserved' }, { code: 'branchConditions', value: JSON.stringify({ schemaVersion: 1, rules: [rule] }) }]),
+      ext: JSON.stringify({ 'business': 'preserved', 'branchConditions': JSON.stringify({ schemaVersion: 1, rules: [rule] }) }),
       skipList: [{ sourceNodeCode: 'start', targetNodeCode: 'end', skipType: 'PASS', skipName: '差旅审批', skipCondition: rule.expression }] },
     { nodeCode: 'end', nodeType: '2', nodeName: '结束', nodeRatio: '0', skipList: [] },
   ] }
@@ -61,7 +61,7 @@ test('round trips named detail groups through Vue graph conversion without losin
   expect(graph.edges[0].properties.branchRule.groups[0].collection.label).toBe('报销明细')
   const exported = JSON.parse(logicFlowJsonToFlovira(graph))
   const extensions = JSON.parse(exported.nodeList[0].ext)
-  expect(extensions.find(item => item.code === 'business').value).toBe('preserved')
+  expect(extensions.business).toBe('preserved')
   const reopened = json2LogicFlowJson(exported)
   expect(reopened.edges[0].properties.branchRule).toEqual(rule)
   graph.edges[0].properties.branchRule = undefined

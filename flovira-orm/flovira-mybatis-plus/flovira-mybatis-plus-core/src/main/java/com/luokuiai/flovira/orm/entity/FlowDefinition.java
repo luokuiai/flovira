@@ -18,6 +18,7 @@ package com.luokuiai.flovira.orm.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import com.luokuiai.flovira.orm.type.ExtJsonTypeHandler;
 import lombok.experimental.Accessors;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Node;
@@ -35,7 +36,7 @@ import java.util.List;
  */
 @Data
 @Accessors(chain = true)
-@TableName("flow_definition")
+@TableName(value = "flow_definition", autoResultMap = true)
 public class FlowDefinition implements Definition {
 
     /**
@@ -131,6 +132,7 @@ public class FlowDefinition implements Definition {
     /**
      * 扩展字段，预留给业务系统使用
      */
+    @TableField(typeHandler = ExtJsonTypeHandler.class, condition = ExtJsonTypeHandler.CONDITION)
     private String ext;
 
     @TableField(exist = false)

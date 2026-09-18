@@ -25,27 +25,22 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 public class LifecycleListenerRegistryTest {
-    private LifecycleSubscription subscription(String code, ListenerPoint point, DeliveryPhase phase, int order) {
-        return new LifecycleSubscription(code, point, phase, order, null);
-    }
 
     @Test
-    public void standaloneGlobalRegistrationDeduplicatesLocalAndOrdersMultipleListeners() {
+    public void registrationAloneInvokesCallbacksInCodeOrder() {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         List<String> calls = new ArrayList<String>();
         for (String code : Arrays.asList("second", "first")) {
             registry.register(code, new WorkflowLifecycleListener() {
-                public void beforeOperation(OperationContext context, String parameters) {
+                public int getOrder() { return "first".equals(code) ? 1 : 2; }
+                public void beforeOperation(OperationContext context) {
                     calls.add(code);
                     context.setVariable(code, true);
                 }
             });
         }
-        LifecycleSubscription second = subscription("second", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 2);
-        registry.subscribeGlobally(second);
-        registry.subscribeGlobally(subscription("first", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 1));
         OperationContext context = operation();
-        new LifecycleDispatcher(registry, (code,event,error) -> fail()).beforeOperation(context, Arrays.asList(second));
+        new LifecycleDispatcher(registry, (code,event,error) -> fail()).beforeOperation(context);
         assertEquals(Arrays.asList("first", "second"), calls);
         assertEquals(Boolean.TRUE, context.getVariables().get("first"));
         assertEquals(Boolean.TRUE, context.getVariables().get("second"));
@@ -62,26 +57,13 @@ public class LifecycleListenerRegistryTest {
     }
 
     @Test
-    public void rejectsUnknownConflictingAndDeferredPreOperationSubscriptions() {
-        LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
-        LifecycleSubscription global = subscription("code", ListenerPoint.NODE_ENTERED, DeliveryPhase.IN_TRANSACTION, 1);
-        assertThrows(IllegalArgumentException.class, () -> registry.subscribeGlobally(global));
-        registry.register("code", new WorkflowLifecycleListener() {});
-        registry.subscribeGlobally(global);
-        assertThrows(IllegalArgumentException.class, () -> registry.select(ListenerPoint.NODE_ENTERED,
-            DeliveryPhase.IN_TRANSACTION, Arrays.asList(subscription("code", ListenerPoint.NODE_ENTERED, DeliveryPhase.IN_TRANSACTION, 2))));
-        assertThrows(IllegalArgumentException.class, () -> subscription("code", ListenerPoint.BEFORE_ASSIGNMENT, DeliveryPhase.AFTER_COMMIT, 0));
-    }
-
-    @Test
     public void propagatesPreOperationFailureAndProtectsReservedVariables() {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         registry.register("deny", new WorkflowLifecycleListener() {
-            public void beforeOperation(OperationContext context, String parameters) { throw new IllegalStateException("denied"); }
+            public void beforeOperation(OperationContext context) { throw new IllegalStateException("denied"); }
         });
-        registry.subscribeGlobally(subscription("deny", ListenerPoint.BEFORE_OPERATION, DeliveryPhase.IN_TRANSACTION, 0));
         OperationContext context = operation();
-        assertThrows(IllegalStateException.class, () -> new LifecycleDispatcher(registry, (c,e,x) -> fail()).beforeOperation(context, null));
+        assertThrows(IllegalStateException.class, () -> new LifecycleDispatcher(registry, (c,e,x) -> fail()).beforeOperation(context));
         assertThrows(IllegalArgumentException.class, () -> context.setVariable("flovira.subprocess.parentInstanceId", "other"));
         assertThrows(UnsupportedOperationException.class, () -> context.getVariables().put("x", "y"));
     }
@@ -99,24 +81,24 @@ public class LifecycleListenerRegistryTest {
     }
 
     @Test
-    public void afterCommitUsesCapturedSelectionAndContinuesAfterFailure() {
+    public void afterCommitUsesCapturedListenersAndContinuesAfterFailure() {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         List<String> calls = new ArrayList<String>();
         registry.register("bad", new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { throw new IllegalStateException("notification failed"); }
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) { throw new IllegalStateException("notification failed"); }
         });
         registry.register("good", new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { calls.add("good"); }
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) { calls.add("good"); }
         });
-        registry.subscribeGlobally(subscription("bad", ListenerPoint.NODE_ENTERED, DeliveryPhase.AFTER_COMMIT, 1));
-        registry.subscribeGlobally(subscription("good", ListenerPoint.NODE_ENTERED, DeliveryPhase.AFTER_COMMIT, 2));
         DeferredTransaction tx = new DeferredTransaction();
-        new LifecycleDispatcher(registry, (code,event,error) -> calls.add(code)).emit(event(), null, tx);
+        new LifecycleDispatcher(registry, (code,event,error) -> calls.add(code)).emit(event(), tx);
         assertTrue(calls.isEmpty());
         registry.register("later", new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { calls.add("later"); }
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) { calls.add("later"); }
         });
-        registry.subscribeGlobally(subscription("later", ListenerPoint.NODE_ENTERED, DeliveryPhase.AFTER_COMMIT, 3));
         tx.callbacks.forEach(Runnable::run);
         assertEquals(Arrays.asList("bad", "good"), calls);
     }
@@ -125,12 +107,14 @@ public class LifecycleListenerRegistryTest {
     public void inTransactionFailurePropagatesWithoutSchedulingAfterCommit() {
         LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
         registry.register("bad", new WorkflowLifecycleListener() {
-            public void onEvent(LifecycleEvent event, String parameters) { throw new IllegalStateException("rollback"); }
+            public void onEvent(LifecycleEvent event) { throw new IllegalStateException("rollback"); }
         });
-        registry.subscribeGlobally(subscription("bad", ListenerPoint.NODE_ENTERED, DeliveryPhase.IN_TRANSACTION, 1));
-        registry.subscribeGlobally(subscription("bad", ListenerPoint.NODE_ENTERED, DeliveryPhase.AFTER_COMMIT, 1));
+        registry.register("committed", new WorkflowLifecycleListener() {
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void onEvent(LifecycleEvent event) { fail("Rolled-back facts must not be delivered"); }
+        });
         DeferredTransaction tx = new DeferredTransaction();
-        assertThrows(IllegalStateException.class, () -> new LifecycleDispatcher(registry, (c,e,x) -> fail()).emit(event(), null, tx));
+        assertThrows(IllegalStateException.class, () -> new LifecycleDispatcher(registry, (c,e,x) -> fail()).emit(event(), tx));
         assertTrue(tx.callbacks.isEmpty());
     }
 
@@ -180,6 +164,37 @@ public class LifecycleListenerRegistryTest {
         assertEquals(Collections.singletonMap("input", "value"), operation.getInputVariables());
         assertThrows(NullPointerException.class, () -> new OperationContext("op", "START", "USER", null, instance,
             null, "starter", true, null));
+    }
+
+    @Test
+    public void lifecycleValidationDoesNotReadExtensionData() {
+        Definition definition = TestEntityFactory.create(Definition.class)
+            .setExt("{\"business\":{\"key\":\"value\"},\"lifecycle\":{\"hostOwned\":true}}");
+        com.luokuiai.flovira.core.entity.Node node = TestEntityFactory.create(com.luokuiai.flovira.core.entity.Node.class)
+            .setExt("{\"business\":{\"count\":0}}");
+        com.luokuiai.flovira.core.utils.LifecycleConfigUtil.validate(definition, Collections.singletonList(node));
+        assertTrue(definition.getExt().contains("hostOwned"));
+        assertEquals("{\"business\":{\"count\":0}}", node.getExt());
+    }
+
+    @Test
+    public void afterCommitListenerPreHooksStillRunSynchronously() {
+        LifecycleListenerRegistry registry = new LifecycleListenerRegistry();
+        List<String> calls = new ArrayList<String>();
+        registry.register("business", new WorkflowLifecycleListener() {
+            public DeliveryPhase getDeliveryPhase() { return DeliveryPhase.AFTER_COMMIT; }
+            public void beforeOperation(OperationContext context) { calls.add("before"); }
+            public void beforeAssignment(AssignmentContext context) { calls.add("assignment"); }
+            public void onEvent(LifecycleEvent event) { calls.add("fact"); }
+        });
+        LifecycleDispatcher dispatcher = new LifecycleDispatcher(registry, (c, e, x) -> fail());
+        DeferredTransaction tx = new DeferredTransaction();
+        dispatcher.beforeOperation(operation());
+        dispatcher.beforeAssignment(new AssignmentContext(1L, 2L, "approval", Arrays.asList("user")));
+        dispatcher.emit(event(), tx);
+        assertEquals(Arrays.asList("before", "assignment"), calls);
+        tx.callbacks.forEach(Runnable::run);
+        assertEquals(Arrays.asList("before", "assignment", "fact"), calls);
     }
 
     private OperationContext operation() {

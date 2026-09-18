@@ -22,8 +22,6 @@ import com.luokuiai.flovira.core.constant.FlowCons;
 import com.luokuiai.flovira.core.dto.*;
 import com.luokuiai.flovira.core.entity.*;
 import com.luokuiai.flovira.core.enums.*;
-import com.luokuiai.flovira.core.listener.Listener;
-import com.luokuiai.flovira.core.listener.ListenerVariable;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
 import com.luokuiai.flovira.core.orm.dao.FlowInstanceDao;
 import com.luokuiai.flovira.core.listener.lifecycle.ProcessLifecycleState;
@@ -1274,13 +1272,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
     public FlowDto load(Long taskId, FlowParams flowParams) {
         R r = getAndCheck(taskId);
 
-        ListenerVariable listenerVariable = new ListenerVariable(r.definition, r.instance, r.nowNode
-            , flowParams.getVariables(), r.task);
-
         FlowDto flowDto = new FlowDto();
         flowDto.setFormId(r.task.getFormId());
-        ListenerUtil.execute(listenerVariable, Listener.LISTENER_FORM_LOAD, r.definition.getListenerPath()
-            , r.definition.getListenerType());
         flowDto.setData(r.instance.getVariableMap().get(FlowCons.FORM_DATA));
 
         return flowDto;

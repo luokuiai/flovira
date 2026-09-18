@@ -44,24 +44,20 @@ describe('wait and timeout definition conversion', () => {
         nodeName: 'Wait payment',
         nodeRatio: 0,
         skipList: [],
-        ext: JSON.stringify([
-          { code: 'waitConfig', value: waitConfig },
-          { code: 'timeoutConfig', value: timeoutConfig },
-          { code: 'futureConfig', value: 'a,b' },
-        ]),
+        ext: JSON.stringify({ 'waitConfig': waitConfig, 'timeoutConfig': timeoutConfig, 'futureConfig': 'a,b' }),
       }],
     })
 
     expect(logic.nodes[0].type).toBe('wait')
     expect(logic.nodes[0].properties.ext.waitConfig).toBe(waitConfig)
     expect(logic.nodes[0].properties.ext.timeoutConfig).toBe(timeoutConfig)
-    expect(logic.nodes[0].properties.ext.futureConfig).toEqual(['a', 'b'])
+    expect(logic.nodes[0].properties.ext.futureConfig).toBe('a,b')
 
     const exported = JSON.parse(logicFlowJsonToFlovira(logic))
     const ext = JSON.parse(exported.nodeList[0].ext)
     expect(exported.nodeList[0].nodeType).toBe('7')
-    expect(ext.find((item) => item.code === 'waitConfig').value).toBe(waitConfig)
-    expect(ext.find((item) => item.code === 'timeoutConfig').value).toBe(timeoutConfig)
+    expect(ext.waitConfig).toEqual(JSON.parse(waitConfig))
+    expect(ext.timeoutConfig).toEqual(JSON.parse(timeoutConfig))
   })
 })
 
@@ -84,14 +80,14 @@ describe('approver rule definition conversion', () => {
         nodeName: 'Approve',
         nodeRatio: 0,
         skipList: [],
-        ext: JSON.stringify([{ code: 'approverRule', value: approverRule }]),
+        ext: JSON.stringify({ 'approverRule': approverRule }),
       }],
     })
 
     expect(logic.nodes[0].properties.ext.approverRule).toBe(approverRule)
     const exported = JSON.parse(logicFlowJsonToFlovira(logic))
     const ext = JSON.parse(exported.nodeList[0].ext)
-    expect(ext.find((item) => item.code === 'approverRule').value).toBe(approverRule)
+    expect(ext.approverRule).toEqual(JSON.parse(approverRule))
   })
 
   test('preserves carbon copy type and recipient rule during round trip', () => {
@@ -111,7 +107,7 @@ describe('approver rule definition conversion', () => {
         nodeName: 'Carbon copy',
         nodeRatio: 0,
         skipList: [],
-        ext: JSON.stringify([{ code: 'carbonCopyRule', value: carbonCopyRule }]),
+        ext: JSON.stringify({ 'carbonCopyRule': carbonCopyRule }),
       }],
     })
 
@@ -120,7 +116,7 @@ describe('approver rule definition conversion', () => {
     const exported = JSON.parse(logicFlowJsonToFlovira(logic))
     const ext = JSON.parse(exported.nodeList[0].ext)
     expect(exported.nodeList[0].nodeType).toBe('8')
-    expect(ext.find((item) => item.code === 'carbonCopyRule').value).toBe(carbonCopyRule)
+    expect(ext.carbonCopyRule).toEqual(JSON.parse(carbonCopyRule))
   })
 })
 

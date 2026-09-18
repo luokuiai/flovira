@@ -157,7 +157,7 @@ public class Flovira implements Serializable {
 
         // 设置全局监听器
         if (StringUtils.isNotEmpty(globalListenerPath)) {
-            throw new IllegalArgumentException("global-listener-path is no longer supported; migrate to WorkflowLifecycleListener beans and subscriptions");
+            throw new IllegalArgumentException("global-listener-path is no longer supported; register WorkflowLifecycleListener instances or beans");
         }
 
         // 打印banner图

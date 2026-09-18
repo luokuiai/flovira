@@ -15,8 +15,10 @@ Core constraints: Java 8 source compatibility, framework / ORM / JSON independen
 - `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.0.0.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
 - Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
 - Flovira may manage versioned form metadata and content in `flow_form`; host applications may also supply forms. Workflow definitions, nodes, tasks and history store opaque string `formId` references and approval data snapshots. Keep host page routing outside `flow_form`; do not restore `form_custom`, `form_type`, `form_path`, numeric-only form references, bundled rendering pages or designer mode switching.
+- Form loading reads stored form references and approval data without callbacks. Do not restore the legacy `formLoad` listener or its expression dispatch.
 - A workflow uses one form selected by its definition. Nodes configure field permissions, never a separate form or an override. Task and history form references are snapshots of the workflow form.
 - Timeout scheduling is host-owned. Flovira provides deadline snapshots and explicit batch / single-task execution APIs, never automatic schedulers or Redis scheduler locks. Usage documentation and designer timeout settings must state that hosts must integrate scheduling themselves; enabling timeout configuration alone does not execute tasks.
+- Lifecycle callbacks are registered in host code or discovered as Spring beans. Do not add persisted subscriptions, designer callback selection, or lifecycle parsing of `ext`. Hosts filter business applicability in their callback code. `ext` is a JSON object; do not introduce code/value arrays, compatibility branches, or rewrite unrelated host extension data.
 
 ## Instruction hierarchy and maintenance
 
@@ -85,6 +87,7 @@ Read root and applicable module instructions before editing. Module files contai
 
 ## Branding and attribution
 
+- Use generic host-application terminology in documentation, examples, and tests; do not name specific downstream host products.
 - Preserve Flovira names, `com.luokuiai` packages / group, modules, banner, project links and author attribution unless explicitly authorized otherwise.
 - Keep Apache 2.0 headers in Java files and do not alter `LICENSE` or weaken the project's free/open-source commitments.
 - Existing or derived upstream code retains `Copyright 2024-2025, Warm-Flow (290631660@qq.com).` and other original attribution.
@@ -96,6 +99,7 @@ Read root and applicable module instructions before editing. Module files contai
 ## SQL and migration
 
 - Synchronize all three schemas: `sql/mysql/flovira-v1.0.0.sql`, `sql/postgresql/flovira-v1.0.0.sql`, `sql/oracle/flovira-v1.0.0.sql`.
+- Store every `ext` column as native JSON: MySQL `JSON`, PostgreSQL `JSONB`, Oracle `JSON` (21c+ with `COMPATIBLE >= 20`). Keep Java `String` contracts and field-specific ORM bindings; do not introduce text-storage fallbacks.
 - Do not define foreign keys in Flovira schemas. Protect internal relationships through engine transactions and verification; use indexes and unique constraints where appropriate.
 - Every Flovira table must define `deleted` as `NOT NULL DEFAULT '0'`. Align indexes with tenant isolation, logical-deletion filters and actual DAO query predicates.
 - Maintain complete V1 fresh-install baselines during 1.0.0 development; do not restore an inherited historical upgrade chain.

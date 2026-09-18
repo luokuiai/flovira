@@ -1,4 +1,3 @@
-import { lifecycleValue, parseLifecycle, validateLifecycle } from './lifecycle'
 import type {
   ApproverRule,
   ApproverStrategy,
@@ -74,7 +73,7 @@ export const createNode = (type: FloviraNodeType, name = NODE_NAMES[type]): Flov
   nodeCode: createId(type === '6' ? 'subprocess' : type === '7' ? 'wait' : type === '8' ? 'carbonCopy' : 'node'),
   nodeName: name,
   nodeRatio: '0',
-  ext: '[]',
+  ext: '{}',
   skipList: [],
 })
 
@@ -324,13 +323,17 @@ export const getRejectTargetCandidates = (definition: FloviraDefinition, nodeCod
   return definition.nodeList.filter((node) => node.nodeType === '1' && previous.has(node.nodeCode) && !following.has(node.nodeCode))
 }
 
+export const readNodeExt = (node: Pick<FloviraNode, 'ext'>): Record<string, unknown> => {
+  const ext: unknown = typeof node.ext === 'string' ? JSON.parse(node.ext || '{}') : node.ext ?? {}
+  if (!ext || typeof ext !== 'object' || Array.isArray(ext)) throw new Error('扩展配置必须为 JSON 对象')
+  return ext as Record<string, unknown>
+}
+
 export const getNodeExtConfig = (node: FloviraNode, code: string): Record<string, unknown> => {
   try {
-    const ext = typeof node.ext === 'string' ? JSON.parse(node.ext) : node.ext
-    if (!Array.isArray(ext)) return {}
-    const item = ext.find((entry) => entry?.code === code)
-    if (!item) return {}
-    return typeof item.value === 'string' ? JSON.parse(item.value) : clone(item.value || {})
+    const value = readNodeExt(node)[code]
+    if (value == null) return {}
+    return typeof value === 'string' ? JSON.parse(value) : clone(value as Record<string, unknown>)
   } catch {
     return {}
   }
@@ -353,18 +356,8 @@ export const setNodeExtConfig = (
   code: string,
   config: Record<string, unknown>,
 ): FloviraNode => {
-  let ext: Array<{ code: string; value: unknown }> = []
-  try {
-    const parsed = typeof node.ext === 'string' ? JSON.parse(node.ext) : node.ext
-    if (Array.isArray(parsed)) ext = clone(parsed)
-  } catch {
-    ext = []
-  }
-  const value = JSON.stringify(config)
-  const index = ext.findIndex((item) => item.code === code)
-  if (index >= 0) ext[index] = { ...ext[index], value }
-  else ext.push({ code, value })
-  return { ...node, ext: JSON.stringify(ext) }
+  const ext = readNodeExt(node)
+  return { ...node, ext: JSON.stringify({ ...ext, [code]: config }) }
 }
 
 const getParticipantRule = (node: FloviraNode, code: string): ApproverRule => {
@@ -405,11 +398,9 @@ export const submitterStrategies = (capabilities: DesignerCapabilities): Designe
 export const getSubmitterRule = (node: FloviraNode): ApproverRule => {
   const empty: ApproverRule = { schemaVersion: 1, strategyVersion: 1, strategy: '', selectionType: 'RELATION', subjects: [] }
   try {
-    const ext = typeof node.ext === 'string' ? JSON.parse(node.ext) : node.ext
-    if (ext != null && !Array.isArray(ext)) return empty
-    const item = ext?.find((entry: { code: string }) => entry.code === 'submitterRule')
-    if (!item) return { ...empty, strategy: 'ALL' }
-    const rule = typeof item.value === 'string' ? JSON.parse(item.value) : item.value
+    const value = readNodeExt(node).submitterRule
+    if (value == null) return { ...empty, strategy: 'ALL' }
+    const rule = typeof value === 'string' ? JSON.parse(value) : value
     if (!rule || rule.schemaVersion !== 1 || !Array.isArray(rule.subjects)) return empty
     return { ...empty, ...rule }
   } catch { return empty }
@@ -507,9 +498,7 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
   for (const item of [definition, ...definition.nodeList]) {
     try {
       const legacy = item as unknown as { listenerType?: string; listenerPath?: string }
-      if ((legacy.listenerType || '').split(',').some(type => type && type !== 'formLoad')
-          || (!legacy.listenerType && legacy.listenerPath)) throw new Error('旧监听配置需迁移到生命周期回调')
-      validateLifecycle(parseLifecycle(lifecycleValue(item.ext)), 'nodeType' in item ? String(item.nodeType) : undefined)
+      if (legacy.listenerType || legacy.listenerPath) throw new Error('旧监听配置已移除，请清空 listenerType 和 listenerPath')
     } catch (error) {
       issues.push({ code: 'LIFECYCLE_INVALID', message: String(error), nodeCode: 'nodeCode' in item ? String(item.nodeCode) : undefined })
     }

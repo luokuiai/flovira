@@ -19,10 +19,10 @@ test('expands actual form fields, without synthetic array counts', () => {
 
 test('preserves unrelated extensions and round trips versioned permissions', () => {
   const node = createInitialDefinition().nodeList[1]
-  node.ext = JSON.stringify([{ code: 'business', value: '{"keep":true}' }])
+  node.ext = JSON.stringify({ 'business': '{"keep":true}' })
   const updated = setNodeFieldPermission(node, { code: 'amount', readable: false, writable: true })
   expect(getNodeFormPermissions(updated).fields).toEqual([{ code: 'amount', readable: true, writable: true }])
-  expect(JSON.parse(updated.ext as string)[0]).toEqual(JSON.parse(node.ext)[0])
+  expect(JSON.parse(updated.ext as string).business).toEqual(JSON.parse(node.ext).business)
   expect(getNodeFormPermissions(node).fields).toEqual([])
   const flow = createInitialDefinition()
   flow.nodeList[1] = updated
@@ -106,7 +106,7 @@ test('keeps unmatched saved fields visible and blocks malformed permission confi
   expect(await view.findByText('未匹配字段')).toBeTruthy()
   expect(view.getByText('removed')).toBeTruthy()
   const bad = createInitialDefinition()
-  bad.nodeList[1].ext = JSON.stringify([{ code: 'formPermissions', value: '{"schemaVersion":99,"fields":[]}' }])
+  bad.nodeList[1].ext = JSON.stringify({ 'formPermissions': '{"schemaVersion":99,"fields":[]}' })
   act(() => ref.current!.importJson(bad))
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
   fireEvent.click(view.getByRole('tab', { name: '表单权限' }))

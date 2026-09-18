@@ -13,13 +13,13 @@
 ## 3. Event contracts and transactional delivery
 
 - [x] 3.1 Implement exactly eight events and immutable contexts, including operation correlation, participant relationships before/after, node work-item snapshots, and parent/child correlation. Verify required fields, copy isolation, and Java 8 compilation.
-- [x] 3.2 Implement stable codes, scopes, ordering, phase deduplication, and parameter conflict validation. Cover duplicate registration, overlapping subscriptions, and invalid node types with LifecycleListenerRegistryTest and the shared LifecycleJsonContractTest across all three JSON providers.
+- [x] 3.2 Implement deterministic callback ordering, code registration and transaction delivery; cover duplicate names, callback failures and immutable dispatch snapshots with LifecycleListenerRegistryTest.
 - [x] 3.3 Unify lifecycle transaction boundaries and same-instance recursion protection. Test missing transactions, authorization failures, synchronous listener failures, and host outer-transaction rollback.
 - [x] 3.4 Deliver notifications after the outermost commit with independent failure reporting. Verify no notification on rollback, listener failure isolation, and accurate reporting of committed results through dispatcher tests and PostgreSQL contracts for both ORMs; native entry coverage is listed in section 4.
 - [x] 3.5 Verify Boot 2 / 3 / 4 and custom transaction adapters; confirm that core has no framework dependency.
-- [x] 3.6 Implement controlled mutable operation/assignment contexts and pre-hook scope/phase validation. Test variable-driven routing, persisted assignment changes, rollback, and immutable identity fields.
-- [x] 3.7 Implement framework-independent registration and global subscriptions. Test operation without Spring or database configuration, multiple listeners, duplicate codes, and global/local deduplication in LifecycleListenerRegistryTest; native entry coverage is listed in section 4.
-- [x] 3.8 Implement Spring Bean discovery, Bean-name references, and global subscription Beans. Verify proxy/injection preservation, atomic startup failure, context-owned cleanup, and consistent Boot 2 / 3 / 4 behavior using shared SpringLifecycleListenerRegistrarTest coverage in modes-sb and both ORM Boot 3 / 4 starters.
+- [x] 3.6 Implement controlled mutable operation/assignment contexts and synchronous pre-hook delivery. Test variable-driven routing, persisted assignment changes, rollback, and immutable identity fields.
+- [x] 3.7 Implement framework-independent callback registration. Test registration without Spring, persisted configuration or subscription declarations; cover multiple listeners and duplicate names.
+- [x] 3.8 Discover Spring listener Beans directly. Verify proxy/injection preservation, atomic startup failure, context-owned cleanup, and consistent Boot 2 / 3 / 4 behavior using SpringLifecycleListenerRegistrarTest.
 
 ## 4. Engine integration
 
@@ -29,15 +29,15 @@
 - [x] 4.4 Integrate backward routing, withdrawal, and remaining-execution cleanup. Verify new execution identities, departure reasons, awaiting-resubmission snapshots, parallel work-item cancellation, and event ordering.
 - [x] 4.5 Provide explicit same-instance resubmission and PROCESS_RESUBMITTED. Verify state gates, concurrent attempts, ordinary-approval bypass prevention, new-instance start behavior, and replacement of old call patterns. TaskService.resubmit supports both strategies and a separate initiator execution; both ORM contracts assert PROCESS_RESUBMITTED → initiator NODE_LEFT → approval NODE_ENTERED, including native hooks, instance locking, and concurrent attempts.
 - [x] 4.6 Integrate wait handling, host-triggered timeout processing, and automatic carbon-copy advancement. Verify single closure under races, usable participant snapshots, no success notification on failure, and no fabricated approval actions.
-- [x] 4.7 Integrate subprocess nodes and parent/child correlation. Verify that one child completion does not close the parent prematurely and that aggregation/cancellation/retry close it once; internal coordination remains independent of business subscriptions.
+- [x] 4.7 Integrate subprocess nodes and parent/child correlation. Verify that one child completion does not close the parent prematurely and that aggregation/cancellation/retry close it once; internal coordination remains independent of business callbacks.
 - [x] 4.8 Apply and deduplicate pre-hooks across manual and automatic write entry points. Cover system timeout, wait, delegation, transfer, withdrawal, and startup.
 - [x] 4.9 Implement TO_INITIATOR, separate initiator executions, and consistent terminology. Verify same-instance return/resubmission, work-item ownership, and ordering without replaying the start node.
 
 ## 5. Configuration, designers, and migration tooling
 
-- [x] 5.1 Implement versioned configuration, capability discovery, and publish/import validation. Verify eight events and node scopes through all JSON providers and UI DTO round trips.
-- [x] 5.2 Replace GlobalListener and legacy dispatch, with explicit diagnostics for old configuration. Move assignment handling into the new listener and preserve FORM_LOAD as a separate extension.
-- [x] 5.3 Provide process, node, and approval participant configuration in Vue / React. Verify component behavior, round trips, and consuming examples; exclude gateway callbacks and independent task events.
+- [x] 5.1 Remove persisted lifecycle configuration and listener capability discovery. Keep legacy-field diagnostics separate from JSON object extension parsing.
+- [x] 5.2 Replace GlobalListener and legacy dispatch, with explicit diagnostics for old configuration. Move assignment handling into the new listener and remove the obsolete FORM_LOAD callback and its dedicated expression dispatch.
+- [x] 5.3 Remove callback configuration from Vue / React. Verify editing and JSON object round trips; hosts select business applicability in code.
 - [x] 5.4 Provide active-instance migration tooling and host examples for individual completion, assignment differences, remaining-node cleanup, withdrawal/resubmission, phases, and outbox delivery. Check references and idempotency boundaries; reject ambiguous migration data explicitly.
 
 ## 6. Integration validation
@@ -47,3 +47,9 @@
 - [x] 6.3 Run openspec validate explicit-workflow-lifecycle --strict and git diff --check, check whitespace in untracked documentation separately, and map specification scenarios to evidence.
 
 Implementation and scenario evidence: [lifecycle validation](../../../docs/lifecycle-validation.md). Host setup and existing migration tooling: [listener integration](../../../docs/lifecycle-listener-migration.md). Migration is not required for a new installation.
+
+## 7. Simplify callback registration and correct extension format
+
+- [x] 7.1 Remove persisted subscriptions, lifecycle ext parsing and designer callback controls; invoke code-registered listeners directly and preserve transaction behavior.
+- [x] 7.2 Use JSON object extensions across engine, designers, examples and fixtures without an array compatibility path; verify nested business data round trips.
+- [x] 7.3 Update host examples and specifications, run affected backend/frontend checks, and record actual results.

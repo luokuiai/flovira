@@ -17,6 +17,7 @@ package com.luokuiai.flovira.orm.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
+import com.luokuiai.flovira.orm.type.ExtJsonTypeHandler;
 import lombok.experimental.Accessors;
 import com.luokuiai.flovira.core.entity.Form;
 
@@ -29,7 +30,7 @@ import java.util.Date;
  */
 @Data
 @Accessors(chain = true)
-@TableName("flow_form")
+@TableName(value = "flow_form", autoResultMap = true)
 public class FlowForm implements Form {
 
     /**
@@ -94,6 +95,7 @@ public class FlowForm implements Form {
     /**
      * 表单扩展，用户自行使用
      */
+    @TableField(typeHandler = ExtJsonTypeHandler.class, condition = ExtJsonTypeHandler.CONDITION)
     private String ext;
 
     /**

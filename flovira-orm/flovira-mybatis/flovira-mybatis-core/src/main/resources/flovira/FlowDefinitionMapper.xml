@@ -15,7 +15,7 @@
         <result property="activityStatus" column="activity_status"/>
         <result property="listenerType" column="listener_type"/>
         <result property="listenerPath" column="listener_path"/>
-        <result property="ext" column="ext"/>
+        <result property="ext" column="ext" typeHandler="com.luokuiai.flovira.orm.type.ExtJsonTypeHandler"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
         <result property="deleted" column="deleted"/>
@@ -69,7 +69,19 @@
             <if test="entity.activityStatus != null">and t.activity_status = #{entity.activityStatus}</if>
             <if test="entity.listenerType != null and entity.listenerType != ''">and t.listener_type = #{entity.listenerType}</if>
             <if test="entity.listenerPath != null and entity.listenerPath != ''">and t.listener_path = #{entity.listenerPath}</if>
-            <if test="entity.ext != null  and entity.ext != ''">and t.ext = #{entity.ext}</if>
+            <if test="entity.ext != null">
+                and <choose>
+                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
+                        JSON_EQUAL(t.ext, #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
+                    </when>
+                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
+                        t.ext = CAST(#{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
+                    </when>
+                    <otherwise>
+                        t.ext = #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
+                    </otherwise>
+                </choose>
+            </if>
             <if test="entity.createdAt != null">and t.created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and t.updated_at = #{entity.updatedAt}</if>
             <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
@@ -114,7 +126,7 @@
             #{item.activityStatus},
             #{item.listenerType},
             #{item.listenerPath},
-            #{item.ext},
+            #{item.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler},
             #{item.createdAt},
             #{item.updatedAt},
             #{item.deleted},
@@ -126,7 +138,9 @@
     </sql>
 
     <sql id="oracle_insert_batch">
-        insert into flow_definition(
+        INSERT ALL
+        <foreach collection="list" item="item">
+            INTO flow_definition(
         id,
         flow_code,
         flow_name,
@@ -146,8 +160,7 @@
         created_by,
         updated_by
         )
-        <foreach collection="list" item="item" separator=" union all">
-            select
+            VALUES (
             #{item.id},
             #{item.flowCode},
             #{item.flowName},
@@ -159,15 +172,16 @@
             #{item.activityStatus},
             #{item.listenerType},
             #{item.listenerPath},
-            #{item.ext},
+            #{item.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler},
             #{item.createdAt},
             #{item.updatedAt},
             #{item.deleted},
             #{item.tenantId},
             #{item.createdBy},
             #{item.updatedBy}
-            from dual
+            )
         </foreach>
+        SELECT 1 FROM dual
     </sql>
 
     <select id="selectList" parameterType="com.luokuiai.flovira.orm.entity.FlowDefinition"
@@ -242,7 +256,7 @@
             <if test="activityStatus != null">activity_status,</if>
             <if test="listenerType != null and listenerType != ''">listener_type,</if>
             <if test="listenerPath != null and listenerPath != ''">listener_path,</if>
-            <if test="ext != null and ext != ''">ext,</if>
+            <if test="ext != null">ext,</if>
             <if test="createdAt != null">created_at,</if>
             <if test="updatedAt != null">updated_at,</if>
             <if test="deleted != null and deleted != ''">deleted,</if>
@@ -262,7 +276,7 @@
             <if test="activityStatus != null">#{activityStatus},</if>
             <if test="listenerType != null and listenerType != ''">#{listenerType},</if>
             <if test="listenerPath != null and listenerPath != ''">#{listenerPath},</if>
-            <if test="ext != null and ext != ''">#{ext},</if>
+            <if test="ext != null">#{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler},</if>
             <if test="createdAt != null">#{createdAt},</if>
             <if test="updatedAt != null">#{updatedAt},</if>
             <if test="deleted != null and deleted != ''">#{deleted},</if>
@@ -285,7 +299,7 @@
             <if test="activityStatus != null">activity_status = #{activityStatus},</if>
             <if test="listenerType != null">listener_type = #{listenerType},</if>
             <if test="listenerPath != null">listener_path = #{listenerPath},</if>
-            <if test="ext != null and ext != ''">ext = #{ext},</if>
+            <if test="ext != null">ext = #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler},</if>
             <if test="createdAt != null">created_at = #{createdAt},</if>
             <if test="updatedAt != null">updated_at = #{updatedAt},</if>
             <if test="updatedBy != null and updatedBy != ''">updated_by = #{updatedBy},</if>
@@ -366,7 +380,19 @@
             <if test="activityStatus != null">and activity_status = #{activityStatus}</if>
             <if test="listenerType != null and listenerType != ''">and listener_type = #{listenerType}</if>
             <if test="listenerPath != null and listenerPath != ''">and listener_path = #{listenerPath}</if>
-            <if test="ext != null and ext != ''">and ext = #{ext}</if>
+            <if test="ext != null">
+                and <choose>
+                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
+                        JSON_EQUAL(ext, #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
+                    </when>
+                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
+                        ext = CAST(#{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
+                    </when>
+                    <otherwise>
+                        ext = #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
+                    </otherwise>
+                </choose>
+            </if>
             <if test="createdAt != null">and created_at = #{createdAt}</if>
             <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
@@ -392,7 +418,19 @@
             <if test="entity.listenerPath != null and entity.listenerPath != ''">and listener_path =
                 #{entity.listenerPath}
             </if>
-            <if test="entity.ext != null and entity.ext != ''">and ext = #{entity.ext}</if>
+            <if test="entity.ext != null">
+                and <choose>
+                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
+                        JSON_EQUAL(ext, #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
+                    </when>
+                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
+                        ext = CAST(#{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
+                    </when>
+                    <otherwise>
+                        ext = #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
+                    </otherwise>
+                </choose>
+            </if>
             <if test="entity.createdAt != null">and created_at = #{entity.createdAt}</if>
             <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>

@@ -22,6 +22,14 @@ import com.luokuiai.flovira.core.dto.FormFieldChange;
 import com.luokuiai.flovira.core.dto.FlowDto;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.entity.HisTask;
+import com.luokuiai.flovira.core.entity.Definition;
+import com.luokuiai.flovira.core.entity.Instance;
+import com.luokuiai.flovira.core.entity.Node;
+import com.luokuiai.flovira.core.entity.Task;
+import com.luokuiai.flovira.core.service.DefService;
+import com.luokuiai.flovira.core.service.InstanceService;
+import com.luokuiai.flovira.core.service.NodeService;
+import com.luokuiai.flovira.core.utils.LifecycleConfigUtil;
 import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.handler.FormFieldProvider;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
@@ -118,6 +126,61 @@ public class HisTaskFormChangeTest {
             .getFormChanges(10L);
 
         assertEquals("amount", records.get(0).getChanges().get(0).getFieldLabel());
+    }
+
+    @Test
+    public void shouldLoadTaskSnapshotWithoutInvokingLegacyFormCallback() {
+        Task task = TestEntityFactory.create(Task.class).setId(1L).setInstanceId(10L)
+            .setDefinitionId(20L).setNodeCode("approval").setNodeType(1).setFormId("expense:v2");
+        Instance instance = TestEntityFactory.create(Instance.class).setId(10L)
+            .setDefinitionId(20L).setActivityStatus(1).setNodeType(1);
+        Map<String, Object> variables = new LinkedHashMap<String, Object>();
+        variables.put(FlowCons.FORM_DATA, formData("amount", 100));
+        TestEntityFactory.put(instance, "VariableMap", variables);
+        Definition definition = TestEntityFactory.create(Definition.class).setId(20L)
+            .setActivityStatus(1).setFormId("changed-form")
+            .setListenerType("formLoad").setListenerPath("java.lang.String");
+        Definition readOnlyDefinition = (Definition) java.lang.reflect.Proxy.newProxyInstance(
+            Definition.class.getClassLoader(), new Class<?>[] { Definition.class }, (proxy, method, args) -> {
+                if (method.getName().startsWith("getListener")) {
+                    throw new AssertionError("Form loading must not read listener configuration");
+                }
+                return method.invoke(definition, args);
+            });
+        Node node = TestEntityFactory.create(Node.class).setNodeCode("approval");
+        FrameInvoker.setBeanFunction(type -> {
+            if (InstanceService.class.equals(type)) return new InstanceServiceImpl() {
+                @Override public Instance getById(java.io.Serializable id) { return instance; }
+            };
+            if (DefService.class.equals(type)) return new DefServiceImpl() {
+                @Override public Definition getById(java.io.Serializable id) { return readOnlyDefinition; }
+            };
+            if (NodeService.class.equals(type)) return new NodeServiceImpl() {
+                @Override public Node getByDefIdAndNodeCode(Long id, String code) { return node; }
+            };
+            throw new AssertionError("Unexpected bean lookup during form read: " + type);
+        });
+        TaskServiceImpl service = new TaskServiceImpl() {
+            @Override public Task getById(java.io.Serializable id) { return task; }
+        };
+        FlowDto result = service.load(1L, new FlowParams());
+        assertEquals("expense:v2", result.getFormId());
+        assertEquals(formData("amount", 100), result.getData());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectRemovedFormCallbackOnDefinition() {
+        Definition definition = TestEntityFactory.create(Definition.class)
+            .setListenerType("formLoad").setListenerPath("oldFormLoader");
+        LifecycleConfigUtil.validate(definition, java.util.Collections.emptyList());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectRemovedFormCallbackOnNode() {
+        Node node = TestEntityFactory.create(Node.class)
+            .setListenerType("formLoad").setListenerPath("oldFormLoader");
+        LifecycleConfigUtil.validate(TestEntityFactory.create(Definition.class),
+            java.util.Collections.singletonList(node));
     }
 
     @Test

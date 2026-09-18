@@ -76,7 +76,7 @@ test('rejects malformed, unsupported and empty restricted rules instead of defau
   expect(validate()).toEqual([])
   definition.nodeList[0] = setSubmitterRule(definition.nodeList[0], 'USER')
   expect(validate()).toHaveLength(1)
-  definition.nodeList[0].ext = JSON.stringify([{ code: 'submitterRule', value: 'broken' }])
+  definition.nodeList[0].ext = JSON.stringify({ 'submitterRule': 'broken' })
   expect(validate()).toHaveLength(1)
   definition.nodeList[0] = setSubmitterRule(definition.nodeList[0], 'UNKNOWN')
   expect(validate()).toHaveLength(1)

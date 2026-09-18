@@ -1,4 +1,3 @@
-import { LifecycleExtEditor } from './LifecycleEditor'
 import { NodeControlEditor } from './NodeControlEditor'
 import { FormPermissionEditor } from './FormPermissionEditor'
 import { TimeoutFormField } from './TimeoutFormField'
@@ -234,7 +233,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       setParticipantPickerOpen(false)
       setSelectedBranch(current => current?.fromNode ? null : current)
     }, [definition, disabled])
-    const [nodeTab, setNodeTab] = useState<'basic' | 'config' | 'form' | 'lifecycle'>('config')
+    const [nodeTab, setNodeTab] = useState<'basic' | 'config' | 'form'>('config')
     const nodeTabId = useId()
     useEffect(() => {
       const type = definition.nodeList.find(node => node.nodeCode === selectedCode)?.nodeType
@@ -925,8 +924,8 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
             {selectedNode && (
               <div className="frd-settings-panel">
               {!simpleNode && <UiTabs value={nodeTab} idPrefix={nodeTabId} ariaLabel="节点配置分类"
-                options={[{ value: 'basic', label: '基础信息' }, { value: 'config', label: selectedNode.nodeType === '1' ? '审批配置' : '节点配置' }, { value: 'form', label: '表单权限' }, ...(!['3', '4', '5'].includes(selectedNode.nodeType) ? [{ value: 'lifecycle', label: '回调' }] : [])]}
-                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form' | 'lifecycle')} />}
+                options={[{ value: 'basic', label: '基础信息' }, { value: 'config', label: selectedNode.nodeType === '1' ? '审批配置' : '节点配置' }, { value: 'form', label: '表单权限' }]}
+                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form')} />}
               <div role={simpleNode ? undefined : 'tabpanel'} id={simpleNode ? undefined : `${nodeTabId}-panel-basic`} aria-labelledby={simpleNode ? undefined : `${nodeTabId}-tab-basic`} hidden={!simpleNode && nodeTab !== 'basic'}>
               <div className="frd-settings-group">
                 <UiField label="节点名称">
@@ -1222,12 +1221,6 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <p className="frd-merge-note">该节点是 {incomingCount.get(selectedNode.nodeCode)} 条分支的汇合点。</p>
               ) : null}
               </div>
-              {!['3', '4', '5'].includes(selectedNode.nodeType) && <div role={simpleNode ? undefined : 'tabpanel'} id={simpleNode ? undefined : `${nodeTabId}-panel-lifecycle`} aria-labelledby={simpleNode ? undefined : `${nodeTabId}-tab-lifecycle`} hidden={!simpleNode && nodeTab !== 'lifecycle'}>
-                {selectedNode.nodeType === '0' && <LifecycleExtEditor ext={nodeDefinition.ext} ui={components} disabled={disabled}
-                  onChange={value => commitNode({ ...nodeDefinition, ext: value })} />}
-                <LifecycleExtEditor ext={selectedNode.ext} nodeType={selectedNode.nodeType} ui={components} disabled={disabled}
-                  onChange={value => changeSelected({ ext: value })} />
-              </div>}
               {!simpleNode && nodeTab === 'form' && <div role="tabpanel" id={`${nodeTabId}-panel-form`} aria-labelledby={`${nodeTabId}-tab-form`}>
                 <FormPermissionEditor key={selectedNode.nodeCode} definition={nodeDefinition} node={selectedNode} fields={formFields || EMPTY_FORM_FIELDS}
                   queryFields={queryFormFields} ui={components} disabled={disabled}

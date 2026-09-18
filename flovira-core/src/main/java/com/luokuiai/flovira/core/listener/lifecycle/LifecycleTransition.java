@@ -45,7 +45,6 @@ public final class LifecycleTransition {
     private final Map<Long, Map<String, Object>> snapshots = new LinkedHashMap<Long, Map<String, Object>>();
     private final Map<String, Node> nodes = new LinkedHashMap<String, Node>();
     private final List<Task> entered = new ArrayList<Task>();
-    private final LifecycleConfigResolver resolver = new LifecycleConfigResolver(FlowEngine.jsonConvert, FlowEngine.lifecycleListeners());
 
     public LifecycleTransition(Instance instance, Definition definition, Node node, Task current,
                                FlowParams params, String action, String source) {
@@ -74,7 +73,7 @@ public final class LifecycleTransition {
         operation = new OperationContext(UUID.randomUUID().toString(), SYSTEM_ACTION.get() == null ? action : SYSTEM_ACTION.get(),
             SYSTEM_ACTION.get() == null ? source : "SYSTEM", definition, instance,
             current == null ? null : current.getId(), params.getHandler(), "START".equals(action), params.getVariables());
-        FlowEngine.lifecycleDispatcher().beforeOperation(operation, subscriptions(node));
+        FlowEngine.lifecycleDispatcher().beforeOperation(operation);
         instance.setVariables(FlowEngine.jsonConvert.objToStr(operation.getVariables()));
         params.variables(new LinkedHashMap<String, Object>(operation.getVariables()));
     }
@@ -106,7 +105,7 @@ public final class LifecycleTransition {
             Node node = nodes.get(task.getNodeCode());
             if (NodeType.isBetween(task.getNodeType()) || NodeType.isCarbonCopy(task.getNodeType())) {
                 AssignmentContext assignment = new AssignmentContext(instance.getId(), task.getId(), task.getNodeCode(), task.getPermissionList());
-                FlowEngine.lifecycleDispatcher().beforeAssignment(assignment, subscriptions(node));
+                FlowEngine.lifecycleDispatcher().beforeAssignment(assignment);
                 if (assignment.getAssignees().isEmpty()) {
                     // Keep an explicit automatic-skip decision unless a hook assigns recipients.
                     if (!NodeType.isBetween(task.getNodeType()) || !ApproverPolicyUtil.isSkip(task.getPermissionList())) {
@@ -262,11 +261,6 @@ public final class LifecycleTransition {
         return result;
     }
 
-    private List<LifecycleSubscription> subscriptions(Node node) {
-        List<LifecycleSubscription> definitionSubscriptions = resolver.read(definition.getExt(), null);
-        return node == null ? definitionSubscriptions : resolver.combine(definitionSubscriptions, resolver.read(node.getExt(), node.getNodeType()));
-    }
-
     private void emit(LifecycleEventType type, Node node, Map<String, Object> details) {
         Map<String, Object> value = new LinkedHashMap<String, Object>();
         value.put("tenantId", instance.getTenantId());
@@ -294,6 +288,6 @@ public final class LifecycleTransition {
         value.putAll(details);
         FlowEngine.lifecycleDispatcher().emit(new LifecycleEvent(UUID.randomUUID().toString(), operation.getOperationId(),
             type, instance.getId(), System.currentTimeMillis(), FlowEngine.jsonConvert.objToStr(value)),
-            subscriptions(node), FlowEngine.transactionExecutor());
+            FlowEngine.transactionExecutor());
     }
 }

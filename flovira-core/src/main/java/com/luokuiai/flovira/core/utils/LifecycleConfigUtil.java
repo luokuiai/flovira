@@ -12,35 +12,23 @@
  */
 package com.luokuiai.flovira.core.utils;
 
-import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.entity.Definition;
 import com.luokuiai.flovira.core.entity.Node;
-import com.luokuiai.flovira.core.listener.lifecycle.LifecycleConfigResolver;
-import com.luokuiai.flovira.core.listener.lifecycle.LifecycleSubscription;
 import java.util.List;
 
-/** 在保存、导入和发布时统一校验跨作用域订阅。 */
+/** 只检查旧监听字段；生命周期回调不读取业务扩展数据。 */
 public final class LifecycleConfigUtil {
     private LifecycleConfigUtil() { }
 
     public static void validate(Definition definition, List<Node> nodes) {
         rejectLegacy(definition.getListenerType(), definition.getListenerPath());
-        LifecycleConfigResolver resolver = new LifecycleConfigResolver(FlowEngine.jsonConvert,
-            FlowEngine.lifecycleListeners());
-        List<LifecycleSubscription> subscriptions = resolver.read(definition.getExt(), null);
         if (nodes == null) return;
         for (Node node : nodes) {
             rejectLegacy(node.getListenerType(), node.getListenerPath());
-            resolver.combine(subscriptions, resolver.read(node.getExt(), node.getNodeType()));
         }
     }
     private static void rejectLegacy(String types, String paths) {
         if (StringUtils.isEmpty(types) && StringUtils.isEmpty(paths)) return;
-        if (StringUtils.isEmpty(types)) throw new IllegalArgumentException("Legacy listener path requires explicit migration");
-        for (String type : types.split(",", -1)) {
-            if (!"formLoad".equals(type.trim())) {
-                throw new IllegalArgumentException("Legacy callback " + type + " must migrate to lifecycle subscriptions; only formLoad remains separate");
-            }
-        }
+        throw new IllegalArgumentException("Persisted listener configuration is no longer supported; clear listenerType and listenerPath");
     }
 }
