@@ -85,7 +85,8 @@ public class FloviraService {
         capabilities.setLifecyclePoints(Arrays.stream(com.luokuiai.flovira.core.listener.lifecycle.ListenerPoint.values())
             .map(Enum::name).collect(Collectors.toList()));
         capabilities.setListenerCodes(FlowEngine.lifecycleListeners().registeredCodes());
-        return ApiResult.ok(capabilities.setApproverStrategies(strategies));
+        return ApiResult.ok(capabilities.setApproverStrategies(strategies)
+            .setSubmitterStrategies(com.luokuiai.flovira.core.utils.SubmitterRuleUtil.strategies()));
     }
 
     /**

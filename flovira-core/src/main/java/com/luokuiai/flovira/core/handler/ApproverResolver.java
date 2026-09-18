@@ -28,6 +28,11 @@ import java.util.List;
 public interface ApproverResolver {
     String getStrategy();
 
+    /** 是否可用作开始节点的提交范围；自定义策略由业务方显式开启。 */
+    default boolean supportsSubmission() {
+        return "USER".equals(getStrategy()) || "ROLE".equals(getStrategy());
+    }
+
     /** 描述前端选项；code 必须与 getStrategy 一致，版本对应持久化配置格式。 */
     ApproverStrategyDefinition getDefinition();
 

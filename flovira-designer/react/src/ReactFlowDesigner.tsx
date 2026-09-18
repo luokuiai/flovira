@@ -37,6 +37,9 @@ import {
   findApproverStrategy,
   getApproverRule,
   getCarbonCopyRule,
+  getSubmitterRule,
+  setSubmitterRule,
+  submitterStrategies,
   getSubprocessConfig,
   getTimeoutConfig,
   getWaitConfig,
@@ -397,19 +400,22 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
     }
     const selectedNode = nodeEdit?.base === definition
       ? nodeDefinition.nodeList.find((node) => node.nodeCode === selectedCode) : undefined
-    const selectedApproverRule = selectedNode?.nodeType === '8'
+    const simpleNode = selectedNode?.nodeType === '0' || selectedNode?.nodeType === '2'
+    const participantCapabilities = useMemo(() => selectedNode?.nodeType === '0'
+      ? { ...capabilities, approverStrategies: submitterStrategies(capabilities) } : capabilities, [capabilities, selectedNode?.nodeType])
+    const selectedApproverRule = selectedNode?.nodeType === '0' ? getSubmitterRule(selectedNode) : selectedNode?.nodeType === '8'
       ? getCarbonCopyRule(selectedNode)
       : selectedNode?.nodeType === '1' ? getApproverRule(selectedNode) : null
     const setSelectedParticipantRule = (...args: Parameters<typeof setApproverRule>) => {
-      const setter = selectedNode?.nodeType === '8' ? setCarbonCopyRule : setApproverRule
+      const setter = selectedNode?.nodeType === '0' ? setSubmitterRule : selectedNode?.nodeType === '8' ? setCarbonCopyRule : setApproverRule
       const previous = selectedApproverRule
       args[7] = previous?.strategy === args[1]
         ? previous.strategyVersion ?? 1
-        : findApproverStrategy(capabilities, args[1])?.version ?? 1
+        : findApproverStrategy(participantCapabilities, args[1])?.version ?? 1
       return setter(...args)
     }
     const selectedApproverStrategy = selectedApproverRule
-      ? findApproverStrategy(capabilities, selectedApproverRule.strategy)
+      ? findApproverStrategy(participantCapabilities, selectedApproverRule.strategy)
       : undefined
     useEffect(() => {
       if (disabled || selectedNode?.nodeType !== '1' || selectedApproverRule?.strategy) return
@@ -435,7 +441,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       return () => { hostPickerRequest.current += 1 }
     }, [nodeDefinition, selectedCode, disabled, selectedApproverStrategy])
     useEffect(() => {
-      if (!selectedNode || !['1', '8'].includes(selectedNode.nodeType)
+      if (!selectedNode || !['0', '1', '8'].includes(selectedNode.nodeType)
         || approverEditorType(selectedApproverStrategy) !== 'DIALOG'
         || selectedApproverStrategy?.selectionType !== 'RESOURCE'
         || !selectedApproverStrategy.resourceType
@@ -897,7 +903,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
               <span className="frd-settings-panel__title">
                 <Settings2 size={17} />
                 <span className="frd-settings-panel__title-copy">
-                  <strong>审批配置</strong>
+                  <strong>{selectedNode?.nodeType === '0' ? '开始节点配置' : selectedNode?.nodeType === '2' ? '结束节点配置' : '审批配置'}</strong>
                 </span>
               </span>
             )}
@@ -918,16 +924,10 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           >
             {selectedNode && (
               <div className="frd-settings-panel">
-              <UiTabs value={nodeTab} idPrefix={nodeTabId} ariaLabel="节点配置分类"
+              {!simpleNode && <UiTabs value={nodeTab} idPrefix={nodeTabId} ariaLabel="节点配置分类"
                 options={[{ value: 'basic', label: '基础信息' }, { value: 'config', label: selectedNode.nodeType === '1' ? '审批配置' : '节点配置' }, { value: 'form', label: '表单权限' }, ...(!['3', '4', '5'].includes(selectedNode.nodeType) ? [{ value: 'lifecycle', label: '回调' }] : [])]}
-                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form' | 'lifecycle')} />
-              {!['3', '4', '5'].includes(selectedNode.nodeType) && <div role="tabpanel" id={`${nodeTabId}-panel-lifecycle`} aria-labelledby={`${nodeTabId}-tab-lifecycle`} hidden={nodeTab !== 'lifecycle'}>
-                {selectedNode.nodeType === '0' && <LifecycleExtEditor ext={nodeDefinition.ext} ui={components} disabled={disabled}
-                  onChange={value => commitNode({ ...nodeDefinition, ext: value })} />}
-                <LifecycleExtEditor ext={selectedNode.ext} nodeType={selectedNode.nodeType} ui={components} disabled={disabled}
-                  onChange={value => changeSelected({ ext: value })} />
-              </div>}
-              <div role="tabpanel" id={`${nodeTabId}-panel-basic`} aria-labelledby={`${nodeTabId}-tab-basic`} hidden={nodeTab !== 'basic'}>
+                onValueChange={value => setNodeTab(value as 'basic' | 'config' | 'form' | 'lifecycle')} />}
+              <div role={simpleNode ? undefined : 'tabpanel'} id={simpleNode ? undefined : `${nodeTabId}-panel-basic`} aria-labelledby={simpleNode ? undefined : `${nodeTabId}-tab-basic`} hidden={!simpleNode && nodeTab !== 'basic'}>
               <div className="frd-settings-group">
                 <UiField label="节点名称">
                   <UiInput value={selectedNode.nodeName} disabled={disabled} ariaLabel="节点名称" onValueChange={(value) => changeSelected({ nodeName: value })} />
@@ -943,25 +943,27 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 )}
               </div>
               </div>
-              <div role="tabpanel" id={`${nodeTabId}-panel-config`} aria-labelledby={`${nodeTabId}-tab-config`} hidden={nodeTab !== 'config'}>
-              {['1', '8'].includes(selectedNode.nodeType) && (
+              <div role={simpleNode ? undefined : 'tabpanel'} id={simpleNode ? undefined : `${nodeTabId}-panel-config`} aria-labelledby={simpleNode ? undefined : `${nodeTabId}-tab-config`} hidden={selectedNode.nodeType === '2' || (!simpleNode && nodeTab !== 'config')}>
+              {['0', '1', '8'].includes(selectedNode.nodeType) && (
                 <div className="frd-settings-group">
                   {selectedNode.nodeType === '8' && <h4>抄送策略</h4>}
-                  <UiField label={selectedNode.nodeType === '8' ? '抄送人类型' : '审批人'}>
+                  <UiField label={selectedNode.nodeType === '0' ? '可提交人员' : selectedNode.nodeType === '8' ? '抄送人类型' : '审批人'}>
                     <UiSelect
-                      ariaLabel={selectedNode.nodeType === '8' ? '抄送人类型' : '审批人'}
+                      ariaLabel={selectedNode.nodeType === '0' ? '可提交人员' : selectedNode.nodeType === '8' ? '抄送人类型' : '审批人'}
                       value={String(selectedApproverRule?.strategy || '')}
                       disabled={disabled}
                       options={[
+                        ...(selectedNode.nodeType === '0' && !selectedApproverRule?.strategy
+                          ? [{ value: '', label: '无效的提交范围配置', disabled: true }] : []),
                         ...(selectedNode.nodeType === '8' ? [{ value: '', label: '请选择抄送人类型', disabled: true }] : []),
                         ...(selectedApproverRule?.strategy && !selectedApproverStrategy
                           ? [{ value: selectedApproverRule.strategy, label: `不支持的策略：${selectedApproverRule.strategy}`, disabled: true }] : []),
-                        ...approverStrategyOptions(capabilities).map((strategy) => ({
+                        ...approverStrategyOptions(participantCapabilities).map((strategy) => ({
                           value: strategy.value, label: strategy.label,
                         })),
                       ]}
                       onValueChange={(value) => {
-                        const strategy = findApproverStrategy(capabilities, value)
+                        const strategy = findApproverStrategy(participantCapabilities, value)
                         const config = strategy?.options
                           ?.filter((option) => approverOptionVisible(option, strategy, selectedNode.nodeType))
                           .reduce<Record<string, unknown>>((result, option) => {
@@ -979,7 +981,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                   </UiField>
                   {selectedApproverStrategy && approverEditorType(selectedApproverStrategy) === 'INLINE' ? (
                     customInlineEditor ?? (selectedApproverStrategy?.selectionType === 'EXPRESSION' ? (
-                    <UiField label={selectedNode.nodeType === '8' ? '抄送人表达式' : '办理人表达式'}>
+                    <UiField label={selectedNode.nodeType === '0' ? '提交范围表达式' : selectedNode.nodeType === '8' ? '抄送人表达式' : '办理人表达式'}>
                       <UiInput
                         value={String(selectedApproverRule?.expression || '')}
                         disabled={disabled}
@@ -1220,7 +1222,13 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                 <p className="frd-merge-note">该节点是 {incomingCount.get(selectedNode.nodeCode)} 条分支的汇合点。</p>
               ) : null}
               </div>
-              {nodeTab === 'form' && <div role="tabpanel" id={`${nodeTabId}-panel-form`} aria-labelledby={`${nodeTabId}-tab-form`}>
+              {!['3', '4', '5'].includes(selectedNode.nodeType) && <div role={simpleNode ? undefined : 'tabpanel'} id={simpleNode ? undefined : `${nodeTabId}-panel-lifecycle`} aria-labelledby={simpleNode ? undefined : `${nodeTabId}-tab-lifecycle`} hidden={!simpleNode && nodeTab !== 'lifecycle'}>
+                {selectedNode.nodeType === '0' && <LifecycleExtEditor ext={nodeDefinition.ext} ui={components} disabled={disabled}
+                  onChange={value => commitNode({ ...nodeDefinition, ext: value })} />}
+                <LifecycleExtEditor ext={selectedNode.ext} nodeType={selectedNode.nodeType} ui={components} disabled={disabled}
+                  onChange={value => changeSelected({ ext: value })} />
+              </div>}
+              {!simpleNode && nodeTab === 'form' && <div role="tabpanel" id={`${nodeTabId}-panel-form`} aria-labelledby={`${nodeTabId}-tab-form`}>
                 <FormPermissionEditor key={selectedNode.nodeCode} definition={nodeDefinition} node={selectedNode} fields={formFields || EMPTY_FORM_FIELDS}
                   queryFields={queryFormFields} ui={components} disabled={disabled}
                   onChange={node => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode, node))} />
@@ -1235,7 +1243,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
             <UiDialog
               open={participantPickerOpen}
               title={selectedApproverStrategy.resourceType === 'USER'
-                ? selectedNode.nodeType === '8' ? '选择抄送人员' : '选择审批人员'
+                ? selectedNode.nodeType === '0' ? '选择可提交人员' : selectedNode.nodeType === '8' ? '选择抄送人员' : '选择审批人员'
                 : `选择${selectedApproverStrategy.name}`}
               width={600}
               ariaLabel="人员选择"

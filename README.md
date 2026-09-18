@@ -139,6 +139,8 @@ The Java root package is `com.luokuiai.flovira`.
 See [approver policies](docs/approver-policies.md) for handling empty approver
 results and approvers who are also the workflow initiator.
 
+开始节点可配置全员、指定人员或指定角色的提交范围，接入方式见[提交范围](docs/submission-permissions.md)。
+
 ## Database
 
 Full initialization scripts are available under `sql/<database>/`. Database

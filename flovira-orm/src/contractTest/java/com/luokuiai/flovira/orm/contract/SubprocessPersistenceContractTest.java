@@ -956,6 +956,105 @@ public class SubprocessPersistenceContractTest {
         return FlowEngine.taskService().skip(second.getId(), approval("REJECT"));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void trustedInitiationContextSurvivesLaterActorsAndForgedRequestVariables() throws Exception {
+        List<OperationContext> calls = new java.util.ArrayList<>();
+        WorkflowLifecycleListener guardian = new WorkflowLifecycleListener() {
+            public void beforeOperation(OperationContext operation, String parameters) {
+                calls.add(operation);
+                assertEquals("tenant-a", operation.getDefinition().getTenantId());
+                assertEquals(Long.valueOf(81000L), operation.getDefinition().getId());
+                assertEquals("resubmit-contract", operation.getDefinition().getFlowCode());
+                assertEquals("1", operation.getDefinition().getVersion());
+                assertEquals("initiator", operation.getInitiatorId());
+                Map<String, Object> trusted;
+                assertNotNull(operation.getInstance());
+                if (operation.isNewInstance()) {
+                    assertEquals("START", operation.getAction());
+                    assertEquals("initiator", operation.getActor());
+                    assertTrue(operation.getPersistedVariables().isEmpty());
+                    assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_instance", Integer.class));
+                    trusted = new java.util.LinkedHashMap<>();
+                    trusted.put("tenantId", operation.getDefinition().getTenantId());
+                    trusted.put("initiatorId", operation.getInitiatorId());
+                    trusted.put("organizationId", "department-a");
+                    trusted.put("companyId", "company-a");
+                    operation.setVariable("historyOnly", true);
+                } else {
+                    assertEquals("approver", operation.getActor());
+                    assertEquals("initiator", operation.getInstance().getCreatedBy());
+                    assertEquals(operation.getDefinition().getTenantId(), operation.getInstance().getTenantId());
+                    assertTrue(operation.getPersistedVariables().containsKey("historyOnly"));
+                    assertTrue(!operation.getInputVariables().containsKey("historyOnly"));
+                    assertEquals("attacker", ((Map<?, ?>) operation.getInputVariables().get("guardian.approverContext")).get("initiatorId"));
+                    trusted = (Map<String, Object>) operation.getPersistedVariables().get("guardian.approverContext");
+                    assertEquals("department-a", trusted.get("organizationId"));
+                    assertEquals("company-a", trusted.get("companyId"));
+                    assertEquals("initiator", trusted.get("initiatorId"));
+                    org.junit.Assert.assertThrows(UnsupportedOperationException.class, () ->
+                        operation.getPersistedVariables().put("guardian.approverContext", "forged"));
+                    org.junit.Assert.assertThrows(UnsupportedOperationException.class, () -> trusted.put("initiatorId", "forged"));
+                }
+                operation.setVariable("guardian.approverContext", trusted);
+                operation.setVariable("workflowOrganizationId", trusted.get("organizationId"));
+            }
+        };
+        try (AutoCloseable installed = FlowEngine.lifecycleListeners().install(java.util.Collections.singletonMap("guardian", guardian),
+                java.util.Collections.singletonList(new LifecycleSubscription("guardian", ListenerPoint.BEFORE_OPERATION,
+                    DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+            Instance instance = startedInstance("RESTART_FROM_BEGINNING", 1, controlExt("RESTART_FROM_BEGINNING"), () -> {
+                com.luokuiai.flovira.core.entity.Node start = FlowEngine.nodeService().getByDefIdAndNodeCode(81000L, "start");
+                start.setExt(submitterExt("initiator", true));
+                FlowEngine.nodeService().updateById(start);
+                for (String code : java.util.Arrays.asList("first", "second")) {
+                    com.luokuiai.flovira.core.entity.Node node = FlowEngine.nodeService().getByDefIdAndNodeCode(81000L, code);
+                    node.setExt(node.getExt().replace("\\\"strategy\\\":\\\"USER\\\"", "\\\"strategy\\\":\\\"USER\\\",\\\"config\\\":{\\\"requireTrustedContext\\\":true}"));
+                    FlowEngine.nodeService().updateById(node);
+                }
+            });
+            Map<String, Object> forged = new java.util.LinkedHashMap<>();
+            forged.put("guardian.approverContext", java.util.Collections.singletonMap("initiatorId", "attacker"));
+            forged.put("workflowOrganizationId", "department-b");
+            forged.put("tenantId", "tenant-b");
+            Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+            FlowEngine.taskService().skip(task.getId(), approval("PASS").variables(forged));
+            Instance saved = FlowEngine.instanceService().getById(instance.getId());
+            assertEquals("initiator", saved.getCreatedBy());
+            assertEquals("department-a", saved.getVariableMap().get("workflowOrganizationId"));
+            Map<String, Object> snapshot = (Map<String, Object>) saved.getVariableMap().get("guardian.approverContext");
+            assertEquals("initiator", snapshot.get("initiatorId"));
+            assertEquals("company-a", snapshot.get("companyId"));
+            assertEquals(2, calls.size());
+        }
+    }
+
+    @Test
+    public void restrictedSubmissionRejectsBothStartEntrypointsWithoutWorkflowWrites() {
+        IllegalStateException rejected = org.junit.Assert.assertThrows(IllegalStateException.class, () ->
+            startedInstance("RESTART_FROM_BEGINNING", 1, controlExt("RESTART_FROM_BEGINNING"), () -> {
+                com.luokuiai.flovira.core.entity.Node start = FlowEngine.nodeService().getByDefIdAndNodeCode(81000L, "start");
+                start.setExt(submitterExt("someone-else", false));
+                FlowEngine.nodeService().updateById(start);
+            }));
+        assertEquals("User is not allowed to submit this workflow", rejected.getMessage());
+        org.junit.Assert.assertThrows(IllegalStateException.class, () -> FlowEngine.instanceService()
+            .startByDefinitionId("business-2", 81000L, FlowParams.build().handler("initiator")));
+        for (String table : java.util.Arrays.asList("flow_instance", "flow_task", "flow_his_task", "flow_node_execution")) {
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from " + table, Integer.class));
+        }
+    }
+
+    private String submitterExt(String user, boolean trusted) {
+        com.luokuiai.flovira.core.dto.ApproverRule rule = new com.luokuiai.flovira.core.dto.ApproverRule()
+            .setStrategy("USER").setSelectionType("RESOURCE")
+            .setSubjects(java.util.Collections.singletonList(new com.luokuiai.flovira.core.dto.BusinessSubject().setId(user).setType("USER")))
+            .setConfig(java.util.Collections.<String, Object>singletonMap("requireTrustedContext", trusted));
+        Map<String, String> ext = new java.util.LinkedHashMap<>();
+        ext.put("code", "submitterRule"); ext.put("value", FlowEngine.jsonConvert.objToStr(rule));
+        return FlowEngine.jsonConvert.objToStr(java.util.Collections.singletonList(ext));
+    }
+
     private Instance startedInstance(String strategy) {
         return startedInstance(strategy, 1, controlExt(strategy));
     }
@@ -1550,6 +1649,17 @@ public class SubprocessPersistenceContractTest {
             return new com.luokuiai.flovira.core.handler.AbstractUserResolver() {
                 public void validate(com.luokuiai.flovira.core.dto.ApproverRule rule) { }
                 public List<String> resolve(com.luokuiai.flovira.core.dto.ApproverContext context) {
+                    if (context.getRule().getConfig() != null
+                            && Boolean.TRUE.equals(context.getRule().getConfig().get("requireTrustedContext"))) {
+                        Map<?, ?> trusted = (Map<?, ?>) context.getFlowParams().getVariables().get("guardian.approverContext");
+                        assertNotNull(trusted);
+                        assertEquals("initiator", trusted.get("initiatorId"));
+                        assertEquals("department-a", trusted.get("organizationId"));
+                    }
+                    if (Integer.valueOf(0).equals(context.getNode().getNodeType())) {
+                        return context.getRule().getSubjects().stream().map(com.luokuiai.flovira.core.dto.BusinessSubject::getId)
+                            .collect(java.util.stream.Collectors.toList());
+                    }
                     if (context.getRule().getConfig() != null
                             && Boolean.TRUE.equals(context.getRule().getConfig().get("contractEmpty"))) {
                         return java.util.Collections.emptyList();

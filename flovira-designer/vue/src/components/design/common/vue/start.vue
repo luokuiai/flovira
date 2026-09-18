@@ -1,23 +1,7 @@
 <template>
   <div class="start">
-    <!-- 现代化页签 -->
-    <div class="modern-tabs-wrapper">
-      <div class="modern-tabs">
-        <div
-          v-for="item in tabsList"
-          :key="item.name"
-          class="modern-tab-item"
-          :class="{ 'is-active': tabsValue === item.name }"
-          @click="tabsValue = item.name"
-        >
-          <svg class="tab-icon" viewBox="0 0 24 24"><path :d="item.iconPath" fill="currentColor"/></svg>
-          <span class="tab-label">{{ item.label }}</span>
-        </div>
-      </div>
-    </div>
-
     <!-- 基础设置 -->
-    <div v-show="tabsValue === '1'" class="tabPane">
+    <div class="tabPane">
       <wf-form ref="formRef" class="startForm" :model="form" label-width="110px" :disabled="disabled">
         <div class="base-settings-section">
           <div class="base-settings-content">
@@ -31,6 +15,7 @@
                 <wf-input v-model="form.nodeName" ref="nodeInput" :disabled="disabled" @change="nodeNameChange"></wf-input>
               </wf-form-item>
             </slot>
+            <SubmitterEditor ref="submitterEditor" v-model="form" :disabled="disabled" />
             <!-- 自定义扩展点：消费方可注入额外表单项（透出 { form, disabled }） -->
             <slot name="node-form-extra" :form="form" :disabled="disabled" />
           </div>
@@ -38,7 +23,7 @@
       </wf-form>
     </div>
 
-    <div v-show="tabsValue === '2'" class="tabPane tabPane-full">
+    <div class="tabPane tabPane-full">
       <LifecycleEditor :model-value="form.ext?.lifecycle" node-type="0" :disabled="disabled"
         @update:model-value="form.ext = { ...form.ext, lifecycle: $event }" />
     </div>
@@ -48,12 +33,15 @@
 
 <script setup lang="ts">
 import LifecycleEditor from './LifecycleEditor.vue'
-import { computed, getCurrentInstance, ref, watch } from 'vue';
+import SubmitterEditor from './SubmitterEditor.vue'
+import { getCurrentInstance, ref, watch } from 'vue';
 import { useI18n } from '@/i18n';
 
 defineOptions({ name: 'Start' });
 
 const { t } = useI18n();
+const submitterEditor = ref<InstanceType<typeof SubmitterEditor>>()
+defineExpose({ validate: () => submitterEditor.value?.validate() })
 
 interface StartProps {
   /** 节点表单数据（v-model） */
@@ -66,25 +54,9 @@ const props = withDefaults(defineProps<StartProps>(), {
   disabled: false,
 });
 
-// Tab 图标（单路径 SVG，viewBox 0 0 24 24，跟随 tab 文字色 currentColor）
-const TAB_ICONS = {
-  base: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
-  listener: 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z',
-};
-const tabsList = computed(() => [
-  { name: "1", label: t('start.tabBase'), iconPath: TAB_ICONS.base },
-  { name: "2", label: t('start.tabListener'), iconPath: TAB_ICONS.listener }
-]);
-
-const tabsValue = ref("1");
 const form = ref<Record<string, any>>(props.modelValue);
 const emit = defineEmits<{ (e: 'change', value: any): void }>();
 
-// 移动端/平板检测（与 between / baseInfo 统一）
-const isMobile = computed(() => {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth <= 768;
-});
 const proxy = getCurrentInstance()!.proxy as any;
 
 watch(() => form, n => {
@@ -106,7 +78,6 @@ function nodeNameChange() {
 .startForm { border-top: 0; width: 100%; }
 
 /* 引入公共样式：现代化页签 + 基础配置卡片 + 监听器卡片 */
-@include modern-tabs;
 @include base-settings-card;
 @include section-card;
 @include responsive-adaption;
