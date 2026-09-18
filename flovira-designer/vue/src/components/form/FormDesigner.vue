@@ -9,6 +9,8 @@ const WfButton = wfComponents['wf-button']
 const props = withDefaults(defineProps<{
   modelValue?: FormDefinition
   appearance?: 'standalone' | 'embedded'
+  /** 容器背景，支持 CSS background 值；不传时使用主题默认背景。 */
+  background?: string
   readOnly?: boolean
 }>(), { appearance: 'standalone', readOnly: false })
 const emit = defineEmits<{ (event: 'update:modelValue', value: FormDefinition): void }>()
@@ -38,7 +40,7 @@ const api: FormDesignerInstance = {
 defineExpose(api)
 </script>
 <template>
-  <div ref="root" class="ffd-form" :data-appearance="appearance">
+  <div ref="root" class="ffd-form" :data-appearance="appearance" :style="{ background }">
     <div class="ffd-heading"><span>表单字段</span><span class="ffd-count">{{ definition.fields.length }} 个字段</span></div>
     <div class="ffd-scroll">
       <div class="ffd-table">

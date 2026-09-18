@@ -229,3 +229,17 @@ bun run dev
 ```
 
 Library output is written to `dist-lib`, including modules, declarations, and styles. Run `bun run dev` in `flovira-designer/vue` in another terminal to watch and rebuild. Other examples are in `examples/vue-antdv` and `examples/vue-naive`; all consume the built library through `workspace:*`.
+
+## Form designer background
+
+`FormDesigner` accepts an optional `background` prop with any CSS background value, including colors, gradients, `transparent`, and CSS variables. Omit it to use the theme default. Both `standalone` and `embedded` retain a 12px corner radius; `embedded` removes only the outer border. This setting affects the container, not field controls or saved form metadata.
+
+```vue
+<FormDesigner
+  v-model="form"
+  appearance="embedded"
+  background="var(--business-form-background, #f8fafc)"
+/>
+```
+
+Vue root `style` attributes take precedence over `background` and can also customize `borderRadius`.

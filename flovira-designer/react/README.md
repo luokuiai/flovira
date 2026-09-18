@@ -242,3 +242,16 @@ const updated = setNodeControlConfig(node, { allowTransfer: true })
 ```
 
 These settings currently provide designer configuration and serialization only; the Flovira core does not automatically enforce them. Host runtime APIs must validate operation permissions, actual visited nodes, and rollback/resubmission paths. Runtime target choices must come from instance history. Frontend toggles do not replace backend authorization or change engine behavior on their own.
+
+## Form designer background
+
+`FormDesigner` accepts an optional `background` prop with any CSS background value, including colors, gradients, `transparent`, and CSS variables. Omit it to use the theme default. Both `standalone` and `embedded` retain a 12px corner radius; `embedded` removes only the outer border. This setting affects the container, not field controls or saved form metadata.
+
+```tsx
+<FormDesigner
+  appearance="embedded"
+  background="var(--business-form-background, #f8fafc)"
+/>
+```
+
+The existing `style` prop takes precedence over `background` and can also customize `borderRadius`.

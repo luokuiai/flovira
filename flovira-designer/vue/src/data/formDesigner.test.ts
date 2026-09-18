@@ -47,18 +47,36 @@ function harness(readOnly = false) {
   ] }
   const value = Vue.ref(original)
   const api = Vue.ref<model.FormDesignerInstance>()
+  const appearance = Vue.ref<Record<string, unknown>>({})
   const editor = component('FormDesigner')
   const root = element('root')
   const app = renderer.createApp({ setup: () => () => Vue.h(editor, {
+    ...appearance.value,
     ref: api, modelValue: value.value, readOnly, 'onUpdate:modelValue': (next: FormDefinition) => { value.value = next },
   }) })
   app.mount(root)
   const all = (node: Element = root): Element[] => [node, ...node.children.flatMap(child => all(child))]
   const text = (node: Element): string => node.type === 'comment' ? '' : (node.text || '') + node.children.map(text).join('')
-  return { app, original, value, api, all,
+  return { app, original, value, api, appearance, all,
     control: (label: string) => all().find(node => node.props['aria-label'] === label)!,
     button: (label: string) => all().find(node => node.type === 'button' && text(node) === label)! }
 }
+test('Vue customizes the container background without changing form data and restores the theme when removed', async () => {
+  const view = harness()
+  try {
+    view.appearance.value = { appearance: 'embedded', background: '#123456' }
+    await Vue.nextTick()
+    const root = view.all().find(node => node.props.class === 'ffd-form')!
+    expect(root.props.style.background).toBe('#123456')
+    expect(view.api.value!.getDefinition()).toEqual(view.original)
+    view.appearance.value = { background: '#123456', style: { background: 'transparent' } }
+    await Vue.nextTick()
+    expect(root.props.style.background).toBe('transparent')
+    view.appearance.value = {}
+    await Vue.nextTick()
+    expect(root.props.style.background).toBeUndefined()
+  } finally { view.app.unmount() }
+})
 test('Vue edits nested fields through v-model and exposes isolated snapshots', async () => {
   const view = harness()
   try {
@@ -87,6 +105,25 @@ test('Vue read-only editor has disabled controls and no editing buttons', () => 
   try {
     expect(view.all().filter(node => ['input', 'select'].includes(node.type)).every(node => node.props.disabled)).toBe(true)
     expect(view.all().filter(node => node.type === 'button')).toHaveLength(0)
+  } finally { view.app.unmount() }
+})
+test('Vue exposes direct move and delete icons with boundary states', async () => {
+  const view = harness()
+  try {
+    expect(view.control('上移字段 1').props.disabled).toBe(true)
+    expect(view.control('下移字段 2').props.disabled).toBe(true)
+    view.control('上移字段 2').props.onClick()
+    await Vue.nextTick()
+    expect(view.value.value.fields[0].key).toBe('details')
+    view.control('下移字段 1').props.onClick()
+    await Vue.nextTick()
+    expect(view.value.value.fields[0].key).toBe('Order_ID')
+    view.control('删除字段 2[].1').props.onClick()
+    await Vue.nextTick()
+    expect(view.value.value.fields[1].items!.fields).toHaveLength(0)
+    view.control('删除字段 2').props.onClick()
+    await Vue.nextTick()
+    expect(view.value.value.fields).toHaveLength(1)
   } finally { view.app.unmount() }
 })
 test('Vue restricts detail child types and rejects deeper imported definitions', () => {
