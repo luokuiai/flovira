@@ -86,12 +86,14 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
         // 判断流程定义是否激活状态
         AssertUtil.isTrue(definition.getActivityStatus().equals(ActivityStatus.SUSPENDED.getKey())
             , ExceptionCons.NOT_DEFINITION_ACTIVITY);
+        SubmitterRuleUtil.read(startNode);
         flowParams.skipType(SkipType.PASS.getKey());
 
         Instance instance = setStartInstance(startNode, businessType, businessId, flowParams);
         instance.setTenantId(definition.getTenantId()).setLifecycleState(ProcessLifecycleState.ACTIVE.name());
         LifecycleTransition transition = new LifecycleTransition(instance, definition, startNode, null, flowParams, "START", "USER");
-
+        // 业务初始化钩子先建立可信发起上下文，提交范围解析与审批分派共用该上下文。
+        SubmitterRuleUtil.check(startNode, flowParams);
 
         // 获取下一个节点，如果是网关节点，则重新获取后续节点
         PathWayData pathWayData = new PathWayData().setDefId(startNode.getDefinitionId()).setSkipType(flowParams.getSkipType());

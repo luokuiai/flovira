@@ -48,6 +48,7 @@ export interface DesignerApproverStrategy {
   resourceType?: string
   relationType?: string
   multiple: boolean
+  maxSubjects?: number
   editorType?: ApproverEditorType
   editorKey?: string
   resultCardinality?: ApproverResultCardinality
@@ -61,6 +62,8 @@ export interface DesignerCapabilities {
   schemaVersion: 1
   nodeTypes: DesignerNodeType[]
   approverStrategies: DesignerApproverStrategy[]
+  /** 开始节点提交范围；自定义策略由后端显式声明。 */
+  submitterStrategies?: DesignerApproverStrategy[]
   approvalModes: string[]
   returnPolicies: string[]
   timeoutNodeTypes: DesignerNodeType[]

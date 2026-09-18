@@ -394,6 +394,33 @@ export const getApproverRule = (node: FloviraNode): ApproverRule => {
 export const getCarbonCopyRule = (node: FloviraNode): ApproverRule =>
   getParticipantRule(node, 'carbonCopyRule')
 
+export const submitterStrategies = (capabilities: DesignerCapabilities): DesignerApproverStrategy[] => [
+  { code: 'ALL', name: '全员', version: 1, selectionType: 'RELATION', editorType: 'NONE', multiple: false },
+  ...(capabilities.submitterStrategies ?? capabilities.approverStrategies.filter(item => ['USER', 'ROLE'].includes(item.code)))
+    .filter(item => item.code !== 'ALL')
+    .map(item => ({ ...item, name: item.code === 'USER' ? '指定人员' : item.code === 'ROLE' ? '指定角色' : item.name,
+      options: item.options?.filter(option => option.nodeTypes?.includes('0')) })),
+]
+
+export const getSubmitterRule = (node: FloviraNode): ApproverRule => {
+  const empty: ApproverRule = { schemaVersion: 1, strategyVersion: 1, strategy: '', selectionType: 'RELATION', subjects: [] }
+  try {
+    const ext = typeof node.ext === 'string' ? JSON.parse(node.ext) : node.ext
+    if (ext != null && !Array.isArray(ext)) return empty
+    const item = ext?.find((entry: { code: string }) => entry.code === 'submitterRule')
+    if (!item) return { ...empty, strategy: 'ALL' }
+    const rule = typeof item.value === 'string' ? JSON.parse(item.value) : item.value
+    if (!rule || rule.schemaVersion !== 1 || !Array.isArray(rule.subjects)) return empty
+    return { ...empty, ...rule }
+  } catch { return empty }
+}
+
+export const setSubmitterRule = (...args: Parameters<typeof setApproverRule>): FloviraNode => {
+  const [node, strategy, subjects = [], expression = '', relationType, selectionType = 'RESOURCE', config, strategyVersion = 1] = args
+  return setNodeExtConfig(node, 'submitterRule', { schemaVersion: 1, strategyVersion, strategy, subjects,
+    selectionType, relationType, expression: selectionType === 'EXPRESSION' ? expression : undefined, config })
+}
+
 export const setApproverRule = (
   node: FloviraNode,
   strategy: ApproverStrategy | string,
@@ -503,6 +530,20 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
     issues.push({ code: 'END_MISSING', message: '流程至少需要一个结束节点' })
   }
   nodes.forEach((node) => {
+    if (node.nodeType === '0') {
+      const rule = getSubmitterRule(node)
+      const descriptor = submitterStrategies(capabilities || DEFAULT_DESIGNER_CAPABILITIES).find(item => item.code === rule.strategy)
+      if (!descriptor || rule.strategyVersion !== (descriptor.version ?? 1)
+        || rule.selectionType !== descriptor.selectionType
+        || (rule.selectionType === 'RESOURCE' && (!rule.subjects.length || rule.subjects.some(subject =>
+          !subject || typeof subject.id !== 'string' || !subject.id.trim() || subject.type !== descriptor.resourceType)))
+        || (rule.selectionType === 'EXPRESSION' && !rule.expression?.trim())
+        || (descriptor.maxSubjects != null && rule.subjects.length > descriptor.maxSubjects)
+        || (!descriptor.multiple && rule.subjects.length > 1)
+        || (rule.strategy === 'ALL' && (rule.subjects.length > 0 || rule.expression || rule.relationType || Object.keys(rule.config || {}).length))) {
+        issues.push({ code: 'SUBMITTER_INVALID', nodeCode: node.nodeCode, message: `${node.nodeName} 的可提交人员配置无效` })
+      }
+    }
     if (node.nodeType !== '0' && !incoming.has(node.nodeCode)) {
       issues.push({ code: 'NO_INCOMING', nodeCode: node.nodeCode, message: `${node.nodeName} 没有入口连接` })
     }

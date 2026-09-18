@@ -57,6 +57,7 @@ public class ApproverCapabilitiesTest {
         FrameInvoker.setBeanFunction(type -> null);
         FrameInvoker.setBeansFunction(type -> Collections.emptyList());
         assertTrue(FloviraService.capabilities().getData().getApproverStrategies().isEmpty());
+        assertEquals("ALL", FloviraService.capabilities().getData().getSubmitterStrategies().get(0).getCode());
         ApproverResolver resolver = new AbstractRoleResolver() {
             public void validate(ApproverRule rule) { throw new AssertionError("Not configuring a node"); }
             public List<String> resolve(ApproverContext context) { throw new AssertionError("No personnel lookup"); }
@@ -64,6 +65,9 @@ public class ApproverCapabilitiesTest {
         FrameInvoker.<ApproverResolver>setBeansFunction(type -> Collections.singletonList(resolver));
         assertEquals(1, FloviraService.capabilities().getData().getApproverStrategies().size());
         assertEquals("ROLE", FloviraService.capabilities().getData().getApproverStrategies().get(0).getCode());
+        assertEquals(2, FloviraService.capabilities().getData().getSubmitterStrategies().size());
+        assertEquals("指定角色", FloviraService.capabilities().getData().getSubmitterStrategies().get(1).getName());
+        assertTrue(FloviraService.capabilities().getData().getSubmitterStrategies().get(1).getOptions().isEmpty());
         com.luokuiai.flovira.core.dto.ApproverStrategyDefinition definition =
             FloviraService.capabilities().getData().getApproverStrategies().get(0);
         assertEquals("emptyPolicy", definition.getOptions().get(0).getCode());

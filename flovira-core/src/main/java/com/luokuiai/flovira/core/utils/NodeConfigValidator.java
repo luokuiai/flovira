@@ -40,6 +40,7 @@ public final class NodeConfigValidator {
         }
         Map<String, String> waitKeys = new HashMap<String, String>();
         for (Node node : nodes) {
+            SubmitterRuleUtil.read(node);
             NodeControlConfigUtil.read(node);
             if (NodeControlConfigUtil.INITIATOR_CODE.equals(node.getNodeCode())
                     || NodeType.INITIATOR.getKey().equals(node.getNodeType())) {

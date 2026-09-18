@@ -21,7 +21,6 @@ import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowNodeExecutionDao;
 import com.luokuiai.flovira.core.utils.LifecycleConfigUtil;
 import com.luokuiai.flovira.core.utils.ApproverPolicyUtil;
-import com.luokuiai.flovira.core.utils.MapUtil;
 import java.util.*;
 
 /** 单次已授权转换的快照与派发；不参与选路，不从历史状态码猜测事件。 */
@@ -73,9 +72,8 @@ public final class LifecycleTransition {
             }
         }
         operation = new OperationContext(UUID.randomUUID().toString(), SYSTEM_ACTION.get() == null ? action : SYSTEM_ACTION.get(),
-            SYSTEM_ACTION.get() == null ? source : "SYSTEM", instance.getId(),
-            current == null ? null : current.getId(), params.getHandler(),
-            MapUtil.mergeAll(instance.getVariableMap(), params.getVariables()));
+            SYSTEM_ACTION.get() == null ? source : "SYSTEM", definition, instance,
+            current == null ? null : current.getId(), params.getHandler(), "START".equals(action), params.getVariables());
         FlowEngine.lifecycleDispatcher().beforeOperation(operation, subscriptions(node));
         instance.setVariables(FlowEngine.jsonConvert.objToStr(operation.getVariables()));
         params.variables(new LinkedHashMap<String, Object>(operation.getVariables()));
