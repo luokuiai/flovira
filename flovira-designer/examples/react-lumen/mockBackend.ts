@@ -42,7 +42,7 @@ const capabilities = {
   schemaVersion: 1,
   nodeTypes: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
   approverStrategies: [
-    { code: 'STARTER', name: '提交人', selectionType: 'RELATION', relationType: 'STARTER', multiple: false, editorType: 'NONE', resultCardinality: 'EXACTLY_ONE', options: [sameAsStarterOption] },
+    { code: 'INITIATOR', name: '提交人', selectionType: 'RELATION', multiple: false, editorType: 'NONE', resultCardinality: 'EXACTLY_ONE', options: [sameAsStarterOption] },
     { code: 'USER', name: '指定人员', selectionType: 'RESOURCE', resourceType: 'USER', multiple: true, maxSubjects: 20, editorType: 'DIALOG', editorKey: 'organization-user-picker', resultCardinality: 'ONE_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },
     { code: 'GROUP', name: '分组', selectionType: 'RESOURCE', resourceType: 'GROUP', relationType: 'GROUP_MEMBERS', multiple: false, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },
     { code: 'ROLE', name: '指定角色', selectionType: 'RESOURCE', resourceType: 'ROLE', relationType: 'ROLE_MEMBERS', multiple: true, editorType: 'DIALOG', resultCardinality: 'ZERO_OR_MORE', options: [multiApproverOption, emptyApproverOption, sameAsStarterOption] },

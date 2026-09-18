@@ -412,17 +412,17 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
       : undefined
     useEffect(() => {
       if (disabled || selectedNode?.nodeType !== '1' || selectedApproverRule?.strategy) return
-      const starter = findApproverStrategy(capabilities, 'STARTER')
-      if (!starter) return
-      const config = starter.options?.filter(option => approverOptionVisible(option, starter, '1'))
+      const initiator = findApproverStrategy(capabilities, 'INITIATOR')
+      if (!initiator) return
+      const config = initiator.options?.filter(option => approverOptionVisible(option, initiator, '1'))
         .reduce<Record<string, unknown>>((result, option) => {
           const value = option.defaultValue ?? option.choices[0]?.value
           if (value !== undefined) result[option.code] = value
           return result
         }, {})
       commitNode(updateNode(nodeDefinition, selectedNode.nodeCode,
-        setApproverRule(selectedNode, starter.code, [], '', starter.relationType,
-          starter.selectionType, config, starter.version ?? 1)))
+        setApproverRule(selectedNode, initiator.code, [], '', initiator.relationType,
+          initiator.selectionType, config, initiator.version ?? 1)))
     }, [selectedNode, capabilities, disabled])
     const pickerState = useRef({ definition: nodeDefinition, selectedCode, disabled, onSelectApprover, selectedApproverStrategy })
     pickerState.current = { definition: nodeDefinition, selectedCode, disabled, onSelectApprover, selectedApproverStrategy }
@@ -875,7 +875,7 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
           </div>
 
           <UiDrawer open={Boolean(activeBranch)} title={branchNode && activeBranch ? branchNode.skipList[activeBranch.index].skipName || '分支条件' : '分支条件'}
-            width={560} ariaLabel="分支条件" onClose={() => setSelectedBranch(null)}>
+            width={460} ariaLabel="分支条件" onClose={() => setSelectedBranch(null)}>
             {branchNode && activeBranch && queryConditionFields && branchNode.nodeType !== '4' && conditionFieldState === 'loading'
               ? <p role="status">正在加载表单字段…</p>
               : branchNode && activeBranch && queryConditionFields && branchNode.nodeType !== '4' && conditionFieldState === 'error'

@@ -12,6 +12,17 @@ const initial: FormDefinition = { schemaVersion: '1', renderer: { custom: { layo
     { key: 'AMOUNT', label: '金额', dataType: 'number' },
   ] } },
 ] }
+test('customizes the container background without changing form data and restores the theme when removed', () => {
+  const ref = createRef<FormDesignerInstance>()
+  const view = render(<FormDesigner ref={ref} value={initial} appearance="embedded" background="#123456" />)
+  const root = view.container.querySelector<HTMLElement>('.ffd-form')!
+  expect(root.style.backgroundColor).toBe('rgb(18, 52, 86)')
+  expect(ref.current!.getDefinition()).toEqual(initial)
+  view.rerender(<FormDesigner value={initial} background="#123456" style={{ background: 'transparent' }} />)
+  expect(root.style.background).toBe('transparent')
+  view.rerender(<FormDesigner value={initial} />)
+  expect(root.style.background).toBe('')
+})
 test('limits objects and detail rows to scalar children and rejects imported multi-level structures', () => {
   const ref = createRef<FormDesignerInstance>()
   const view = render(<FormDesigner ref={ref} value={initial} />)
@@ -59,11 +70,11 @@ test('adds, reorders, deletes and validates fields using the existing schema', (
   act(() => expect(ref.current!.validate().message).toContain('重复'))
   fireEvent.change(view.getByLabelText('字段键 3'), { target: { value: 'Created_At' } })
   fireEvent.change(view.getByLabelText('数据类型 3'), { target: { value: 'date' } })
-  fireEvent.click(view.getByRole('button', { name: '字段操作 3' }))
-  fireEvent.click(view.getByRole('menuitem', { name: '上移' }))
+  expect(view.getByRole('button', { name: '上移字段 1' }).hasAttribute('disabled')).toBe(true)
+  expect(view.getByRole('button', { name: '下移字段 3' }).hasAttribute('disabled')).toBe(true)
+  fireEvent.click(view.getByRole('button', { name: '上移字段 3' }))
   expect(ref.current!.getDefinition().fields[1].key).toBe('Created_At')
-  fireEvent.click(view.getByRole('button', { name: '字段操作 3' }))
-  fireEvent.click(view.getByRole('menuitem', { name: '删除' }))
+  fireEvent.click(view.getByRole('button', { name: '删除字段 3' }))
   act(() => expect(ref.current!.validate().valid).toBe(true))
   expect(ref.current!.getDefinition().fields).toHaveLength(2)
 })

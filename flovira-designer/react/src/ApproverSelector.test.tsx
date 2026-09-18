@@ -36,16 +36,16 @@ test('shows a configured maximum and rejects oversized host results for approver
   expect(rule.config?.sameAsStarterSubjects).toBeUndefined()
 })
 
-test('defaults an unconfigured approval draft to the supported starter and commits only on confirmation', () => {
+test('defaults an unconfigured approval draft to the backend INITIATOR strategy and commits only on confirmation', () => {
   const definition = createInitialDefinition()
   const ref = createRef<ReactFlowDesignerRef>()
   const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} capabilities={{ ...DEMO_CAPABILITIES,
     approverStrategies: [...DEMO_CAPABILITIES.approverStrategies, {
-      code: 'STARTER', name: '提交人', selectionType: 'RELATION', relationType: 'STARTER', multiple: false, editorType: 'NONE',
+      code: 'INITIATOR', name: '提交人', selectionType: 'RELATION', multiple: false, editorType: 'NONE', resultCardinality: 'EXACTLY_ONE',
     }],
   }} />)
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
-  expect((view.getByLabelText('审批人') as HTMLSelectElement).value).toBe('STARTER')
+  expect((view.getByLabelText('审批人') as HTMLSelectElement).value).toBe('INITIATOR')
   expect(view.queryByRole('option', { name: '请选择人员策略' })).toBeNull()
   expect(getApproverRule(ref.current!.getDefinition().nodeList[1]).strategy).toBe('')
   fireEvent.click(view.getByRole('button', { name: '取消' }))
@@ -53,7 +53,7 @@ test('defaults an unconfigured approval draft to the supported starter and commi
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
   fireEvent.click(view.getByRole('button', { name: '确定' }))
   expect(getApproverRule(ref.current!.getDefinition().nodeList[1])).toMatchObject({
-    strategy: 'STARTER', selectionType: 'RELATION', relationType: 'STARTER',
+    strategy: 'INITIATOR', strategyVersion: 1, selectionType: 'RELATION', relationType: undefined,
   })
 })
 
