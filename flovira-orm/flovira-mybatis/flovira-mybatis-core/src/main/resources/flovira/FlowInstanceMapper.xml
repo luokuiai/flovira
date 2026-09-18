@@ -16,6 +16,8 @@
         <result property="nodeName" column="node_name"/>
         <result property="variables" column="variables"/>
         <result property="flowStatus" column="flow_status"/>
+        <result property="lifecycleState" column="lifecycle_state"/>
+        <result property="resubmissionContext" column="resubmission_context"/>
         <result property="activityStatus" column="activity_status"/>
         <result property="defJson" column="def_json"/>
         <result property="createdBy" column="created_by"/>
@@ -38,6 +40,8 @@
                t.node_name,
                t.variables,
                t.flow_status,
+               t.lifecycle_state,
+               t.resubmission_context,
                t.activity_status,
                t.def_json,
                t.created_by,
@@ -71,6 +75,7 @@
             <if test="entity.nodeName != null and entity.nodeName != ''">and t.node_name = #{entity.nodeName}</if>
             <if test="entity.variables != null">and t.variables = #{entity.variables}</if>
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and t.flow_status = #{entity.flowStatus}</if>
+            <if test="entity.lifecycleState != null and entity.lifecycleState != ''">and t.lifecycle_state = #{entity.lifecycleState}</if>
             <if test="entity.activityStatus != null">and t.activity_status = #{entity.activityStatus}</if>
             <if test="entity.defJson != null  and entity.defJson != ''">and t.def_json = #{entity.defJson}</if>
             <if test="entity.createdBy != null  and entity.createdBy != ''">and t.created_by = #{entity.createdBy}</if>
@@ -124,6 +129,8 @@
         node_type,
         variables,
         flow_status,
+        lifecycle_state,
+        resubmission_context,
         activity_status,
         def_json,
         created_by,
@@ -146,6 +153,8 @@
             #{item.nodeType},
             #{item.variables},
             #{item.flowStatus},
+            #{item.lifecycleState},
+            #{item.resubmissionContext},
             #{item.activityStatus},
             #{item.defJson},
             #{item.createdBy},
@@ -170,6 +179,8 @@
         node_type,
         variables,
         flow_status,
+        lifecycle_state,
+        resubmission_context,
         activity_status,
         def_json,
         created_by,
@@ -191,6 +202,8 @@
             #{item.nodeType},
             #{item.variables},
             #{item.flowStatus},
+            #{item.lifecycleState},
+            #{item.resubmissionContext},
             #{item.activityStatus},
             #{item.defJson},
             #{item.createdBy},
@@ -243,6 +256,8 @@
             <if test="nodeType != null">node_type,</if>
             <if test="variables != null">variables,</if>
             <if test="flowStatus != null and flowStatus != ''">flow_status,</if>
+            <if test="lifecycleState != null and lifecycleState != ''">lifecycle_state,</if>
+            <if test="resubmissionContext != null and resubmissionContext != ''">resubmission_context,</if>
             <if test="activityStatus != null">activity_status,</if>
             <if test="defJson != null and defJson != ''">def_json,</if>
             <if test="createdBy != null and createdBy != ''">created_by,</if>
@@ -263,6 +278,8 @@
             <if test="nodeType != null">#{nodeType},</if>
             <if test="variables != null">#{variables},</if>
             <if test="flowStatus != null and flowStatus != ''">#{flowStatus},</if>
+            <if test="lifecycleState != null and lifecycleState != ''">#{lifecycleState},</if>
+            <if test="resubmissionContext != null and resubmissionContext != ''">#{resubmissionContext},</if>
             <if test="activityStatus != null">#{activityStatus},</if>
             <if test="defJson != null and defJson != ''">#{defJson},</if>
             <if test="createdBy != null and createdBy != ''">#{createdBy},</if>
@@ -286,6 +303,8 @@
             <if test="nodeName != null and nodeName != ''">node_name = #{nodeName},</if>
             <if test="variables != null">variables = #{variables},</if>
             <if test="flowStatus != null and flowStatus != ''">flow_status = #{flowStatus},</if>
+            <if test="lifecycleState != null and lifecycleState != ''">lifecycle_state = #{lifecycleState},</if>
+            <if test="resubmissionContext != null">resubmission_context = #{resubmissionContext},</if>
             <if test="activityStatus != null">activity_status = #{activityStatus},</if>
             <if test="defJson != null and defJson != ''">def_json = #{defJson},</if>
             <if test="createdBy != null and createdBy != ''">created_by = #{createdBy},</if>
@@ -346,6 +365,7 @@
             <if test="nodeName != null and nodeName != ''">and node_name = #{nodeName}</if>
             <if test="nodeType != null">and node_type = #{nodeType}</if>
             <if test="flowStatus != null and flowStatus != ''">and flow_status = #{flowStatus}</if>
+            <if test="lifecycleState != null and lifecycleState != ''">and lifecycle_state = #{lifecycleState}</if>
             <if test="variables != null">and flow_status = #{variables}</if>
             <if test="activityStatus != null">and activity_status = #{activityStatus}</if>
             <if test="defJson != null and defJson != ''">and def_json = #{defJson}</if>
@@ -370,6 +390,7 @@
             <if test="entity.nodeName != null and entity.nodeName != ''">and node_name = #{entity.nodeName}</if>
             <if test="entity.nodeType != null">and node_type = #{entity.nodeType}</if>
             <if test="entity.flowStatus != null and entity.flowStatus != ''">and flow_status = #{entity.flowStatus}</if>
+            <if test="entity.lifecycleState != null and entity.lifecycleState != ''">and lifecycle_state = #{entity.lifecycleState}</if>
             <if test="entity.variables != null">and flow_status = #{entity.variables}</if>
             <if test="entity.activityStatus != null">and activity_status = #{entity.activityStatus}</if>
             <if test="entity.defJson != null and entity.defJson != ''">and def_json = #{entity.defJson}</if>
@@ -394,4 +415,12 @@
             </otherwise>
         </choose>
     </insert>
+    <select id="lockForUpdate" resultMap="FlowInstanceResult" flushCache="true" useCache="false">
+        SELECT * FROM flow_instance WHERE id = #{instanceId} AND deleted = '0'
+        <choose>
+            <when test="tenantId != null">AND tenant_id = #{tenantId}</when>
+            <otherwise>AND tenant_id IS NULL</otherwise>
+        </choose>
+        FOR UPDATE
+    </select>
 </mapper>

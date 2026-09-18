@@ -118,6 +118,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
 
     @Override
     public Definition insertFlow(Definition definition, List<Node> nodeList, List<Skip> skipList) {
+        LifecycleConfigUtil.validate(definition, nodeList);
         definition.setVersion(getNewVersion(definition));
         for (Node node : nodeList) {
             node.setVersion(definition.getVersion());
@@ -154,6 +155,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         checkFlowLegal(flowCombine);
         SubprocessDefinitionValidator.validateNodeConfigs(flowCombine.getAllNodes());
         NodeConfigValidator.validate(flowCombine.getAllNodes());
+        LifecycleConfigUtil.validate(definition, flowCombine.getAllNodes());
 
         // 如果是新增的流程定义
         if (ObjectUtil.isNull(id)) {
@@ -254,6 +256,7 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         AssertUtil.isEmpty(nodeList, ExceptionCons.NOT_DRAW_FLOW_ERROR);
         Definition definition = getById(id);
         NodeConfigValidator.validate(nodeList);
+        LifecycleConfigUtil.validate(definition, nodeList);
         SubprocessDefinitionValidator.validateForPublish(definition);
         List<Definition> definitions = getByFlowCode(definition.getFlowCode());
         // 已发布流程定义，改为已失效或者未发布状态

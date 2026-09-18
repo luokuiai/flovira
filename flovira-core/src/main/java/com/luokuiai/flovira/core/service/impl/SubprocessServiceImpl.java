@@ -16,6 +16,7 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.SubprocessChildPlan;
 import com.luokuiai.flovira.core.dto.SubprocessConfig;
@@ -186,8 +187,14 @@ public class SubprocessServiceImpl implements SubprocessService {
         }
         FlowParams params = FlowParams.build().flowCode(childDefinition.getFlowCode())
             .handler(parent.getCreatedBy()).variables(plan.getVariables());
-        Instance childInstance = FlowEngine.instanceService().startByDefinitionId(
-            plan.getBusinessKey(), childDefinition.getId(), params);
+        Task parentTask = FlowEngine.taskService().getById(run.getParentTaskId());
+        if (parentTask != null && parentTask.getNodeExecutionId() != null) {
+            Map<String, Object> variables = new java.util.LinkedHashMap<String, Object>(params.getVariables());
+            variables.put("flovira.subprocess.parentNodeExecutionId", parentTask.getNodeExecutionId());
+            params.variables(variables);
+        }
+        Instance childInstance = LifecycleTransition.system("SUBPROCESS_START", () -> FlowEngine.instanceService().startByDefinitionId(
+            plan.getBusinessKey(), childDefinition.getId(), params));
         child.setChildInstanceId(childInstance.getId());
         child.setChildStatus(SubprocessChildStatus.RUNNING.name());
         child.setStartedAt(new Date());
@@ -258,8 +265,9 @@ public class SubprocessServiceImpl implements SubprocessService {
                 }
                 RESUMING_TASK.set(task.getId());
                 try {
-                    FlowEngine.taskService().pass(task.getId(), "子流程全部完成",
-                        Collections.<String, Object>emptyMap(), null, null);
+                    LifecycleTransition.system("SUBPROCESS_RESUME", () -> FlowEngine.taskService().skipSystemTask(
+                        FlowParams.build().skipType("PASS").handler("flovira:subprocess")
+                            .message("子流程全部完成").variables(Collections.<String, Object>emptyMap()), task));
                 } finally {
                     RESUMING_TASK.remove();
                 }
@@ -321,8 +329,8 @@ public class SubprocessServiceImpl implements SubprocessService {
         });
         for (SubprocessChild child : children) {
             if (!isTerminal(child) && child.getChildInstanceId() != null) {
-                FlowEngine.taskService().terminationByInsId(child.getChildInstanceId(), FlowParams.build()
-                    .handler("system-subprocess").ignore(true).message(reason));
+                LifecycleTransition.system("SUBPROCESS_CANCEL", () -> FlowEngine.taskService().terminationByInsId(child.getChildInstanceId(), FlowParams.build()
+                    .handler("flovira:subprocess").ignore(true).message(reason)));
                 applyOutcome(child, SubprocessOutcome.CANCELLED);
                 childDao.updateById(child);
             }

@@ -29,60 +29,17 @@
         </wf-form-item>
       </div>
 
-      <div class="form-section">
-        <div class="section-title">{{ t('baseInfo.sectionListener') }}</div>
-        <wf-form-item prop="listenerRows" class="listenerItem">
-          <wf-table :data="form.listenerRows" style="width: 100%" :empty-text="t('baseInfo.listenerEmpty')">
-            <wf-table-column prop="listenerType" :width="isMobile ? 60 : 160" :label="t('common.type')">
-              <template #default="scope">
-                <wf-form-item :prop="`listenerRows.${scope.$index}.listenerType`" :rules="rules.listenerType">
-                  <wf-select v-model="scope.row.listenerType" :placeholder="t('baseInfo.listenerTypePlaceholder')">
-                    <wf-option :label="t('start.listenerStart')" value="start"></wf-option>
-                    <wf-option :label="t('start.listenerAssignment')" value="assignment"></wf-option>
-                    <wf-option :label="t('start.listenerFinish')" value="finish"></wf-option>
-                    <wf-option :label="t('start.listenerCreate')" value="create"></wf-option>
-                  </wf-select>
-                </wf-form-item>
-              </template>
-            </wf-table-column>
-
-            <wf-table-column prop="listenerPath" :label="t('baseInfo.listenerPathLabel')">
-              <template #default="scope">
-                <wf-form-item :prop="`listenerRows.${scope.$index}.listenerPath`" :rules="rules.listenerPath">
-                    <wf-select
-                        v-model="scope.row.listenerPath"
-                        :placeholder="t('baseInfo.listenerPathPlaceholder')"
-                        allow-create
-                        filterable
-                        clearable
-                        style="width: 100%"
-                        @change="(value) => handleListenerPathChange(value, scope.row)">
-                        <wf-option
-                            v-for="item in ListenerVo"
-                            :key="item.path"
-                            :label="item.description"
-                            :value="item.path"/>
-                    </wf-select>
-                </wf-form-item>
-              </template>
-            </wf-table-column>
-
-            <wf-table-column :label="t('common.operation')" width="65" align="center" v-if="!disabled">
-              <template #default="scope">
-                <wf-button link size="small" type="danger" @click="handleDeleteRow(scope.$index)"><svg-icon icon-class="ep:delete"/></wf-button>
-              </template>
-            </wf-table-column>
-          </wf-table>
-          <wf-button v-if="!disabled" class="add-row-btn" @click="handleAddRow">{{ t('common.addRow') }}</wf-button>
-        </wf-form-item>
-      </div>
+      <p v-if="lifecycleRead.error" role="alert">{{ lifecycleRead.error }}</p>
+      <LifecycleEditor v-else :model-value="lifecycleConfig" :disabled="disabled" @update:model-value="setLifecycle" />
+      <p v-if="legacyCallbacks" role="alert">旧监听配置需迁移到生命周期回调后才能保存或发布。</p>
     </wf-form>
   </div>
 </template>
 
 <script setup lang="ts">
+import LifecycleEditor from './LifecycleEditor.vue'
+import { lifecycleValue, withLifecycle, parseLifecycle } from '@/data/lifecycle'
 import { computed, getCurrentInstance, onMounted, onUnmounted, ref, watch } from "vue";
-import {designerResourceItems} from "@/api/flow/definition";
 import { useI18n } from '@/i18n';
 
 defineOptions({ name: 'BaseInfo' });
@@ -137,18 +94,23 @@ const form = ref({
   formId: "",
   listenerType: "",
   listenerPath: "",
-  listenerRows: []
+  ext: '[]'
 });
 
 watch(() => props.logicJson, newValue => {
   if (newValue && Object.keys(newValue).length > 0) {
     Object.assign(form.value, newValue);
-    setListenerData();
   }
 });
 
+const lifecycleRead = computed(() => {
+  try { return { value: lifecycleValue(form.value.ext), error: '' } }
+  catch (error) { return { value: undefined, error: String(error) } }
+})
+const lifecycleConfig = computed(() => lifecycleRead.value.value)
+const setLifecycle = (value: string) => { form.value.ext = withLifecycle(form.value.ext, parseLifecycle(value)) }
+const legacyCallbacks = computed(() => (form.value.listenerType || '').split(',').some(type => type && type !== 'formLoad'))
 const definitionList = ref([]);
-const ListenerVo = ref([]); // 监听器列表
 
 
 const rules = computed(() => ({
@@ -157,42 +119,11 @@ const rules = computed(() => ({
   ],
   flowName: [
     { required: true, message: t('baseInfo.ruleFlowNameRequired'), trigger: "blur" }
-  ],
-  listenerType: [
-    { required: true, message: t('baseInfo.ruleListenerRequired'), trigger: ['change', 'blur'] }
-  ],
-  listenerPath: [
-    { required: true, message: t('baseInfo.ruleListenerRequired'), trigger: ['change', 'blur'] }
   ]
 }));
 
 // 表单引用（用于校验）
 const formRef = ref();
-
-function setListenerData() {
-  // 处理监听器数据
-  if (form.value.listenerType) {
-    const listenerTypes = form.value.listenerType.split(",");
-    const listenerPaths = form.value.listenerPath.split("@@");
-    form.value.listenerRows = listenerTypes.map((type, index) => ({
-      listenerType: type,
-      listenerPath: listenerPaths[index]
-    }));
-  } else {
-    form.value.listenerRows = [];
-  }
-}
-
-// 增加行
-function handleAddRow() {
-  form.value.listenerRows.push({ listenerType: "", listenerPath: "" });
-  formRef.value?.clearValidate("listenerRows");
-}
-
-// 删除行
-function handleDeleteRow(index: number) {
-  form.value.listenerRows.splice(index, 1);
-}
 
 // 表单必填校验
 function validate() {
@@ -218,43 +149,11 @@ function nameChange(flowName: string) {
 }
 
 function getFormData() {
-  form.value.listenerType = form.value.listenerRows.map(row => row.listenerType).join(",")
-  form.value.listenerPath = form.value.listenerRows.map(row => row.listenerPath).join("@@")
   return form.value;
-}
-
-/** 获取监听器列表 */
-async function getListenerList() {
-    const items = await designerResourceItems({ resourceType: 'LISTENER', pageNum: 1, pageSize: 1000 });
-    ListenerVo.value = items.map(item => ({
-        type: item.metadata?.type || item.code,
-        path: item.metadata?.path || item.id,
-        description: item.metadata?.description || item.name,
-    }));
-}
-
-// 处理监听器路径变化，级联更新类型
-function handleListenerPathChange(path: string, row: any) {
-    if (!path) {
-        // 清空时，也清空类型
-        row.listenerType = '';
-        return;
-    }
-
-    // 在下拉选项中查找匹配的项
-    const matchedItem = ListenerVo.value.find(item => item.path === path);
-    if (matchedItem && matchedItem.type) {
-        // 如果找到了匹配项且有 type，则更新 listenerType
-        row.listenerType = matchedItem.type;
-    } else {
-        // 如果是手动输入的，清空类型（或者保持原值，根据需求决定）
-        row.listenerType = '';
-    }
 }
 
 defineExpose({ getFormData, validate });
 
-getListenerList()
 </script>
 
 <style scoped lang="scss">

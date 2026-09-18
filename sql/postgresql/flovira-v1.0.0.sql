@@ -170,10 +170,12 @@ CREATE INDEX idx_flow_skip_definition ON flow_skip (tenant_id, definition_id, de
 
 CREATE TABLE flow_instance
 (
+    lifecycle_state VARCHAR(32),
+    resubmission_context TEXT,
     id              int8         NOT NULL,
     definition_id   int8         NOT NULL,
     business_type   varchar(128) NOT NULL,
-    business_id     varchar(40)  NOT NULL,
+    business_id     varchar(128)  NOT NULL,
     node_type       int2         NOT NULL,
     node_code       varchar(96)  NOT NULL,
     node_name       varchar(100) NULL,
@@ -191,6 +193,8 @@ CREATE TABLE flow_instance
     CONSTRAINT flow_instance_pkey PRIMARY KEY (id)
 );
 COMMENT ON TABLE flow_instance IS '流程实例表';
+COMMENT ON COLUMN flow_instance.lifecycle_state IS '独立生命周期状态';
+COMMENT ON COLUMN flow_instance.resubmission_context IS '退回发起人策略与来源快照';
 
 COMMENT ON COLUMN flow_instance.id IS '主键id';
 COMMENT ON COLUMN flow_instance.definition_id IS '对应flow_definition表的id';
@@ -215,6 +219,7 @@ CREATE INDEX idx_flow_instance_definition ON flow_instance (tenant_id, definitio
 
 CREATE TABLE flow_task
 (
+    node_execution_id BIGINT,
     id            int8         NOT NULL,
     definition_id int8         NOT NULL,
     instance_id   int8         NOT NULL,
@@ -262,6 +267,7 @@ CREATE INDEX idx_flow_task_instance_node ON flow_task (tenant_id, instance_id, d
 
 CREATE TABLE flow_his_task
 (
+    node_execution_id BIGINT,
     id               int8         NOT NULL,
     definition_id    int8         NOT NULL,
     instance_id      int8         NOT NULL,
@@ -380,3 +386,24 @@ CREATE TABLE flow_subprocess_event (
 );
 CREATE INDEX idx_subprocess_event_timeline ON flow_subprocess_event (tenant_id,run_id,deleted,occurred_at,id);
 CREATE INDEX idx_subprocess_event_parent ON flow_subprocess_event (tenant_id,parent_instance_id,deleted,id);
+
+-- 实际业务节点执行；网关不建立生命周期执行记录。
+CREATE TABLE flow_node_execution (
+    id BIGINT PRIMARY KEY,
+    instance_id BIGINT NOT NULL,
+    definition_id BIGINT NOT NULL,
+    node_code VARCHAR(96) NOT NULL,
+    node_type INTEGER NOT NULL,
+    state VARCHAR(20) NOT NULL,
+    entered_at TIMESTAMP NOT NULL,
+    closed_at TIMESTAMP,
+    close_reason VARCHAR(20),
+    version INTEGER DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(64),
+    updated_by VARCHAR(64),
+    tenant_id VARCHAR(40) DEFAULT '0' NOT NULL,
+    deleted CHAR(1) DEFAULT '0' NOT NULL
+);
+CREATE INDEX idx_node_execution_active ON flow_node_execution (tenant_id,instance_id,deleted,state,entered_at,id);

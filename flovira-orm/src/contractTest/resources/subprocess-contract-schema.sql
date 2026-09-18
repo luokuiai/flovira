@@ -56,10 +56,12 @@ CREATE TABLE flow_skip
 
 CREATE TABLE flow_instance
 (
+    lifecycle_state VARCHAR(32),
+    resubmission_context TEXT,
     id              int8         NOT NULL,
     definition_id   int8         NOT NULL,
     business_type   varchar(128) NOT NULL,
-    business_id     varchar(40)  NOT NULL,
+    business_id     varchar(128)  NOT NULL,
     node_type       int2         NOT NULL,
     node_code       varchar(96)  NOT NULL,
     node_name       varchar(100) NULL,
@@ -97,6 +99,7 @@ CREATE INDEX idx_flow_form_code ON flow_form (tenant_id, form_code, deleted, pub
 CREATE INDEX idx_flow_form_published ON flow_form (tenant_id, publish_status, deleted, form_name);
 
 CREATE TABLE flow_task (
+    node_execution_id BIGINT,
     id bigint PRIMARY KEY, definition_id bigint NOT NULL, instance_id bigint NOT NULL,
     node_code varchar(100) NOT NULL, node_name varchar(100), node_type smallint NOT NULL,
     flow_status varchar(20) NOT NULL, form_id varchar(100),
@@ -139,4 +142,68 @@ CREATE TABLE flow_subprocess_event (
     event_result varchar(30) NOT NULL, reason varchar(500), occurred_at timestamp NOT NULL,
     created_at timestamp, created_by varchar(64) DEFAULT '', updated_at timestamp, updated_by varchar(64) DEFAULT '',
     deleted char(1) NOT NULL DEFAULT '0', tenant_id varchar(40) NOT NULL DEFAULT '0'
+);
+
+-- 实际业务节点执行；网关不建立生命周期执行记录。
+CREATE TABLE flow_node_execution (
+    id BIGINT PRIMARY KEY,
+    instance_id BIGINT NOT NULL,
+    definition_id BIGINT NOT NULL,
+    node_code VARCHAR(96) NOT NULL,
+    node_type INTEGER NOT NULL,
+    state VARCHAR(20) NOT NULL,
+    entered_at TIMESTAMP NOT NULL,
+    closed_at TIMESTAMP,
+    close_reason VARCHAR(20),
+    version INTEGER DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(64),
+    updated_by VARCHAR(64),
+    tenant_id VARCHAR(40) DEFAULT '0' NOT NULL,
+    deleted CHAR(1) DEFAULT '0' NOT NULL
+);
+CREATE INDEX idx_node_execution_active ON flow_node_execution (tenant_id,instance_id,deleted,state,entered_at,id);
+
+CREATE TABLE flow_his_task
+(
+    node_execution_id BIGINT,
+    id               int8         NOT NULL,
+    definition_id    int8         NOT NULL,
+    instance_id      int8         NOT NULL,
+    task_id          int8         NOT NULL,
+    node_code        varchar(96) NULL,
+    node_name        varchar(100) NULL,
+    node_type        int2         NULL,
+    target_node_code varchar(96) NULL,
+    target_node_name varchar(200) NULL,
+    approver         varchar(40)  NULL,
+    cooperation_type   int2         NOT NULL DEFAULT 0,
+    collaborator     varchar(500)  NULL,
+    skip_type        varchar(10)  NOT NULL,
+    flow_status      varchar(20)  NOT NULL,
+    form_id        varchar(100) NULL,
+    ext              text         NULL,
+    message          varchar(500) NULL,
+    variables         text         NULL,
+    created_at      timestamp    NULL,
+    updated_at      timestamp    NULL,
+    deleted         bpchar(1)    NOT NULL DEFAULT '0':: character varying,
+    tenant_id        varchar(40)  NULL,
+    CONSTRAINT flow_his_task_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE flow_user
+(
+    id           int8        NOT NULL,
+    "type"       bpchar(1)   NOT NULL,
+    processed_by varchar(80) NULL,
+    task_id   int8        NOT NULL,
+    created_at  timestamp    NULL,
+    created_by    varchar(64)  NULL     DEFAULT '':: character varying,
+    updated_at  timestamp    NULL,
+    updated_by    varchar(64)  NULL     DEFAULT '':: character varying,
+    deleted     bpchar(1)   NOT NULL DEFAULT '0':: character varying,
+    tenant_id    varchar(40) NULL,
+    CONSTRAINT flow_user_pk PRIMARY KEY (id)
 );

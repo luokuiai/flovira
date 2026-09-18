@@ -295,7 +295,7 @@ public class SubprocessLifecycleTest {
                 (Object proxy, Method method, Object[] args) -> {
                     String name = method.getName();
                     if (type == TaskService.class && "getById".equals(name)) return task;
-                    if (type == TaskService.class && "pass".equals(name)) {
+                    if (type == TaskService.class && "skipSystemTask".equals(name)) {
                         if (failNextParentPass) {
                             failNextParentPass = false;
                             throw new IllegalStateException("parent pass failed");

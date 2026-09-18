@@ -134,4 +134,6 @@ public class FlowTask implements Task {
 
     private Date timeoutClaimedAt;
 
+    /** 原生生命周期关联。 */
+    private Long nodeExecutionId;
 }

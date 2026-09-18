@@ -14,18 +14,18 @@ test('configures node permissions and return/resubmit strategies with round trip
   fireEvent.click(view.getByLabelText('允许转办'))
   fireEvent.click(view.getByLabelText('允许加签'))
   fireEvent.click(view.getByLabelText('允许减签'))
-  fireEvent.click(view.getByRole('radio', { name: '驳回至发起人' }))
+  fireEvent.click(view.getByRole('radio', { name: '退回发起人' }))
   fireEvent.click(view.getByRole('radio', { name: '从驳回节点继续' }))
   fireEvent.click(view.getByRole('button', { name: '确定' }))
   const restored = normalizeDefinition(ref.current!.getFlowJson()).nodeList.find((node) => node.nodeType === '1')!
   expect(getNodeControlConfig(restored)).toMatchObject({ allowRollback: true, allowTransfer: true, allowAddSign: true, allowMinusSign: true,
-    rejectStrategy: 'TO_DRAFT', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE' })
+    rejectStrategy: 'TO_INITIATOR', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE' })
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
   fireEvent.click(view.getByLabelText('允许驳回'))
   expect(view.queryByRole('radiogroup', { name: '驳回策略' })).toBeNull()
   expect(view.queryByRole('radiogroup', { name: '驳回后重新提交' })).toBeNull()
   fireEvent.click(view.getByLabelText('允许驳回'))
-  expect((view.getByRole('radio', { name: '驳回至发起人' }) as HTMLInputElement).checked).toBe(true)
+  expect((view.getByRole('radio', { name: '退回发起人' }) as HTMLInputElement).checked).toBe(true)
   expect((view.getByRole('radio', { name: '从驳回节点继续' }) as HTMLInputElement).checked).toBe(true)
 })
 
@@ -59,4 +59,15 @@ test('validates fixed return targets and preserves old policies', () => {
   const saved = setNodeControlConfig({ ...node, returnPolicy: 'ANY', ext: '[{"code":"custom","value":"kept"}]' }, { allowTransfer: true })
   expect(saved.returnPolicy).toBe('ANY')
   expect(String(saved.ext)).toContain('kept')
+})
+
+test('normalizes legacy initiator return code without changing resubmission strategy', () => {
+  const node = createInitialDefinition().nodeList[1]
+  const legacy = { ...node, ext: JSON.stringify([{ code: 'nodeControlConfig', value: JSON.stringify({
+    schemaVersion: 1, rejectStrategy: 'TO_DRAFT', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE',
+  }) }]) }
+  expect(getNodeControlConfig(legacy)).toMatchObject({ rejectStrategy: 'TO_INITIATOR', resubmitStrategy: 'CONTINUE_FROM_REJECTED_NODE' })
+  const saved = setNodeControlConfig(legacy, {})
+  expect(String(saved.ext)).toContain('TO_INITIATOR')
+  expect(String(saved.ext)).not.toContain('TO_DRAFT')
 })

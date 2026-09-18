@@ -17,6 +17,7 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
+import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.TimeoutExecutionResult;
@@ -134,7 +135,7 @@ public class TimeoutServiceImpl implements TimeoutService {
             .handler(SYSTEM_HANDLER)
             .message("Task timeout: " + task.getTimeoutAction())
             .hisTaskExt(timeoutHistory(task));
-        FlowEngine.taskService().skipSystemTask(params, task);
+        LifecycleTransition.system("APPROVAL_TIMEOUT", () -> FlowEngine.taskService().skipSystemTask(params, task));
     }
 
     private String timeoutHistory(Task task) {

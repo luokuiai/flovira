@@ -95,10 +95,12 @@ CREATE TABLE `flow_skip`
 
 CREATE TABLE `flow_instance`
 (
+    lifecycle_state VARCHAR(32) COMMENT '独立生命周期状态',
+    resubmission_context TEXT COMMENT '退回发起人策略与来源快照',
     `id`              bigint      NOT NULL COMMENT '主键id',
     `definition_id`   bigint      NOT NULL COMMENT '对应flow_definition表的id',
     `business_type`   varchar(128) NOT NULL COMMENT '业务类型',
-    `business_id`     varchar(40) NOT NULL COMMENT '业务id',
+    `business_id`     varchar(128) NOT NULL COMMENT '业务id',
     `node_type`       tinyint(1)  NOT NULL COMMENT '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
     `node_code`       varchar(96) NOT NULL COMMENT '流程节点编码',
     `node_name`       varchar(100)         DEFAULT NULL COMMENT '流程节点名称',
@@ -120,6 +122,7 @@ CREATE TABLE `flow_instance`
 
 CREATE TABLE `flow_task`
 (
+    node_execution_id BIGINT,
     `id`            bigint       NOT NULL COMMENT '主键id',
     `definition_id` bigint       NOT NULL COMMENT '对应flow_definition表的id',
     `instance_id`   bigint       NOT NULL COMMENT '对应flow_instance表的id',
@@ -146,6 +149,7 @@ CREATE TABLE `flow_task`
 
 CREATE TABLE `flow_his_task`
 (
+    node_execution_id BIGINT,
     `id`               bigint(20)                   NOT NULL COMMENT '主键id',
     `definition_id`    bigint(20)                   NOT NULL COMMENT '对应flow_definition表的id',
     `instance_id`      bigint(20)                   NOT NULL COMMENT '对应flow_instance表的id',
@@ -272,3 +276,24 @@ CREATE TABLE `flow_subprocess_event` (
     KEY `idx_subprocess_event_timeline` (`tenant_id`, `run_id`, `deleted`, `occurred_at`, `id`),
     KEY `idx_subprocess_event_parent` (`tenant_id`, `parent_instance_id`, `deleted`, `id`)
 ) ENGINE=InnoDB COMMENT='子流程编排事件表';
+
+-- 实际业务节点执行；网关不建立生命周期执行记录。
+CREATE TABLE flow_node_execution (
+    id BIGINT PRIMARY KEY,
+    instance_id BIGINT NOT NULL,
+    definition_id BIGINT NOT NULL,
+    node_code VARCHAR(96) NOT NULL,
+    node_type INTEGER NOT NULL,
+    state VARCHAR(20) NOT NULL,
+    entered_at DATETIME(3) NOT NULL,
+    closed_at DATETIME(3),
+    close_reason VARCHAR(20),
+    version INTEGER DEFAULT 0 NOT NULL,
+    created_at DATETIME(3),
+    updated_at DATETIME(3),
+    created_by VARCHAR(64),
+    updated_by VARCHAR(64),
+    tenant_id VARCHAR(40) DEFAULT '0' NOT NULL,
+    deleted CHAR(1) DEFAULT '0' NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE INDEX idx_node_execution_active ON flow_node_execution (tenant_id,instance_id,deleted,state,entered_at,id);
