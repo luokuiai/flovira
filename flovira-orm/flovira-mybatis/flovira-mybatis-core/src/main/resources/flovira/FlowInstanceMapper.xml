@@ -84,17 +84,7 @@
             <if test="entity.deleted != null  and entity.deleted != ''">and t.deleted = #{entity.deleted}</if>
             <if test="entity.tenantId != null  and entity.tenantId != ''">and t.tenant_id = #{entity.tenantId}</if>
             <if test="entity.ext != null">
-                and <choose>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
-                        JSON_EQUAL(t.ext, #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
-                    </when>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
-                        t.ext = CAST(#{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
-                    </when>
-                    <otherwise>
-                        t.ext = #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
-                    </otherwise>
-                </choose>
+                and ${@com.luokuiai.flovira.orm.type.ExtJsonTypeHandler@comparison('t.ext', 'entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler')}
             </if>
             <if test="entity.updatedBy != null and entity.updatedBy != ''">and t.updated_by = #{entity.updatedBy}</if>
         </where>
@@ -388,17 +378,7 @@
             <if test="updatedAt != null">and updated_at = #{updatedAt}</if>
             <if test="tenantId != null and tenantId != ''">and tenant_id = #{tenantId}</if>
             <if test="ext != null">
-                and <choose>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
-                        JSON_EQUAL(ext, #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
-                    </when>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
-                        ext = CAST(#{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
-                    </when>
-                    <otherwise>
-                        ext = #{ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
-                    </otherwise>
-                </choose>
+                and ${@com.luokuiai.flovira.orm.type.ExtJsonTypeHandler@comparison('ext', 'ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler')}
             </if>
         </where>
     </delete>
@@ -425,17 +405,7 @@
             <if test="entity.updatedAt != null">and updated_at = #{entity.updatedAt}</if>
             <if test="entity.tenantId != null and entity.tenantId != ''">and tenant_id = #{entity.tenantId}</if>
             <if test="entity.ext != null">
-                and <choose>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'oracle'">
-                        JSON_EQUAL(ext, #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} ERROR ON ERROR)
-                    </when>
-                    <when test="@com.luokuiai.flovira.core.FlowEngine@dataSourceType() == 'mysql'">
-                        ext = CAST(#{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler} AS JSON)
-                    </when>
-                    <otherwise>
-                        ext = #{entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler}
-                    </otherwise>
-                </choose>
+                and ${@com.luokuiai.flovira.orm.type.ExtJsonTypeHandler@comparison('ext', 'entity.ext,typeHandler=com.luokuiai.flovira.orm.type.ExtJsonTypeHandler')}
             </if>
             <if test="logicNotDeleteValue != null and logicNotDeleteValue != ''">and deleted =
                 #{logicNotDeleteValue}

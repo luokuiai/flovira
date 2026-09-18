@@ -161,7 +161,7 @@ export function createMockProvider(): DataProvider {
           resultCardinality: code === 'USER' ? 'ONE_OR_MORE' : 'ZERO_OR_MORE',
           options: [
             { code: 'emptyPolicy', name: '审批人为空时', defaultValue: 'ERROR', nodeTypes: ['1'], condition: 'EMPTY',
-              choices: [{ value: 'ERROR', label: '报错并阻止流转' }, { value: 'SKIP', label: '跳过' },
+              choices: [{ value: 'ERROR', label: '报错并阻止流转' }, { value: 'SKIP', label: '自动跳过' },
                 { value: 'TRANSFER_TO_USER', label: '转交给指定人员', selectionStrategy: 'USER', selectionConfigKey: 'emptyPolicySubjects' }] },
             { code: 'sameAsStarterAction', name: '审批人与提交人为同一人时', defaultValue: 'SELF_APPROVE', nodeTypes: ['1'], condition: 'ALWAYS',
               choices: [{ value: 'SELF_APPROVE', label: '本人审批' }, { value: 'AUTO_SKIP_OR_TRANSFER', label: '跳过或由其他人审批' },

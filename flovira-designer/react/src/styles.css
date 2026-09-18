@@ -303,6 +303,17 @@
   gap: 4px;
 }
 
+.frd-header .frd-toolbar {
+  padding: 4px;
+  border: 1px solid var(--frd-border);
+  border-radius: 999px;
+  background: var(--frd-surface);
+}
+
+.frd-toolbar button {
+  border-radius: 999px;
+}
+
 .frd-toolbar__divider {
   width: 1px;
   height: 20px;
@@ -942,7 +953,6 @@
   top: 16px;
   right: 16px;
   z-index: 2;
-  border-radius: 8px;
 }
 
 .frd-zoom-controls {

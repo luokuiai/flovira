@@ -4,6 +4,7 @@ import { TimeoutFormField } from './TimeoutFormField'
 import type { DesignerFormField } from './formPermissions'
 import { BusinessFormField } from './BusinessFormField'
 import {
+  Fragment,
   forwardRef,
   useCallback,
   useEffect,
@@ -1036,7 +1037,8 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                     .map((option) => {
                     const OptionControl = option.code === 'approvalMode' ? UiSelect : UiRadioGroup
                     return (
-                    <UiField label={option.name} key={option.code} className="frd-approver-option">
+                    <Fragment key={option.code}>
+                    <UiField label={option.name} className="frd-approver-option">
                       <OptionControl
                         value={String(selectedApproverRule?.config?.[option.code]
                           ?? option.defaultValue
@@ -1082,23 +1084,21 @@ export const ReactFlowDesigner = forwardRef<ReactFlowDesignerRef, ReactFlowDesig
                         </div>
                       })}
                     </UiField>
+                    {option.code === 'approvalMode' && selectedNode.nodeType === '1'
+                      && selectedApproverRule?.config?.approvalMode === 'VOTE' && (
+                        <UiField label="通过比例（%）">
+                          <UiInput ariaLabel="通过比例（%）" type="number" min={1}
+                            value={Number.isFinite(Number(selectedNode.nodeRatio)) ? String(selectedNode.nodeRatio ?? '') : ''}
+                            disabled={disabled} placeholder="例如 60"
+                            onValueChange={(value) => changeSelected({ nodeRatio: value })} />
+                          {validateDefinition(nodeDefinition, capabilities).issues.some((issue) => issue.nodeCode === selectedNode.nodeCode && issue.code === 'VOTE_RATIO_INVALID')
+                            && <p role="alert" className="frd-condition-error">请输入大于等于 1、小于 100 的通过比例</p>}
+                          {!Number.isFinite(Number(selectedNode.nodeRatio)) && <p className="frd-condition-hint">当前票签规则：{selectedNode.nodeRatio}。填写比例后将替换此规则。</p>}
+                        </UiField>
+                    )}
+                    </Fragment>
                     )})}
                   {hostPickerError && <p role="alert" className="frd-error-text">{hostPickerError}</p>}
-                  {selectedNode.nodeType === '1' && (
-                    selectedApproverRule?.config?.approvalMode === 'VOTE'
-                    && selectedApproverStrategy?.options?.some((option) => option.code === 'approvalMode'
-                      && approverOptionVisible(option, selectedApproverStrategy, selectedNode.nodeType, selectedApproverRule.subjects)) && (
-                      <UiField label="通过比例（%）" hint="同意人数占比达到此比例即通过；必须大于 0、小于 100，全部同意请选会签。">
-                        <UiInput ariaLabel="通过比例（%）" type="number"
-                          value={Number.isFinite(Number(selectedNode.nodeRatio)) ? String(selectedNode.nodeRatio ?? '') : ''}
-                          disabled={disabled} placeholder="例如 60"
-                          onValueChange={(value) => changeSelected({ nodeRatio: value })} />
-                        {validateDefinition(nodeDefinition, capabilities).issues.some((issue) => issue.nodeCode === selectedNode.nodeCode && issue.code === 'VOTE_RATIO_INVALID')
-                          && <p role="alert" className="frd-condition-error">请输入大于 0、小于 100 的通过比例</p>}
-                        {!Number.isFinite(Number(selectedNode.nodeRatio)) && <p className="frd-condition-hint">当前票签规则：{selectedNode.nodeRatio}。填写比例后将替换此规则。</p>}
-                      </UiField>
-                    )
-                  )}
                   {selectedNode.nodeType === '1' && <NodeControlEditor definition={nodeDefinition} node={selectedNode}
                     disabled={disabled} ui={components}
                     onChange={(node) => commitNode(updateNode(nodeDefinition, selectedNode.nodeCode, node))} />}

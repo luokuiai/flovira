@@ -82,7 +82,7 @@
               <wf-option :label="t('between.ratioDefaultExpr')" value="default" v-if="framework ==='SPRING_BOOT'"/>
               <wf-option :label="t('between.ratioSpelExpr')" value="spel" v-if="framework ==='SPRING_BOOT'"/>
           </wf-select>
-          <wf-input v-model="form.nodeRatioValue" :placeholder="getNodeRatioDescription()" style="width: 74%; margin-left: 1%"/>
+          <wf-input :type="form.nodeRatioType === 'passRatio' ? 'number' : 'text'" :min="form.nodeRatioType === 'passRatio' ? 1 : undefined" v-model="form.nodeRatioValue" :placeholder="getNodeRatioDescription()" style="width: 74%; margin-left: 1%"/>
         </wf-form-item>
         <wf-form-item :label="t('between.rejectToNode')" prop="anyNodeSkip">
           <template #label>
@@ -364,7 +364,7 @@ function validatePassRatio(rule: any, value: any, callback: (error?: Error) => v
         const numValue = Number(value);
         if (isNaN(numValue)) {
             callback(new Error(t('between.ratioInvalidNumber')));
-        } else if (numValue < 0.001 || numValue > 100) {
+        } else if (numValue < 1 || numValue > 100) {
             callback(new Error(t('between.ratioRange')));
         } else if (!/^\d+(\.\d{1,3})?$/.test(value)) {
             callback(new Error(t('between.ratioDecimal')));

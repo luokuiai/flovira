@@ -191,6 +191,10 @@ describe('ReactFlowDesigner', () => {
     let ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
     const currentNode = () => ref.current!.getDefinition().nodeList.find((node) => node.nodeType === '1')!
     expect(ratio.value).toBe('60')
+    expect(ratio.min).toBe('1')
+    const modeField = view.getByRole('combobox', { name: '多人审批策略' }).closest('.frd-field')!
+    expect(modeField.nextElementSibling?.contains(ratio)).toBe(true)
+    expect(view.queryByText(/同意人数占比达到此比例即通过/)).toBeNull()
     fireEvent.change(ratio, { target: { value: '75' } })
     fireEvent.click(view.getByRole('button', { name: '确定' }))
     expect(JSON.parse(ref.current!.getFlowJson()).nodeList.find((node: { nodeType: string }) => node.nodeType === '1').nodeRatio).toBe('75')
@@ -198,6 +202,12 @@ describe('ReactFlowDesigner', () => {
     ratio = view.getByLabelText('通过比例（%）') as HTMLInputElement
     fireEvent.change(ratio, { target: { value: '' } })
     expect(view.getByRole('alert').textContent).toContain('小于 100')
+    for (const value of ['0', '0.5']) {
+      fireEvent.change(ratio, { target: { value } })
+      expect(view.getByRole('alert').textContent).toContain('大于等于 1')
+    }
+    fireEvent.change(ratio, { target: { value: '1' } })
+    expect(view.queryByRole('alert')).toBeNull()
     fireEvent.change(ratio, { target: { value: '100' } })
     expect(view.getByRole('alert').textContent).toContain('小于 100')
     fireEvent.change(ratio, { target: { value: '60' } })
