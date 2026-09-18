@@ -73,7 +73,7 @@ public class CarbonCopyUtilTest {
 
         assertEquals(1, calls.get());
         assertSame(carbonCopy, capturedTask.get());
-        assertEquals(CarbonCopyUtil.SYSTEM_HANDLER, capturedParams.get().getHandler());
+        assertEquals("SYSTEM_CARBON_COPY", capturedParams.get().getHandler());
         assertEquals(FlowStatus.AUTO_PASS.getKey(), capturedParams.get().getFlowStatus());
         assertTrue(capturedParams.get().getHisTaskExt().contains("userA"));
         assertTrue(capturedParams.get().getHisTaskExt().contains("userB"));

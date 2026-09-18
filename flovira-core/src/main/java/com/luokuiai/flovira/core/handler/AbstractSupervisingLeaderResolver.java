@@ -17,6 +17,7 @@ package com.luokuiai.flovira.core.handler;
 
 import com.luokuiai.flovira.core.constant.ApproverStrategy;
 import com.luokuiai.flovira.core.dto.ApproverStrategyDefinition;
+import com.luokuiai.flovira.core.utils.ApproverPolicyUtil;
 
 /**
  * 分管领导策略的业务实现基类。不提供人员来源，不自动注册。
@@ -34,6 +35,7 @@ public abstract class AbstractSupervisingLeaderResolver implements ApproverResol
         return new ApproverStrategyDefinition().setCode(getStrategy()).setName("分管领导")
             .setSelectionType("RELATION").setEditorType("NONE")
             .setMultiple(false)
-            .setResultCardinality("ONE_OR_MORE");
+            .setResultCardinality("ZERO_OR_MORE")
+            .setOptions(ApproverPolicyUtil.options());
     }
 }

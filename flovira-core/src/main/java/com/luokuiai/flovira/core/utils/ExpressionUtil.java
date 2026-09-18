@@ -105,7 +105,7 @@ public class ExpressionUtil {
             // 自定义下个任务的处理人 下个任务处理人配置类型 和 执行的下个任务的办理人
             permissions = nextHandle(flowParams.isNextHandlerAppend(), flowParams.getNextHandler(), permissions);
 
-            addTask.setPermissionList(permissions);
+            addTask.setPermissionList(ApproverPolicyUtil.preserveSkip(addTask.getPermissionList(), permissions));
         });
     }
 

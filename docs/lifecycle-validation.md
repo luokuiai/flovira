@@ -44,6 +44,12 @@ Both ORMs share `flovira-orm/src/contractTest/java/com/luokuiai/flovira/orm/cont
 | UI capabilities, round trips, scope/phase restrictions, old-import diagnostics | UI `ApproverCapabilitiesTest`; React `LifecycleEditor.test.tsx`; Vue `lifecycle.test.ts`; configuration contracts for three JSON providers |
 | Durable external delivery and required host timeout scheduling | [Integration documentation](lifecycle-listener-migration.md): outbox, idempotency keys, scheduling, and multiple instances; no new engine scanner |
 
+## Integration with the latest develop branch
+
+Before PR creation, develop commit `857d81a7` was integrated. `rtk proxy ./gradlew check --max-workers=2` passed after resolving overlapping approver-policy changes. Both PostgreSQL ORM suites passed 46 tests each, including `automaticApproverPolicyPreservesLifecycleAndAssignmentOverride`: an explicit empty-approver skip retains native lifecycle events, while assignment hooks can supply recipients and prevent the automatic skip. Resubmission also applies the integrated automatic approver policies.
+
+After integration, `rtk bun run check` and `rtk bun run build:demos` also passed, including all six consuming examples. Existing bundle-size warnings remain. OpenSpec strict validation and staged whitespace checks passed. The browser smoke checks above were performed before this integration; they were not repeated for the merge.
+
 ## Integration boundaries
 
 LifecycleTransition creates executions and facts only within authorized instance transitions; it does not route gateways. Approval, transfer/delegation, pending, withdrawal, termination, resubmission, and startup use real transactions. Wait, timeout, carbon-copy, and subprocess paths reuse native system entry points. Start/end nodes create and close separate executions; the initiator step uses runtime type 9.

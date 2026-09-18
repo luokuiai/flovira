@@ -267,11 +267,12 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
             FlowEngine.subprocessService().onTasksCreated(addTasks);
         }
         CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariables());
+        Instance advanced = ApproverPolicyUtil.advanceTasks(addTasks, flowParams.getVariables());
         if (NodeType.isEnd(r.instance.getNodeType()) && isSubprocessChild(r.instance)) {
             FlowEngine.subprocessService().onInstanceTerminal(r.instance, SubprocessOutcome.SUCCEEDED);
         }
 
-        return r.instance;
+        return advanced == null ? r.instance : advanced;
     }
 
     @Override
@@ -419,7 +420,8 @@ public class TaskServiceImpl extends FloviraServiceImpl<FlowTaskDao<Task>, Task>
         transition.finish(false, false, "COMPLETED", null, LifecycleEventType.PROCESS_RESUBMITTED);
         if (containsSubprocessTask(nextTasks)) FlowEngine.subprocessService().onTasksCreated(nextTasks);
         CarbonCopyUtil.advanceTasks(nextTasks, params.getVariables());
-        return instance;
+        Instance advanced = ApproverPolicyUtil.advanceTasks(nextTasks, params.getVariables());
+        return advanced == null ? instance : advanced;
     }
 
     private void updateResubmissionChart(Instance instance, List<Node> targets, PathWayData route, boolean restart) {

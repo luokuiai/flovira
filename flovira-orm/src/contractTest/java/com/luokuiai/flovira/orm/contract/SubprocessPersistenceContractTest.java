@@ -407,6 +407,45 @@ public class SubprocessPersistenceContractTest {
     }
 
     @Test
+    public void automaticApproverPolicyPreservesLifecycleAndAssignmentOverride() throws Exception {
+        for (boolean override : new boolean[] {false, true}) {
+            setUp();
+            Map<String, String> rule = new java.util.LinkedHashMap<>();
+            rule.put("code", "approverRule");
+            rule.put("value", "{\"schemaVersion\":1,\"strategyVersion\":1,\"strategy\":\"USER\","
+                + "\"config\":{\"contractEmpty\":true,\"emptyPolicy\":\"SKIP\"}}");
+            String ext = FlowEngine.jsonConvert.objToStr(java.util.Collections.singletonList(rule));
+            List<LifecycleEvent> events = new java.util.ArrayList<>();
+            WorkflowLifecycleListener hook = new WorkflowLifecycleListener() {
+                public void beforeAssignment(AssignmentContext assignment, String parameters) {
+                    if (override && "second".equals(assignment.getNodeCode())) {
+                        assignment.setAssignees(java.util.Collections.singletonList("replacement"));
+                    }
+                }
+            };
+            try (AutoCloseable observer = observe(events); AutoCloseable installed = FlowEngine.lifecycleListeners().install(
+                    java.util.Collections.singletonMap("policyOverride", hook), java.util.Collections.singletonList(
+                    new LifecycleSubscription("policyOverride", ListenerPoint.BEFORE_ASSIGNMENT, DeliveryPhase.IN_TRANSACTION, 0, null)))) {
+                Instance instance = startedInstance("RESTART_FROM_BEGINNING", 1, ext);
+                events.clear();
+                Instance result = FlowEngine.taskService().skip(FlowEngine.taskService().getByInsId(instance.getId()).get(0).getId(), approval("PASS"));
+                if (override) {
+                    assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED");
+                    Task task = FlowEngine.taskService().getByInsId(instance.getId()).get(0);
+                    assertEquals("second", task.getNodeCode());
+                    assertEquals("replacement", FlowEngine.userService().listByTaskIdAndTypes(task.getId()).get(0).getProcessedBy());
+                } else {
+                    assertEvents(events, "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED",
+                        "APPROVAL_ACTION_COMPLETED", "NODE_LEFT", "NODE_ENTERED", "NODE_LEFT", "PROCESS_ENDED");
+                    assertEquals("SYSTEM", FlowEngine.jsonConvert.strToMap(events.get(3).getContextJson()).get("source"));
+                    assertEquals("ENDED", result.getLifecycleState());
+                    assertTrue(FlowEngine.taskService().getByInsId(instance.getId()).isEmpty());
+                }
+            }
+        }
+    }
+
+    @Test
     public void serialLifecycleHasPersistentExecutionsAndCausalOrder() throws Exception {
         List<LifecycleEvent> events = new java.util.ArrayList<>();
         try (AutoCloseable ignored = observe(events)) {
@@ -1511,6 +1550,10 @@ public class SubprocessPersistenceContractTest {
             return new com.luokuiai.flovira.core.handler.AbstractUserResolver() {
                 public void validate(com.luokuiai.flovira.core.dto.ApproverRule rule) { }
                 public List<String> resolve(com.luokuiai.flovira.core.dto.ApproverContext context) {
+                    if (context.getRule().getConfig() != null
+                            && Boolean.TRUE.equals(context.getRule().getConfig().get("contractEmpty"))) {
+                        return java.util.Collections.emptyList();
+                    }
                     return java.util.Collections.singletonList("approver");
                 }
             };

@@ -162,6 +162,21 @@
                 <wf-button v-if="!disabled" class="add-row-btn add-row-btn-secondary" @click="initUser">{{ t('between.selectHandler') }}</wf-button>
               </div>
               </template>
+              <wf-form-item v-for="option in policyOptions" :key="option.code" :label="option.name">
+                <wf-select :model-value="approverConfig[option.code] ?? option.defaultValue ?? option.choices[0]?.value"
+                  :disabled="disabled" @update:model-value="value => updateApproverOption(option, value)">
+                  <wf-option v-for="choice in option.choices" :key="choice.value" :value="choice.value"
+                    :label="choice.label" :disabled="choice.disabled" />
+                </wf-select>
+                <template v-for="choice in option.choices" :key="choice.value">
+                  <div v-if="choice.selectionConfigKey && (approverConfig[option.code] ?? option.defaultValue ?? option.choices[0]?.value) === choice.value">
+                    <span>{{ policySubjects(choice.selectionConfigKey).map(subject => subject.name || subject.id).join('、') }}</span>
+                    <wf-button :disabled="disabled || !approverStrategies.some(item => item.code === choice.selectionStrategy)"
+                      @click="openPolicyPicker(choice)">选择转交人员</wf-button>
+                  </div>
+                </template>
+              </wf-form-item>
+              <p v-if="policyError" role="alert">{{ policyError }}</p>
           </div>
         </div>
       </div>
@@ -179,6 +194,12 @@
     </wf-form>
 
     <!-- 权限标识：会签票签选择用户 -->
+    <wf-dialog v-if="policyUserVisible" v-model="policyUserVisible" title="选择转交人员"
+      :width="isMobile ? '96%' : '80%'" append-to-body>
+      <selectUser :select-user="policyPickerIds" v-model:userVisible="policyUserVisible"
+        :permission-rows="policyPickerRows" :resource-type="policyPickerStrategy?.resourceType"
+        :multiple="policyPickerStrategy?.multiple" @handleUserSelect="handlePolicyUserSelect" />
+    </wf-dialog>
     <wf-dialog :title="t('between.userSelectTitle')" v-if="userVisible" v-model="userVisible" :width="isMobile ? '96%' : '80%'" append-to-body
       class="person-select-dialog" :class="{ 'mobile-user-dialog': isMobile }"
     >
@@ -199,7 +220,9 @@ import NodeTimeout from "./nodeTimeout.vue";
 import {getPreviousNodes} from "@/components/design/common/js/tool";
 import {getFramework} from "@/utils/auth";
 import { useI18n } from '@/i18n';
-import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy } from '@/data/contracts';
+import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy, type DesignerApproverOption,
+  type DesignerApproverOptionChoice, type ApproverSubject } from '@/data/contracts';
+import { visibleApproverOptions, changeApproverOption, approverOptionError } from '@/data/approverOptions';
 
 defineOptions({ name: 'Between' });
 
@@ -258,6 +281,40 @@ const approverStrategy = ref('')
 const strategyVersion = ref(1);
 const approverExpression = ref('');
 const approverStrategyDescriptor = computed(() => approverStrategies.value.find(item => item.code === approverStrategy.value));
+const approverConfig = ref<Record<string, unknown>>({});
+const policyOptions = computed(() => visibleApproverOptions(approverStrategyDescriptor.value));
+const policyError = ref('');
+const policyUserVisible = ref(false);
+const policyPickerChoice = ref<DesignerApproverOptionChoice>();
+const policyPickerStrategy = computed(() => approverStrategies.value.find(item => item.code === policyPickerChoice.value?.selectionStrategy));
+const policyPickerRows = computed(() => policySubjects(policyPickerChoice.value?.selectionConfigKey || '')
+  .map(subject => ({ storageId: subject.id, handlerName: subject.name || subject.id, resourceType: subject.type })));
+const policyPickerIds = computed(() => policyPickerRows.value.map(row => row.storageId));
+
+function policySubjects(key: string): ApproverSubject[] {
+  return Array.isArray(approverConfig.value[key]) ? approverConfig.value[key] as ApproverSubject[] : [];
+}
+
+function updateApproverOption(option: DesignerApproverOption, value: string) {
+  approverConfig.value = changeApproverOption(approverConfig.value, option, value);
+  policyError.value = '';
+  syncApproverRule();
+}
+
+function openPolicyPicker(choice: DesignerApproverOptionChoice) {
+  policyPickerChoice.value = choice;
+  policyUserVisible.value = true;
+}
+
+function handlePolicyUserSelect(rows: any[]) {
+  const key = policyPickerChoice.value?.selectionConfigKey;
+  if (!key || !policyPickerStrategy.value) return;
+  approverConfig.value = { ...approverConfig.value, [key]: rows.map(row => ({
+    id: row.storageId, type: policyPickerStrategy.value!.resourceType, name: row.handlerName,
+  })) };
+  policyError.value = '';
+  syncApproverRule();
+}
 const emit = defineEmits<{ (e: 'update:modelValue', value: any): void }>();
 
 const rules = reactive({
@@ -420,6 +477,7 @@ function getPermissionFlag() {
       approverStrategy.value = rule.strategy || ''
       strategyVersion.value = rule.strategyVersion ?? 1;
       approverExpression.value = rule.expression || '';
+      approverConfig.value = { ...rule.config };
       form.value.permissionFlag = (rule.subjects || []).map((subject: any) => subject.id);
       permissionRows.value = (rule.subjects || []).map((subject: any) => ({
         storageId: subject.id,
@@ -515,6 +573,7 @@ function syncApproverRule() {
     relationType: descriptor?.relationType,
     subjects,
     expression: descriptor?.selectionType === 'EXPRESSION' ? approverExpression.value : undefined,
+    config: approverConfig.value,
   };
   form.value.ext = Object.assign({}, form.value.ext, { approverRule: JSON.stringify(rule) });
 }
@@ -524,6 +583,9 @@ function handleApproverStrategyChange() {
   form.value.permissionFlag = [];
   permissionRows.value = [];
   approverExpression.value = '';
+  approverConfig.value = Object.fromEntries(policyOptions.value.map(option => [option.code,
+    option.defaultValue ?? option.choices[0]?.value]));
+  policyError.value = '';
   syncApproverRule();
 }
 
@@ -549,6 +611,12 @@ getNodeExt();
 function validate() {
   return new Promise(async (resolve, reject) => {
     const descriptor = approverStrategyDescriptor.value
+    policyError.value = approverOptionError(approverConfig.value, policyOptions.value, approverStrategies.value) || '';
+    if (policyError.value) {
+      tabsValue.value = '2';
+      reject(false);
+      return;
+    }
     if (!descriptor || strategyVersion.value !== (descriptor.version ?? 1)
       || (descriptor.selectionType === 'RESOURCE' && permissionRows.value.length === 0)
       || (descriptor.selectionType === 'EXPRESSION' && !approverExpression.value.trim())) {

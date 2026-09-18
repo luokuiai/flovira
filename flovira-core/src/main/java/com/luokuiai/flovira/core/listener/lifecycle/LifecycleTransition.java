@@ -20,6 +20,7 @@ import com.luokuiai.flovira.core.enums.SkipType;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowNodeExecutionDao;
 import com.luokuiai.flovira.core.utils.LifecycleConfigUtil;
+import com.luokuiai.flovira.core.utils.ApproverPolicyUtil;
 import com.luokuiai.flovira.core.utils.MapUtil;
 import java.util.*;
 
@@ -108,8 +109,14 @@ public final class LifecycleTransition {
             if (NodeType.isBetween(task.getNodeType()) || NodeType.isCarbonCopy(task.getNodeType())) {
                 AssignmentContext assignment = new AssignmentContext(instance.getId(), task.getId(), task.getNodeCode(), task.getPermissionList());
                 FlowEngine.lifecycleDispatcher().beforeAssignment(assignment, subscriptions(node));
-                if (assignment.getAssignees().isEmpty()) throw new IllegalStateException("Assignment requires at least one recipient");
-                task.setPermissionList(new ArrayList<String>(assignment.getAssignees()));
+                if (assignment.getAssignees().isEmpty()) {
+                    // Keep an explicit automatic-skip decision unless a hook assigns recipients.
+                    if (!NodeType.isBetween(task.getNodeType()) || !ApproverPolicyUtil.isSkip(task.getPermissionList())) {
+                        throw new IllegalStateException("Assignment requires at least one recipient");
+                    }
+                } else {
+                    task.setPermissionList(new ArrayList<String>(assignment.getAssignees()));
+                }
             }
             task.setNodeExecutionId(open(task.getNodeCode(), task.getNodeType()).getId());
             entered.add(task);

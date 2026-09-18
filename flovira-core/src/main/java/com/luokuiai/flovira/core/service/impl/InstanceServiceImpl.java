@@ -128,8 +128,9 @@ public class InstanceServiceImpl extends FloviraServiceImpl<FlowInstanceDao<Inst
 
         if (containsSubprocessTask(addTasks)) FlowEngine.subprocessService().onTasksCreated(addTasks);
         CarbonCopyUtil.advanceTasks(addTasks, flowParams.getVariables());
+        Instance advanced = ApproverPolicyUtil.advanceTasks(addTasks, flowParams.getVariables());
 
-        return instance;
+        return advanced == null ? instance : advanced;
     }
 
     static String requireBusinessType(Definition definition) {

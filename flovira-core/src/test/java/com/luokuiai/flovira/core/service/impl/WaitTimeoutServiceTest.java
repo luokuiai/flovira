@@ -78,7 +78,7 @@ public class WaitTimeoutServiceTest {
         assertEquals("order.paid", first.getWaitKey());
         assertEquals("NOT_FOUND_OR_ALREADY_RESUMED", second.getStatus());
         assertEquals(1, fixture.passes);
-        assertEquals(WaitServiceImpl.SYSTEM_HANDLER, fixture.params.getHandler());
+        assertEquals("SYSTEM_WAIT", fixture.params.getHandler());
         assertNotNull(fixture.params.getHisTaskExt());
         org.junit.Assert.assertTrue(fixture.params.getHisTaskExt().contains("WAIT_RESUME"));
     }
@@ -190,7 +190,7 @@ public class WaitTimeoutServiceTest {
         assertEquals(1, first.getSucceeded());
         assertEquals(0, second.getClaimed());
         assertEquals(1, fixture.passes);
-        assertEquals(TimeoutServiceImpl.SYSTEM_HANDLER, fixture.params.getHandler());
+        assertEquals("SYSTEM_TIMEOUT", fixture.params.getHandler());
     }
 
     @Test

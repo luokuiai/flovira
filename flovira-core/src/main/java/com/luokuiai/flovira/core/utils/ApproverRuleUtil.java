@@ -62,6 +62,7 @@ public final class ApproverRuleUtil {
                 + rule.getStrategy() + "/" + rule.getStrategyVersion());
         }
         resolver.validate(rule);
+        ApproverPolicyUtil.validate(rule);
     }
 
     public static List<String> resolve(Node node, Instance instance, FlowParams params, boolean preview) {
@@ -75,7 +76,8 @@ public final class ApproverRuleUtil {
         }
         List<String> users = FlowEngine.approverResolver(rule.getStrategy())
             .resolve(new ApproverContext(node, rule, instance, params, preview));
-        if (users == null || users.isEmpty()) {
+        users = ApproverPolicyUtil.apply(node, rule, instance, params, preview, users);
+        if (users == null || (users.isEmpty() && !ApproverPolicyUtil.isSkip(users))) {
             throw new IllegalStateException("Approver rule resolved no handlers: " + rule.getStrategy());
         }
         for (String user : users) {
@@ -83,11 +85,12 @@ public final class ApproverRuleUtil {
                 throw new IllegalStateException("Approver resolver returned an empty user ID");
             }
         }
-        return new ResolvedPermissionList(new ArrayList<String>(new LinkedHashSet<String>(users)));
+        return ApproverPolicyUtil.isSkip(users) ? users
+            : new ResolvedPermissionList(new ArrayList<String>(new LinkedHashSet<String>(users)));
     }
 
     public static boolean isResolved(List<String> users) {
-        return users instanceof ResolvedPermissionList;
+        return users instanceof ResolvedPermissionList || ApproverPolicyUtil.isSkip(users);
     }
 
     private static final class ResolvedPermissionList extends ArrayList<String> {
