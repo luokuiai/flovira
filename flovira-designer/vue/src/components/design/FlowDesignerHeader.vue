@@ -36,7 +36,7 @@
     <!-- 右侧操作区；外部插槽上下文由 FlowDesigner 提供。 -->
     <div class="header-right">
       <slot name="header-actions">
-        <span class="workbench-header-group">
+        <span class="workbench-header-group workbench-header-group--history">
           <wf-tooltip :content="t('flowDesigner.undo')" placement="bottom"><wf-button @click="emit('undo')"><svg-icon icon-class="ep:d-arrow-left" /></wf-button></wf-tooltip>
           <wf-tooltip :content="t('flowDesigner.redo')" placement="bottom"><wf-button @click="emit('redo')"><svg-icon icon-class="ep:d-arrow-right" /></wf-button></wf-tooltip>
           <wf-tooltip v-if="!disabled" :content="t('flowDesigner.clear')" placement="bottom"><wf-button @click="emit('clear')"><svg-icon icon-class="ep:delete" /></wf-button></wf-tooltip>
@@ -85,3 +85,19 @@ const { t } = useI18n();
 
 const goToStep = (index: number) => emit('step-click', index);
 </script>
+
+<style scoped>
+.workbench-header-group--history {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--wf-border-light, #e4e7ed);
+  border-radius: 999px;
+  background: var(--wf-bg-white, #fff);
+}
+
+.workbench-header-group--history :deep(button) {
+  border-radius: 999px;
+}
+</style>

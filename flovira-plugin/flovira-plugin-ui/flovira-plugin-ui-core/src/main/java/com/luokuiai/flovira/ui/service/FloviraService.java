@@ -24,6 +24,13 @@ import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.*;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.Form;
+import com.luokuiai.flovira.core.entity.Definition;
+import com.luokuiai.flovira.core.entity.RootEntity;
+import com.luokuiai.flovira.core.enums.ActivityStatus;
+import com.luokuiai.flovira.core.enums.PublishStatus;
+import com.luokuiai.flovira.core.utils.NodeConfigValidator;
+import com.luokuiai.flovira.core.utils.FlowConfigUtil;
+import com.luokuiai.flovira.core.utils.SubprocessDefinitionValidator;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.entity.Task;
 import com.luokuiai.flovira.core.enums.NodeType;
@@ -46,6 +53,111 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class FloviraService {
+
+    /** 复用设计 JSON、包内表单和流程包格式，不增加导出包装。 */
+    public static ApiResult<Object> exportData(String type, Long id) {
+        requireTransferType(type);
+        if (id == null) throw new IllegalArgumentException("导出 ID 不能为空");
+        switch (type) {
+            case "design":
+                Definition definition = FlowEngine.defService().getById(id);
+                requireTransferTenant(definition);
+                return ApiResult.ok(FlowEngine.jsonConvert.strToBean(
+                    FlowEngine.defService().exportJson(id), DefJson.class));
+            case "form":
+                Form form = FlowEngine.formService().getById(id);
+                requireTransferTenant(form);
+                return ApiResult.ok(new WorkflowPackage.PackagedForm().setReference(id.toString())
+                    .setFormCode(form.getFormCode()).setFormName(form.getFormName())
+                    .setVersion(form.getVersion()).setFormContent(form.getFormContent()).setExt(form.getExt()));
+            default:
+                return ApiResult.ok(FlowEngine.defService().exportPackage(id));
+        }
+    }
+
+    /** 三种导入均创建新版本；流程包内的表单引用由引擎重建。 */
+    public static ApiResult<WorkflowImportResult> importData(String type, Map<String, Object> data) {
+        requireTransferType(type);
+        if (data == null || data.isEmpty()) throw new IllegalArgumentException("导入内容不能为空");
+        String json = FlowEngine.jsonConvert.objToStr(data);
+        return ApiResult.ok(FlowEngine.transactionExecutor().execute(() -> {
+            if ("package".equals(type)) {
+                return FlowEngine.defService().importPackage(
+                    FlowEngine.jsonConvert.strToBean(json, WorkflowPackage.class), Collections.emptyMap());
+            }
+            if ("form".equals(type)) {
+                WorkflowPackage.PackagedForm source = FlowEngine.jsonConvert.strToBean(json, WorkflowPackage.PackagedForm.class);
+                if (StringUtils.isEmpty(source.getReference()) || StringUtils.isEmpty(source.getVersion())
+                    || StringUtils.isEmpty(source.getFormCode()) || source.getFormCode().length() > 40
+                    || StringUtils.isEmpty(source.getFormName()) || source.getFormName().length() > 100
+                    || StringUtils.isEmpty(source.getFormContent())) {
+                    throw new IllegalArgumentException("表单元数据或内容不完整");
+                }
+                Form form = FlowEngine.newForm().setFormCode(source.getFormCode()).setFormName(source.getFormName())
+                    .setFormContent(source.getFormContent()).setExt(source.getExt())
+                    .setPublishStatus(PublishStatus.UNPUBLISHED.getKey());
+                FlowEngine.formService().parseDefinition(form);
+                prepareImportedEntity(form);
+                if (!FlowEngine.formService().save(form) || form.getId() == null) {
+                    throw new FlowException("保存导入表单失败");
+                }
+                return new WorkflowImportResult().setFormReferences(
+                    Collections.singletonMap(source.getReference(), form.getId().toString()));
+            }
+            DefJson source = FlowEngine.jsonConvert.strToBean(json, DefJson.class);
+            if (source.getNodeList() == null || source.getNodeList().isEmpty()) {
+                throw new IllegalArgumentException("流程节点列表为空");
+            }
+            // 先确认目标表单存在；单独设计不能隐式复制表单或留下悬空引用。
+            if (!StringUtils.isEmpty(source.getFormId())) {
+                Long formId;
+                try {
+                    formId = Long.valueOf(source.getFormId());
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("目标表单不可验证，请先导入表单并填写目标 formId");
+                }
+                if (!formId.toString().equals(source.getFormId())) {
+                    throw new IllegalArgumentException("目标表单引用无效");
+                }
+                requireTransferTenant(FlowEngine.formService().getById(formId));
+            }
+            DefJson design = DefJson.copyDef(DefJson.copyDef(source)).setCreatedBy(null).setUpdatedBy(null);
+            for (NodeJson node : design.getNodeList()) {
+                node.setCreatedBy(null).setUpdatedBy(null);
+                node.getSkipList().forEach(skip -> skip.setCreatedBy(null).setUpdatedBy(null));
+            }
+            Definition candidate = DefJson.copyDef(design);
+            NodeConfigValidator.validate(candidate.getNodeList());
+            SubprocessDefinitionValidator.validateNodeConfigs(candidate.getNodeList());
+            FlowCombine flow = FlowConfigUtil.structureFlow(candidate);
+            candidate.setActivityStatus(ActivityStatus.ACTIVITY.getKey());
+            prepareImportedEntity(candidate);
+            flow.getAllNodes().forEach(FloviraService::prepareImportedEntity);
+            flow.getAllSkips().forEach(FloviraService::prepareImportedEntity);
+            Definition imported = FlowEngine.defService().insertFlow(candidate, flow.getAllNodes(), flow.getAllSkips());
+            return new WorkflowImportResult().setRootDefinitionId(imported.getId())
+                .setDefinitionIds(Collections.singletonMap(imported.getFlowCode(), imported.getId()));
+        }));
+    }
+
+    private static void requireTransferType(String type) {
+        if (!"design".equals(type) && !"form".equals(type) && !"package".equals(type)) {
+            throw new IllegalArgumentException("type 必须为 design、form 或 package");
+        }
+    }
+
+    private static void prepareImportedEntity(RootEntity entity) {
+        entity.setTenantId(FlowEngine.tenantHandler() == null ? null : FlowEngine.tenantHandler().getTenantId());
+        entity.setCreatedBy(null).setUpdatedBy(null);
+    }
+
+    private static void requireTransferTenant(RootEntity entity) {
+        if (entity == null || (FlowEngine.tenantHandler() != null
+            && !Objects.equals(StringUtils.emptyDefault(entity.getTenantId(), "0"),
+                StringUtils.emptyDefault(FlowEngine.tenantHandler().getTenantId(), "0")))) {
+            throw new FlowException("导入导出引用的定义或表单不存在");
+        }
+    }
 
     /**
      * 返回流程定义的配置

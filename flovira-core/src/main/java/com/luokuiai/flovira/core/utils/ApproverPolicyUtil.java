@@ -38,7 +38,7 @@ public final class ApproverPolicyUtil {
         ApproverOption empty = new ApproverOption().setCode("emptyPolicy").setName("审批人为空时")
             .setDefaultValue("ERROR").setNodeTypes(Collections.singletonList("1")).setCondition("EMPTY")
             .setChoices(Arrays.asList(new ApproverOptionChoice().setValue("ERROR").setLabel("报错并阻止流转"),
-                new ApproverOptionChoice().setValue("SKIP").setLabel("跳过"),
+                new ApproverOptionChoice().setValue("SKIP").setLabel("自动跳过"),
                 transferChoice("emptyPolicySubjects")));
         ApproverOption same = new ApproverOption().setCode("sameAsStarterAction").setName("审批人与提交人为同一人时")
             .setDefaultValue("SELF_APPROVE").setNodeTypes(Collections.singletonList("1"))

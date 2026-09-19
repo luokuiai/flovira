@@ -1,3 +1,11 @@
+[data-lumen-theme] .ffd-react {
+  --ffd-primary: var(--lumen-color-primary);
+  --ffd-surface: var(--lumen-color-surface);
+  --ffd-border: var(--lumen-color-border);
+  --ffd-text: var(--lumen-color-text);
+  --ffd-muted: var(--lumen-color-text-muted);
+}
+
 [data-lumen-theme] .flovira-react-designer,
 [data-lumen-theme] .frd-subprocess-options,
 .frd-lumen-drawer {

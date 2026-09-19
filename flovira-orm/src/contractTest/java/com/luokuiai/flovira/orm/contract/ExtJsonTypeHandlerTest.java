@@ -14,6 +14,7 @@ package com.luokuiai.flovira.orm.contract;
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.orm.type.ExtJsonTypeHandler;
+import com.luokuiai.flovira.orm.type.ExtJsonAdapter;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -85,6 +86,95 @@ public class ExtJsonTypeHandlerTest {
                 throw new AssertionError(method);
             });
         assertEquals("{\"a\":1}", new ExtJsonTypeHandler().getNullableResult(result, "ext"));
+    }
+
+    @Test
+    public void discoversHostAdapterAndDelegatesNullAndDriverSpecificBinding() throws Exception {
+        List<Object[]> calls = new ArrayList<>();
+        PreparedStatement statement = statement("KingbaseTest", calls);
+        ExtJsonTypeHandler handler = new ExtJsonTypeHandler();
+        handler.setParameter(statement, 1, "{}", null);
+        assertEquals("setObject", calls.get(0)[0]);
+        assertTrue(calls.get(0)[2] instanceof DriverJson);
+        assertEquals("{}", ((DriverJson) calls.get(0)[2]).value);
+        handler.setParameter(statement, 2, null, null);
+        assertEquals("setNull", calls.get(1)[0]);
+        assertEquals(Types.OTHER, calls.get(1)[2]);
+        // 扩展不能绕过 ext 必须为对象的入口检查。
+        assertThrows(SQLException.class, () -> handler.setParameter(statement, 3, "[]", null));
+        assertEquals(2, calls.size());
+    }
+
+    @Test
+    public void usesHostComparisonWithoutInterpolatingBusinessJson() {
+        Flovira previous = FlowEngine.getFlowConfig();
+        try {
+            Flovira config = new Flovira();
+            config.setDataSourceType("kingbase-test");
+            FlowEngine.setFlowConfig(config);
+            String script = "<script>SELECT id FROM flow_form WHERE "
+                + String.format(ExtJsonTypeHandler.CONDITION, "ext", "ext,typeHandler="
+                    + ExtJsonTypeHandler.class.getName()) + "</script>";
+            String value = "{\"sql\":\"' OR 1=1 --\"}";
+            BoundSql sql = new XMLLanguageDriver().createSqlSource(new Configuration(), script, Map.class)
+                .getBoundSql(Collections.singletonMap("ext", value));
+            assertEquals("SELECT id FROM flow_form WHERE ext = CAST(? AS jsonb)", sql.getSql());
+            assertEquals(1, sql.getParameterMappings().size());
+            assertTrue(sql.getParameterMappings().get(0).getTypeHandler() instanceof ExtJsonTypeHandler);
+            assertFalse(sql.getSql().contains(value));
+        } finally {
+            FlowEngine.setFlowConfig(previous);
+        }
+    }
+
+    @Test
+    public void rejectsUnknownOrAmbiguousDialectsWithoutBinding() throws Exception {
+        ExtJsonTypeHandler handler = new ExtJsonTypeHandler();
+        for (String product : new String[] {"Unknown", "Ambiguous"}) {
+            List<Object[]> calls = new ArrayList<>();
+            SQLException failure = assertThrows(SQLException.class, () ->
+                handler.setParameter(statement(product, calls), 1, "{}", null));
+            assertTrue(failure.getMessage().contains(product));
+            assertTrue(calls.isEmpty());
+        }
+        Flovira previous = FlowEngine.getFlowConfig();
+        try {
+            for (String name : new String[] {"Unknown", "Ambiguous"}) {
+                Flovira config = new Flovira();
+                config.setDataSourceType(name);
+                FlowEngine.setFlowConfig(config);
+                assertThrows(IllegalStateException.class, () -> ExtJsonTypeHandler.comparison("ext", "ext"));
+            }
+        } finally {
+            FlowEngine.setFlowConfig(previous);
+        }
+    }
+
+    /** 只验证 SPI/驱动对象委托，不声称是真实 Kingbase 驱动适配。 */
+    public static class HostAdapter implements ExtJsonAdapter {
+        public boolean supportsDatabase(String product) {
+            return "KingbaseTest".equals(product) || "Ambiguous".equals(product);
+        }
+        public boolean supportsDialect(String name) {
+            return "kingbase-test".equals(name) || "Ambiguous".equals(name);
+        }
+        public void bind(PreparedStatement statement, int index, String value) throws SQLException {
+            if (value == null) statement.setNull(index, Types.OTHER);
+            else statement.setObject(index, new DriverJson(value));
+        }
+        public String comparison(String column, String parameter) {
+            return column + " = CAST(" + parameter + " AS jsonb)";
+        }
+    }
+
+    public static class DuplicateAdapter extends HostAdapter {
+        public boolean supportsDatabase(String product) { return "Ambiguous".equals(product); }
+        public boolean supportsDialect(String name) { return "Ambiguous".equals(name); }
+    }
+
+    private static final class DriverJson {
+        private final String value;
+        private DriverJson(String value) { this.value = value; }
     }
 
     private PreparedStatement statement(String database, List<Object[]> calls) {
