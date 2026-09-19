@@ -259,28 +259,14 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         LifecycleConfigUtil.validate(definition, nodeList);
         SubprocessDefinitionValidator.validateForPublish(definition);
         List<Definition> definitions = getByFlowCode(definition.getFlowCode());
-        // 已发布流程定义，改为已失效或者未发布状态
+        // 发布新版后，其他已发布定义统一失效，与是否产生过实例无关
         List<Long> otherDefIds = definitions.stream()
             .filter(item -> !Objects.equals(definition.getId(), item.getId())
                 && PublishStatus.PUBLISHED.getKey().equals(item.getPublishStatus()))
             .map(Definition::getId)
             .collect(Collectors.toList());
         if (CollUtil.isNotEmpty(otherDefIds)) {
-            List<Instance> instanceList = FlowEngine.instanceService().listByDefIds(otherDefIds);
-            if (CollUtil.isNotEmpty(instanceList)) {
-                // 已发布已使用过的流程定义
-                Set<Long> useDefIds = StreamUtils.toSet(instanceList, Instance::getDefinitionId);
-                if (CollUtil.isNotEmpty(useDefIds)) {
-                    // 已发布已使用过的流程定义，改为已失效
-                    updatePublishStatus(new ArrayList<>(useDefIds), PublishStatus.EXPIRED.getKey());
-                    // 过滤掉已发布已使用-->已发布未使用
-                    otherDefIds.removeIf(useDefIds::contains);
-                }
-            }
-            if (CollUtil.isNotEmpty(otherDefIds)) {
-                // 已发布未使用过的流程定义，改为未发布
-                updatePublishStatus(otherDefIds, PublishStatus.UNPUBLISHED.getKey());
-            }
+            updatePublishStatus(otherDefIds, PublishStatus.EXPIRED.getKey());
         }
 
         Definition flowDefinition = FlowEngine.newDef();
