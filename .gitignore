@@ -63,3 +63,4 @@ dist-lib/
 /flovira-vue-designer/.playwright-cli/
 /flovira-vue-designer/dist-lib/
 /.codex/
+/.pi/
