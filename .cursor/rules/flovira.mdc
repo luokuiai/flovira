@@ -12,4 +12,4 @@ Read [AGENTS.md](mdc:AGENTS.md) and applicable module instructions before editin
 
 Flovira uses Gradle for backend modules and Bun for separate Vue / React designer packages. Core remains framework-, ORM- and JSON-independent. Supported database baselines are MySQL, PostgreSQL and Oracle. Schemas do not use foreign keys; every table defines non-null `deleted` with default `0`, and indexes follow tenant and logical-deletion query predicates. A workflow uses one definition-level string `formId`; nodes configure field permissions, never separate forms.
 
-Timeout scheduling is host-owned: expose explicit timeout APIs only. Hosts must integrate scheduling; document this requirement in usage guides and designer timeout settings.
+Timeout scheduling is host-owned: expose explicit timeout APIs only. Hosts must integrate scheduling; document this requirement in developer usage guides, not in designer timeout settings.

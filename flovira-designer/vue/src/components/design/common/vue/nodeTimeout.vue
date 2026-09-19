@@ -1,6 +1,5 @@
 <template>
   <div class="timeout-settings">
-    <p class="timeout-scheduling-hint">{{ t('timeout.schedulingRequired') }}</p>
     <wf-form-item :label="t('timeout.enabled')">
       <wf-switch v-model="enabled" :disabled="disabled" />
     </wf-form-item>
@@ -100,13 +99,6 @@ defineExpose({ validate })
 .timeout-settings {
   padding-top: 12px;
   border-top: 1px solid var(--wf-border-light);
-}
-
-.timeout-scheduling-hint {
-  margin: 0 0 12px;
-  color: var(--wf-text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
 }
 
 .duration-row {
