@@ -19,6 +19,7 @@ package com.luokuiai.flovira.ui.controller;
 import com.luokuiai.flovira.core.dto.ApiResult;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowDto;
+import com.luokuiai.flovira.core.dto.WorkflowImportResult;
 import com.luokuiai.flovira.core.entity.Instance;
 import com.luokuiai.flovira.core.entity.SubprocessEvent;
 import com.luokuiai.flovira.core.dto.SubprocessSummary;
@@ -96,6 +97,21 @@ public class FloviraController {
     @GetMapping(value = {"/query-def", "/query-def/{id}"})
     public ApiResult<DefJson> queryDef(@PathVariable(value = "id", required = false) Long id) {
         return FloviraService.queryDef(id);
+    }
+
+    /** 按 design、form、package 导出设计、表单或完整流程包。 */
+    @GetMapping("/export")
+    @Transactional(readOnly = true)
+    public ApiResult<Object> exportData(@RequestParam("type") String type, @RequestParam("id") Long id) {
+        return FloviraService.exportData(type, id);
+    }
+
+    /** 按指定类型导入；创建新版本，完整包自动重建表单关联。 */
+    @PostMapping("/import")
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResult<WorkflowImportResult> importData(@RequestParam("type") String type,
+        @RequestBody Map<String, Object> data) {
+        return FloviraService.importData(type, data);
     }
 
     /**

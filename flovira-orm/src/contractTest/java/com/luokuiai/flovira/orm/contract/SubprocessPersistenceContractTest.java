@@ -1293,6 +1293,80 @@ public class SubprocessPersistenceContractTest {
         }
     }
 
+    @Test
+    public void shouldTransferDesignFormAndPackageThroughUnifiedApi() throws Exception {
+        WorkflowPackage source = workflowPackage();
+        source.getForms().get(0).setFormContent("{\"schemaVersion\":\"1\",\"fields\":["
+            + "{\"key\":\"items\",\"label\":\"明细\",\"dataType\":\"array\","
+            + "\"items\":{\"dataType\":\"object\",\"fields\":[{\"key\":\"amount\","
+            + "\"label\":\"金额\",\"dataType\":\"number\"}]}}]}");
+        WorkflowImportResult original = com.luokuiai.flovira.ui.service.FloviraService
+            .importData("package", transferData(source)).getData();
+        Long originalFormId = Long.valueOf(original.getFormReferences().get("source-form-1"));
+        WorkflowPackage.PackagedForm form = (WorkflowPackage.PackagedForm)
+            com.luokuiai.flovira.ui.service.FloviraService.exportData("form", originalFormId).getData();
+        assertEquals(FlowEngine.formService().getById(originalFormId).getFormContent(), form.getFormContent());
+        WorkflowImportResult importedForm = com.luokuiai.flovira.ui.service.FloviraService
+            .importData("form", transferData(form)).getData();
+        String newFormId = importedForm.getFormReferences().get(originalFormId.toString());
+        assertNotEquals(originalFormId.toString(), newFormId);
+        Form restored = FlowEngine.formService().getById(Long.valueOf(newFormId));
+        assertEquals(form.getFormContent(), restored.getFormContent());
+        assertEquals(Integer.valueOf(0), restored.getPublishStatus());
+
+        DefJson design = (DefJson) com.luokuiai.flovira.ui.service.FloviraService
+            .exportData("design", original.getRootDefinitionId()).getData();
+        assertEquals(originalFormId.toString(), design.getFormId());
+        design.setFormId(newFormId);
+        WorkflowImportResult importedDesign = com.luokuiai.flovira.ui.service.FloviraService
+            .importData("design", transferData(design)).getData();
+        Definition restoredDesign = FlowEngine.defService().getById(importedDesign.getRootDefinitionId());
+        assertEquals(newFormId, restoredDesign.getFormId());
+        assertEquals(Integer.valueOf(0), restoredDesign.getPublishStatus());
+
+        FlowEngine.defService().publish(original.getDefinitionIds().get("package_child"));
+        WorkflowPackage bundle = (WorkflowPackage) com.luokuiai.flovira.ui.service.FloviraService
+            .exportData("package", importedDesign.getRootDefinitionId()).getData();
+        assertEquals(2, bundle.getDefinitions().size());
+        assertTrue(bundle.getForms().stream().anyMatch(item -> item.getReference().equals(newFormId)
+            && item.getFormContent().equals(restored.getFormContent())));
+    }
+
+    @Test
+    public void shouldRejectDesignImportWithMissingTargetFormBeforeWriting() throws Exception {
+        DefJson design = workflowPackage().getDefinitions().get(1);
+        design.setFormId("999999999");
+        try {
+            com.luokuiai.flovira.ui.service.FloviraService.importData("design", transferData(design));
+            fail("Missing form must fail before importing a design");
+        } catch (FlowException expected) {
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_definition", Integer.class));
+            assertEquals(Integer.valueOf(0), jdbcTemplate.queryForObject("select count(*) from flow_form", Integer.class));
+        }
+    }
+
+    @Test
+    public void shouldRejectCrossTenantStandaloneExports() throws Exception {
+        WorkflowImportResult imported = FlowEngine.defService().importPackage(workflowPackage(), java.util.Collections.emptyMap());
+        Long formId = Long.valueOf(imported.getFormReferences().get("source-form-1"));
+        jdbcTemplate.update("update flow_form set tenant_id='tenant-b' where id=?", formId);
+        jdbcTemplate.update("update flow_definition set tenant_id='tenant-b' where id=?", imported.getRootDefinitionId());
+        for (String type : java.util.Arrays.asList("design", "form")) {
+            try {
+                com.luokuiai.flovira.ui.service.FloviraService.exportData(type,
+                    "form".equals(type) ? formId : imported.getRootDefinitionId());
+                fail("Cross-tenant export must fail");
+            } catch (FlowException expected) {
+                assertTrue(expected.getMessage().contains("不存在"));
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> transferData(Object value) {
+        return FlowEngine.jsonConvert.strToBean(FlowEngine.jsonConvert.objToStr(value), Map.class);
+    }
+
     private WorkflowPackage workflowPackage() throws Exception {
         try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(
             getClass().getResourceAsStream("/workflow-package.json"), java.nio.charset.StandardCharsets.UTF_8))) {
