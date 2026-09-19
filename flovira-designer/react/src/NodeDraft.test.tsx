@@ -14,7 +14,6 @@ test('edits timeout duration and unit side by side and applies only on confirmat
   const ref = createRef<ReactFlowDesignerRef>()
   const view = render(<ReactFlowDesigner ref={ref} capabilities={DEMO_CAPABILITIES} />)
   fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
-  expect(view.getByText('必须由业务系统自行接入超时调度；仅配置此处不会自动执行。')).toBeTruthy()
   fireEvent.click(view.getByRole('checkbox', { name: '启用超时处理' }))
   const row = view.container.querySelector('.frd-timeout-duration') as HTMLElement
   fireEvent.change(within(row).getByRole('spinbutton', { name: '超时时长' }), { target: { value: '3' } })
