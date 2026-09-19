@@ -38,6 +38,8 @@ Flovira 提供 `INITIATOR`、`USER`、`ROLE`、`DEPARTMENT_LEADER`、
 默认 API 前缀为 `/flovira`：
 
 - `POST /flovira/save-json`：完整保存流程定义、节点和连线，请求体为流程 JSON。
+- `GET /flovira/export?type=design|form|package&id={id}`：统一导出流程设计、完整表单或流程包；`type` 必填。
+- `POST /flovira/import?type=design|form|package`：直接提交对应导出对象；单独设计校验目标表单，完整包自动恢复表单并重建关联。
 - `GET /flovira/integration/capabilities`
 - `GET /flovira/integration/resources`
 - `GET /flovira/form-content/{id}`
