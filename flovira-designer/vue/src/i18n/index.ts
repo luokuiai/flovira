@@ -60,6 +60,9 @@ const zh: WfMessageTree = {
   },
   node: {
     codeLabel: '节点编码：',
+    keyLabel: '节点标识：',
+    keyPlaceholder: '请输入节点标识，如 FINANCE_REVIEW',
+    keyHelp: '供业务系统定位节点，同一流程内唯一（非必填）',
     nameLabel: '节点名称：'
   },
   start: {
@@ -129,10 +132,11 @@ const zh: WfMessageTree = {
     unconfigured: '未配置抄送人'
   },
   wait: {
-    key: '等待事件键',
-    keyPlaceholder: '例如 order.paid',
+    key: '等待标识：',
+    keyPlaceholder: '请输入等待标识，如 ORDER_PAID',
+    keyHelp: '供业务系统恢复等待任务（必填）',
     keyRequired: '请输入等待事件键',
-    keyInvalid: '事件键须以字母开头，仅可包含字母、数字、点、冒号、下划线和短横线，最长 128 位',
+    keyInvalid: '等待标识须以字母开头，只能包含字母、数字和下划线，最长 128 位',
     eventPending: '等待业务事件'
   },
   timeout: {
@@ -256,6 +260,7 @@ const zh: WfMessageTree = {
     saveSuccess: '保存成功',
     errNoStart: '缺少开始节点',
     errNoEnd: '缺少结束节点',
+    errNodeKey: '节点标识“{key}”无效或重复',
     errIsolated: '存在 {n} 个孤立节点（未连任何边）'
   },
   edgeTooltip: {
@@ -300,6 +305,9 @@ const en: WfMessageTree = {
   },
   node: {
     codeLabel: 'Node Code:',
+    keyLabel: 'Node Key:',
+    keyPlaceholder: 'Enter a node key, e.g. FINANCE_REVIEW',
+    keyHelp: 'Used by host applications to identify a node; unique within the workflow (optional)',
     nameLabel: 'Node Name:'
   },
   start: {
@@ -369,10 +377,11 @@ const en: WfMessageTree = {
     unconfigured: 'No recipients configured'
   },
   wait: {
-    key: 'Wait Event Key',
-    keyPlaceholder: 'For example order.paid',
+    key: 'Wait Key:',
+    keyPlaceholder: 'Enter a wait key, e.g. ORDER_PAID',
+    keyHelp: 'Used by host applications to resume a waiting task (required)',
     keyRequired: 'Enter a wait event key',
-    keyInvalid: 'Start with a letter; use letters, numbers, dot, colon, underscore or hyphen; maximum 128 characters',
+    keyInvalid: 'Start with a letter; use only letters, numbers, and underscores; maximum 128 characters',
     eventPending: 'Waiting for business event'
   },
   timeout: {
@@ -496,6 +505,7 @@ const en: WfMessageTree = {
     saveSuccess: 'Saved successfully',
     errNoStart: 'Missing start node',
     errNoEnd: 'Missing end node',
+    errNodeKey: 'Node Key "{key}" is invalid or duplicated',
     errIsolated: '{n} isolated node(s) (not connected to any edge)'
   },
   edgeTooltip: {

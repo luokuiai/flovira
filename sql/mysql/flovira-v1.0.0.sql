@@ -51,6 +51,7 @@ CREATE TABLE `flow_node`
     `node_type`       tinyint(1)      NOT NULL COMMENT '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）',
     `definition_id`   bigint          NOT NULL COMMENT '流程定义id',
     `node_code`       varchar(96)     NOT NULL COMMENT '流程节点编码',
+    `node_key`        varchar(96)   DEFAULT NULL COMMENT '用户配置的节点标识，同一流程内非空值唯一',
     `node_name`       varchar(100)  DEFAULT NULL COMMENT '流程节点名称',
     `permission_flag` varchar(200)  DEFAULT NULL COMMENT '权限标识（权限类型:权限标识，可以多个，用@@隔开)',
     `node_ratio`      varchar(200) DEFAULT NULL COMMENT '流程签署比例值',
@@ -68,7 +69,8 @@ CREATE TABLE `flow_node`
     `deleted`        char(1)       NOT NULL DEFAULT '0' COMMENT '删除标志',
     `tenant_id`       varchar(40)   DEFAULT NULL COMMENT '租户id',
     PRIMARY KEY (`id`) USING BTREE,
-    KEY `idx_flow_node_definition` (`tenant_id`, `definition_id`, `deleted`, `node_code`)
+    KEY `idx_flow_node_definition` (`tenant_id`, `definition_id`, `deleted`, `node_code`),
+    KEY `idx_flow_node_key` (`tenant_id`, `definition_id`, `deleted`, `node_key`)
 ) ENGINE = InnoDB COMMENT ='流程节点表';
 
 CREATE TABLE `flow_skip`

@@ -4,7 +4,7 @@
       <div class="base-settings-section">
         <div class="base-settings-content">
           <wf-form-item :label="t('node.codeLabel')" prop="nodeCode">
-            <wf-input v-model="form.nodeCode" :disabled="disabled"></wf-input>
+            <wf-input v-model="form.nodeCode" disabled></wf-input>
           </wf-form-item>
           <wf-form-item :label="t('node.nameLabel')" prop="nodeName">
             <wf-input v-model="form.nodeName" ref="nodeInput" :disabled="disabled" @change="nodeNameChange"></wf-input>

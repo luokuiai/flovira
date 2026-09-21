@@ -1,7 +1,11 @@
 <template>
   <wf-form ref="formRef" :model="form" :rules="rules" label-width="110px" :disabled="disabled">
     <wf-form-item :label="t('node.codeLabel')">
-      <wf-input v-model="form.nodeCode" :disabled="disabled" />
+      <wf-input v-model="form.nodeCode" disabled />
+    </wf-form-item>
+    <wf-form-item>
+      <template #label><FieldHelpLabel :label="t('node.keyLabel')" :content="t('node.keyHelp')" /></template>
+      <wf-input v-model="form.nodeKey" :placeholder="t('node.keyPlaceholder')" :disabled="disabled" />
     </wf-form-item>
     <wf-form-item :label="t('node.nameLabel')">
       <wf-input v-model="form.nodeName" :disabled="disabled" />
@@ -50,6 +54,7 @@ import { designerResources } from '@/api/flow/definition'
 import { unwrapData } from '@/data/contracts'
 import { useSubprocessOptions } from '@/composables/useSubprocessOptions'
 import { useI18n } from '@/i18n'
+import FieldHelpLabel from './FieldHelpLabel.vue'
 
 defineOptions({ name: 'SubProcess' })
 

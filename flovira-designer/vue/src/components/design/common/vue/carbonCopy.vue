@@ -2,7 +2,11 @@
   <div class="carbon-copy">
     <wf-form ref="formRef" :model="form" label-width="110px" :disabled="disabled">
       <wf-form-item :label="t('node.codeLabel')">
-        <wf-input v-model="form.nodeCode" :disabled="disabled" />
+        <wf-input v-model="form.nodeCode" disabled />
+      </wf-form-item>
+      <wf-form-item>
+        <template #label><FieldHelpLabel :label="t('node.keyLabel')" :content="t('node.keyHelp')" /></template>
+        <wf-input v-model="form.nodeKey" :placeholder="t('node.keyPlaceholder')" :disabled="disabled" />
       </wf-form-item>
       <wf-form-item :label="t('node.nameLabel')">
         <wf-input v-model="form.nodeName" :disabled="disabled" />
@@ -62,6 +66,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import selectUser from './selectUser.vue'
+import FieldHelpLabel from './FieldHelpLabel.vue'
 import { designerCapabilities } from '@/api/flow/definition'
 import { DEFAULT_DESIGNER_CAPABILITIES, unwrapData, type DesignerApproverStrategy } from '@/data/contracts'
 import { useI18n } from '@/i18n'

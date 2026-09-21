@@ -26,6 +26,7 @@ test("start and end have no tabs or form permissions, start defaults to all", ()
   fireEvent.click(view.getByRole("button", { name: "编辑节点：开始" }));
   expect(view.queryByRole("tab")).toBeNull();
   expect(view.queryByRole("tabpanel")).toBeNull();
+  expect(view.queryByLabelText("节点标识")).toBeNull();
   expect((view.getByLabelText("可提交人员") as HTMLSelectElement).value).toBe(
     "ALL",
   );
@@ -37,6 +38,7 @@ test("start and end have no tabs or form permissions, start defaults to all", ()
   fireEvent.click(view.getByRole("button", { name: "编辑节点：结束" }));
   expect(view.queryByRole("tab")).toBeNull();
   expect(view.queryByLabelText("可提交人员")).toBeNull();
+  expect(view.queryByLabelText("节点标识")).toBeNull();
   expect(view.getByLabelText("节点名称")).toBeTruthy();
 });
 

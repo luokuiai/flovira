@@ -24,9 +24,22 @@ test('preserves only the workflow form and ignores node overrides', () => {
   expect(saved.formId).toBe('expense:v2')
 })
 
+test('round trips optional node keys and rejects duplicates', () => {
+  const logic = json2LogicFlowJson({ nodeList: [
+    { nodeType: '0', nodeCode: 'start', nodeKey: 'request_start', nodeName: '开始', nodeRatio: '0', skipList: [] },
+    { nodeType: '2', nodeCode: 'end', nodeName: '结束', nodeRatio: '0', skipList: [] },
+  ] })
+  let saved = JSON.parse(logicFlowJsonToFlovira(logic))
+  expect(saved.nodeList[0].nodeKey).toBe('request_start')
+  expect(saved.nodeList[1].nodeKey).toBeUndefined()
+
+  logic.nodes[1].properties.nodeKey = 'request_start'
+  expect(() => logicFlowJsonToFlovira(logic)).toThrow('节点标识无效或重复')
+})
+
 describe('wait and timeout definition conversion', () => {
   test('preserves versioned wait and timeout JSON during round trip', () => {
-    const waitConfig = JSON.stringify({ schemaVersion: 1, waitKey: 'order.paid' })
+    const waitConfig = JSON.stringify({ schemaVersion: 1, waitKey: 'ORDER_PAID' })
     const timeoutConfig = JSON.stringify({
       schemaVersion: 1,
       enabled: true,

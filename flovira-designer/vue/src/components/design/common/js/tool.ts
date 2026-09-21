@@ -1,4 +1,5 @@
 import { validateLegacyListeners } from '../../../../data/legacyListeners'
+import { NODE_KEY_PATTERN } from '../../../../data/contracts'
 
 const NODE_TYPE_MAP = {0: 'start', 1: 'between', 2: 'end', 3: 'serial', 4: 'parallel', 5: 'inclusive', 6: 'subProcess', 7: 'wait', 8: 'carbonCopy'}
 const JSON_EXT_CODES = ['approverRule', 'submitterRule', 'formPermissions', 'carbonCopyRule', 'subprocessConfig', 'waitConfig', 'timeoutConfig', 'branchConditions', 'nodeControlConfig']
@@ -60,6 +61,7 @@ export const json2LogicFlowJson = (definition) => {
         }
       }
       lfNode.text.value = node.nodeName
+      lfNode.properties.nodeKey = node.nodeKey
       lfNode.properties.nodeRatio = node.nodeRatio.toString()
       lfNode.properties.permissionFlag = node.permissionFlag
       lfNode.properties.anyNodeSkip = node.anyNodeSkip
@@ -199,10 +201,16 @@ export const logicFlowJsonToFlovira = (data) => {
   definition.listenerType = data.listenerType
   definition.listenerPath = data.listenerPath
   // 流程节点
+  const nodeKeys = new Set<string>()
   data.nodes.forEach(anyNode => {
     let node: any = {}
     node.nodeType = getNodeTypeValue(anyNode.type)
     node.nodeCode = anyNode.id
+    node.nodeKey = anyNode.properties.nodeKey?.trim() || undefined
+    if (node.nodeKey && (!NODE_KEY_PATTERN.test(node.nodeKey) || nodeKeys.has(node.nodeKey))) {
+      throw new Error('节点标识无效或重复')
+    }
+    if (node.nodeKey) nodeKeys.add(node.nodeKey)
     if (anyNode.text) {
       node.nodeName = anyNode.text.value
     }

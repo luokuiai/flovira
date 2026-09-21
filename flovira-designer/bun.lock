@@ -45,8 +45,8 @@
       "dependencies": {
         "@luokuiai/flovira-react-adapter-lumen": "workspace:*",
         "@luokuiai/flovira-react-designer": "workspace:*",
-        "@luokuiai/lumen-theme-clarity": "1.0.0-beta.8",
-        "@luokuiai/lumen-ui": "1.0.0-beta.8",
+        "@luokuiai/lumen-theme-clarity": "1.0.0-beta.9",
+        "@luokuiai/lumen-ui": "1.0.0-beta.9",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
       },
@@ -167,7 +167,7 @@
       "version": "1.0.0-alpha.7",
       "devDependencies": {
         "@luokuiai/flovira-react-designer": "workspace:*",
-        "@luokuiai/lumen-ui": "1.0.0-beta.8",
+        "@luokuiai/lumen-ui": "1.0.0-beta.9",
         "@testing-library/react": "^16.3.0",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
@@ -182,7 +182,7 @@
       },
       "peerDependencies": {
         "@luokuiai/flovira-react-designer": ">=1.0.0-alpha.7 <2.0.0",
-        "@luokuiai/lumen-ui": "^1.0.0-beta.8",
+        "@luokuiai/lumen-ui": "^1.0.0-beta.9",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0",
       },
@@ -405,9 +405,9 @@
 
     "@luokuiai/flovira-vue-designer": ["@luokuiai/flovira-vue-designer@workspace:vue"],
 
-    "@luokuiai/lumen-theme-clarity": ["@luokuiai/lumen-theme-clarity@1.0.0-beta.8", "", { "peerDependencies": { "@luokuiai/lumen-ui": "^1.0.0-beta.8" } }, "sha512-cp1zzOgYizXQZqcNg/a/p3VtXeu+eyyuCS/oOL76u1oB+At/tFUNEzUD+Y5bWethkx85B6zI4vDiPovIUm2r2Q=="],
+    "@luokuiai/lumen-theme-clarity": ["@luokuiai/lumen-theme-clarity@1.0.0-beta.9", "", { "peerDependencies": { "@luokuiai/lumen-ui": "^1.0.0-beta.9" } }, "sha512-u2lXbu/AlAZOa5hEIZKUMX0mZfCDLlMCo/cTOu8vqHMuk7NEVCZnTRathmBUnj74jMH78ZAK/Evsm1FvGFRcoQ=="],
 
-    "@luokuiai/lumen-ui": ["@luokuiai/lumen-ui@1.0.0-beta.8", "", { "dependencies": { "lucide-react": "^0.563.0" }, "peerDependencies": { "react": ">=19.0.0", "react-dom": ">=19.0.0" } }, "sha512-ywPCDe4elysklEXCG8CLhdvGNTpyY3Srod51M9dOZZVT1YHRU1GVMy9K32e8jENhFvn0cbyzICBLMIrHmuf7tg=="],
+    "@luokuiai/lumen-ui": ["@luokuiai/lumen-ui@1.0.0-beta.9", "", { "dependencies": { "lucide-react": "^0.563.0" }, "peerDependencies": { "react": ">=19.0.0", "react-dom": ">=19.0.0" } }, "sha512-mbQb2mxAFe1WJ1Pu6Kc3WMjibfojJa3884jccjU64U21wNpLyEJa7IV016xdcU/0MK3S5ERZ1L9o25fhUCIjEw=="],
 
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "https://registry.npmmirror.com/@napi-rs/lzma-linux-x64-gnu/-/lzma-linux-x64-gnu-1.5.1.tgz", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
 

@@ -2,7 +2,6 @@ import { NodeControlEditor } from "./NodeControlEditor";
 import { FormPermissionEditor } from "./FormPermissionEditor";
 import { TimeoutFormField } from "./TimeoutFormField";
 import type { DesignerFormField } from "./formPermissions";
-import { BusinessFormField } from "./BusinessFormField";
 import {
   Fragment,
   forwardRef,
@@ -18,6 +17,7 @@ import {
 } from "react";
 import {
   CircleAlert,
+  CircleHelp,
   LocateFixed,
   Network,
   Plus,
@@ -227,6 +227,29 @@ const ToolbarButton = ({
       {children}
     </Button>
   </Tooltip>
+);
+
+const FieldHelpLabel = ({
+  label,
+  help,
+  Tooltip,
+}: {
+  label: string;
+  help: string;
+  Tooltip: NonNullable<DesignerUiAdapter["Tooltip"]>;
+}) => (
+  <span className="frd-field-help-label">
+    {label}
+    <Tooltip content={help} placement="top">
+      <span
+        className="frd-field-help-label__icon"
+        tabIndex={0}
+        aria-label={`${label}说明`}
+      >
+        <CircleHelp size={14} aria-hidden="true" />
+      </span>
+    </Tooltip>
+  </span>
 );
 
 export const ReactFlowDesigner = forwardRef<
@@ -1653,16 +1676,26 @@ export const ReactFlowDesigner = forwardRef<
                       onValueChange={() => undefined}
                     />
                   </UiField>
-                  {selectedNode.nodeType === "0" && (
-                    <BusinessFormField
-                      value={String(nodeDefinition.formId || "")}
-                      disabled={disabled}
-                      queryResources={queryResources}
-                      ui={components}
-                      onChange={(formId) =>
-                        commitNode({ ...nodeDefinition, formId })
+                  {!["0", "2"].includes(selectedNode.nodeType) && (
+                    <UiField
+                      label={
+                        <FieldHelpLabel
+                          label="节点标识"
+                          help="供业务系统定位节点，同一流程内唯一（非必填）"
+                          Tooltip={UiTooltip}
+                        />
                       }
-                    />
+                    >
+                      <UiInput
+                        value={selectedNode.nodeKey || ""}
+                        disabled={disabled}
+                        ariaLabel="节点标识"
+                        placeholder="请输入节点标识，如 FINANCE_REVIEW"
+                        onValueChange={(value) =>
+                          changeSelected({ nodeKey: value })
+                        }
+                      />
+                    </UiField>
                   )}
                 </div>
               </div>
@@ -2132,13 +2165,18 @@ export const ReactFlowDesigner = forwardRef<
                 )}
                 {selectedNode.nodeType === "7" && (
                   <UiField
-                    label="等待标识"
-                    hint="业务系统使用该标识恢复等待任务"
+                    label={
+                      <FieldHelpLabel
+                        label="等待标识"
+                        help="供业务系统恢复等待任务（必填）"
+                        Tooltip={UiTooltip}
+                      />
+                    }
                   >
                     <UiInput
                       value={String(getWaitConfig(selectedNode).waitKey || "")}
                       disabled={disabled}
-                      placeholder="例如 ORDER_PAID"
+                      placeholder="请输入等待标识，如 ORDER_PAID"
                       onValueChange={(value) =>
                         commitNode(
                           updateNode(

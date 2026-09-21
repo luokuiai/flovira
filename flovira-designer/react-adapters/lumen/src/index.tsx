@@ -153,7 +153,7 @@ const LumenRadioGroup = ({
 )
 
 const LumenField = ({ label, hint, children, className }: DesignerFieldProps) => (
-  <FormField label={label} required={false} error={hint} size="sm" className={`frd-lumen-field ${className || ''}`}>
+  <FormField label={label} required={false} helperText={hint} size="sm" className={`frd-lumen-field ${className || ''}`}>
     {children}
   </FormField>
 )

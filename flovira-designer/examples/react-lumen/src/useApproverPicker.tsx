@@ -26,17 +26,23 @@ function ResourcePicker({ context, selected, onChange }: {
     <Input value={keyword} placeholder="搜索名称" aria-label="搜索候选项" onChange={event => { setKeyword(event.target.value); setPage(1) }} />
     {error ? <div role="alert">{error}<Button onClick={() => setRetry(value => value + 1)}>重试</Button></div>
       : loading ? <p role="status">加载中…</p>
-        : result.items.map(item => <Checkbox key={item.id} label={item.name} disabled={item.disabled || (context.multiple
-          && context.strategy.maxSubjects != null && selected.length >= context.strategy.maxSubjects
-          && !selected.some(subject => subject.id === item.id))}
-          checked={selected.some(subject => subject.id === item.id)}
-          onChange={checked => {
-            const rest = selected.filter(subject => subject.id !== item.id)
-            onChange(checked ? [...(context.multiple ? rest : []), { id: item.id, name: item.name, type: item.resourceType }] : rest)
-          }} />)}
-    <div>
-      <Button disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}>上一页</Button>
-      <Button disabled={loading || page * 20 >= result.total} onClick={() => setPage(value => value + 1)}>下一页</Button>
+        : <div className="host-resource-picker__list">
+          {result.items.map(item => <Checkbox key={item.id} label={item.name} disabled={item.disabled || (context.multiple
+            && context.strategy.maxSubjects != null && selected.length >= context.strategy.maxSubjects
+            && !selected.some(subject => subject.id === item.id))}
+            checked={selected.some(subject => subject.id === item.id)}
+            onChange={checked => {
+              const rest = selected.filter(subject => subject.id !== item.id)
+              onChange(checked ? [...(context.multiple ? rest : []), { id: item.id, name: item.name, type: item.resourceType }] : rest)
+            }} />)}
+          {!result.items.length && <p className="host-resource-picker__empty">暂无数据</p>}
+        </div>}
+    <div className="host-resource-picker__pagination">
+      <span>共 {result.total} 项</span>
+      <div>
+        <Button variant="outline" disabled={loading || page === 1} onClick={() => setPage(value => value - 1)}>上一页</Button>
+        <Button variant="outline" disabled={loading || page * 20 >= result.total} onClick={() => setPage(value => value + 1)}>下一页</Button>
+      </div>
     </div>
   </div>
 }
@@ -58,17 +64,23 @@ export function useApproverPicker() {
     setContext(null)
   }
   useEffect(() => () => { resolver.current?.(null); resolver.current = null }, [])
-  const picker = context && <Dialog open onRequestClose={() => finish(null)}>
-    <section className="host-approver-dialog" role="dialog" aria-modal="true" aria-label="业务人员选择器">
-      <header><h2>选择{context.strategy.name}</h2><Button variant="ghost" onClick={() => finish(null)}>关闭</Button></header>
-      {context.strategy.resourceType === 'USER'
-        ? <OrganizationParticipantPicker selected={selected} multiple={context.multiple} maxSubjects={context.strategy.maxSubjects} onChange={setSelected} />
-        : <ResourcePicker context={context} selected={selected} onChange={setSelected} />}
-      <footer>
+  const picker = context && <Dialog
+    open
+    title={`选择${context.strategy.name}`}
+    aria-label="业务人员选择器"
+    panelClassName="host-approver-dialog"
+    bodyClassName="host-approver-dialog__body"
+    footer={(
+      <>
         <Button variant="outline" onClick={() => finish(null)}>取消</Button>
         <Button variant="primary" onClick={() => finish({ subjects: selected })}>确定</Button>
-      </footer>
-    </section>
+      </>
+    )}
+    onRequestClose={() => finish(null)}
+  >
+    {context.strategy.resourceType === 'USER'
+      ? <OrganizationParticipantPicker selected={selected} multiple={context.multiple} maxSubjects={context.strategy.maxSubjects} onChange={setSelected} />
+      : <ResourcePicker context={context} selected={selected} onChange={setSelected} />}
   </Dialog>
   return { selectApprover, picker }
 }

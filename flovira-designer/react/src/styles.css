@@ -59,6 +59,11 @@
   outline: 2px solid var(--frd-primary);
   outline-offset: 2px;
 }
+.frd-form-permissions {
+  overflow: hidden;
+  border: 1px solid var(--frd-border);
+  border-radius: 10px;
+}
 .frd-form-permissions table {
   width: 100%;
   border-collapse: collapse;
@@ -66,8 +71,10 @@
   font-size: 14px;
 }
 .frd-form-permissions thead {
-  background: var(--frd-canvas);
   color: var(--frd-muted);
+}
+.frd-form-permissions thead th {
+  background: var(--frd-canvas);
 }
 .frd-form-permissions th {
   text-align: left;
@@ -75,7 +82,7 @@
 }
 .frd-form-permissions th,
 .frd-form-permissions td {
-  padding: 12px 8px;
+  padding: 12px 16px;
 }
 .frd-form-permissions th:not(:first-child),
 .frd-form-permissions td {
@@ -1139,6 +1146,24 @@
 
 .frd-field__label {
   margin-bottom: 6px;
+}
+
+.frd-field-help-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.frd-field-help-label__icon {
+  display: inline-flex;
+  color: var(--frd-muted);
+  cursor: help;
+  outline: none;
+}
+
+.frd-field-help-label__icon:hover,
+.frd-field-help-label__icon:focus-visible {
+  color: var(--frd-primary);
 }
 
 .frd-settings-panel .frd-field__label {

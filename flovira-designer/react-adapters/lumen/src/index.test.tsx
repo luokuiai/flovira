@@ -18,6 +18,16 @@ describe('lumenDesignerUi', () => {
     expect(onValueChange).toHaveBeenCalledWith('after')
   })
 
+  test('renders field hints as guidance rather than validation errors', () => {
+    const AdapterField = lumenDesignerUi.Field
+    const view = render(<AdapterField label="等待标识" hint="业务系统使用该标识恢复等待任务">
+      <input />
+    </AdapterField>)
+
+    expect(view.getByText('业务系统使用该标识恢复等待任务')).toBeTruthy()
+    expect(view.queryByRole('alert')).toBeNull()
+  })
+
   test('maps semantic button and checkbox events', () => {
     const onPress = vi.fn()
     const onCheckedChange = vi.fn()

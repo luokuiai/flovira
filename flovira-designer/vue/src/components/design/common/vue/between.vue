@@ -24,7 +24,11 @@
         <div class="base-settings-section">
           <div class="base-settings-content">
         <wf-form-item :label="t('node.codeLabel')" prop="nodeCode">
-          <wf-input v-model="form.nodeCode" :disabled="disabled"></wf-input>
+          <wf-input v-model="form.nodeCode" disabled></wf-input>
+        </wf-form-item>
+        <wf-form-item>
+          <template #label><FieldHelpLabel :label="t('node.keyLabel')" :content="t('node.keyHelp')" /></template>
+          <wf-input v-model="form.nodeKey" :placeholder="t('node.keyPlaceholder')" :disabled="disabled" />
         </wf-form-item>
         <wf-form-item :label="t('node.nameLabel')" prop="nodeName">
           <wf-input v-model="form.nodeName" type="textarea" :disabled="disabled"></wf-input>
@@ -212,6 +216,7 @@ import selectUser from "./selectUser.vue";
 import {designerCapabilities, designerResourceItems, designerSubjects} from "@/api/flow/definition";
 import nodeExtList from "./nodeExtList.vue";
 import NodeTimeout from "./nodeTimeout.vue";
+import FieldHelpLabel from "./FieldHelpLabel.vue";
 import {getPreviousNodes} from "@/components/design/common/js/tool";
 import {getFramework} from "@/utils/auth";
 import { useI18n } from '@/i18n';

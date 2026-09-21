@@ -4,7 +4,11 @@
       <div class="base-settings-section">
         <div class="base-settings-content">
           <wf-form-item :label="t('node.codeLabel')" prop="nodeCode">
-            <wf-input v-model="form.nodeCode" :disabled="disabled"></wf-input>
+            <wf-input v-model="form.nodeCode" disabled></wf-input>
+          </wf-form-item>
+          <wf-form-item>
+            <template #label><FieldHelpLabel :label="t('node.keyLabel')" :content="t('node.keyHelp')" /></template>
+            <wf-input v-model="form.nodeKey" :placeholder="t('node.keyPlaceholder')" :disabled="disabled" />
           </wf-form-item>
           <!-- 自定义扩展点：消费方可注入额外表单项（透出 { form, disabled }） -->
           <slot name="node-form-extra" :form="form" :disabled="disabled" />
@@ -17,6 +21,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from '@/i18n';
+import FieldHelpLabel from './FieldHelpLabel.vue';
 
 defineOptions({ name: 'Gateway' });
 

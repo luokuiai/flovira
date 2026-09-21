@@ -17,12 +17,17 @@ main {
 .demo-form-header h1 { margin: 0; font-size: 18px; font-weight: 500; color: var(--lumen-color-text); }
 .demo-form-result { margin-top: 16px; color: var(--lumen-color-text); }
 .demo-form-result pre { overflow: auto; }
-.host-approver-dialog { width: min(640px, calc(100vw - 48px)); padding: 24px; background: var(--lumen-color-surface); color: var(--lumen-color-text); border-radius: 12px; }
-.host-approver-dialog header, .host-approver-dialog footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.host-approver-dialog h2 { font-size: 16px; font-weight: 500; margin: 0; }
-.host-approver-dialog header { margin-bottom: 20px; }
-.host-approver-dialog footer { justify-content: flex-end; margin-top: 20px; }
-.host-resource-picker { display: flex; flex-direction: column; gap: 12px; max-height: 55vh; overflow: auto; }
+.host-approver-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-width: min(680px, calc(100vw - 32px));
+  max-height: min(620px, calc(100dvh - 32px));
+}
+.host-approver-dialog__body { overflow: auto; }
+.host-resource-picker { display: flex; min-height: 260px; flex-direction: column; gap: 12px; }
+.host-resource-picker__list { display: flex; flex: 1; flex-direction: column; gap: 8px; }
+.host-resource-picker__empty { margin: auto; color: var(--lumen-color-text-muted); font-size: 13px; }
+.host-resource-picker__pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--lumen-color-text-muted); font-size: 12px; }
+.host-resource-picker__pagination > div { display: flex; gap: 8px; }
 
 .demo-main--designer {
   box-sizing: border-box;
