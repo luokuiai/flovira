@@ -1,12 +1,11 @@
 .ffd-form {
   --ffd-primary: var(--wf-primary, #2563eb);
   --ffd-surface: var(--wf-bg-white, #fff);
-  --ffd-background: color-mix(in srgb, #808080 6%, var(--ffd-surface));
   --ffd-text: var(--wf-text-primary, #1e293b);
   --ffd-muted: var(--wf-text-secondary, #64748b);
   --ffd-border: var(--wf-border-color, #e2e8f0);
   color: var(--ffd-text);
-  background: var(--ffd-background);
+  background: var(--ffd-surface);
   border: 1px solid var(--ffd-border);
   border-radius: 12px;
   padding: 24px;
@@ -37,10 +36,11 @@ html.dark .ffd-form .ffd-action--delete:hover:not(:disabled) { color: #fca5a5; }
 .ffd-form button.ffd-add { color: var(--ffd-primary); display: inline-flex; align-items: center; gap: 6px; margin: 12px 0 2px; border: 1px solid transparent; border-radius: 8px; background: color-mix(in srgb, var(--ffd-primary) 10%, var(--ffd-surface)); padding: 6px 14px; height: 34px; font-weight: 500; }
 .ffd-form button.ffd-add:focus:not(:disabled), .ffd-form button.ffd-add:hover:not(:disabled) { border-color: transparent; background: color-mix(in srgb, var(--ffd-primary) 16%, var(--ffd-surface)); }
 .ffd-form button.ffd-add:focus-visible { outline: 2px solid var(--ffd-primary); outline-offset: 2px; }
-.ffd-children { margin: 0 0 12px 16px; padding-left: 12px; }
-.ffd-item-label { grid-column: span 2; color: var(--ffd-muted); font-size: 13px; }
+.ffd-children { margin: 0 0 12px 20px; padding-left: 12px; }
+.ffd-field--item > .ffd-children { margin-left: 0; padding-left: 0; }
+.ffd-item-label { grid-column: span 2; color: var(--ffd-muted); font-size: 14px; font-weight: 500; }
 .ffd-empty { padding: 32px 12px; text-align: center; color: var(--ffd-muted); }
 .ffd-confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0 12px; color: var(--ffd-muted); font-size: 13px; }
 .ffd-error { margin: 12px 0 0; color: #dc2626; font-size: 13px; }
-html.dark .ffd-form { --ffd-surface: #1e293b; --ffd-background: #172033; --ffd-text: #e2e8f0; --ffd-muted: #94a3b8; --ffd-border: #334155; }
+html.dark .ffd-form { --ffd-surface: #1e293b; --ffd-text: #e2e8f0; --ffd-muted: #94a3b8; --ffd-border: #334155; }
 @media (max-width: 640px) { .ffd-form { padding: 16px; } }

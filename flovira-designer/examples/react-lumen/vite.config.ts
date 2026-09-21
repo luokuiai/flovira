@@ -4,5 +4,5 @@ import { mockBackend } from './mockBackend'
 
 export default defineConfig({
   plugins: [react(), mockBackend()],
-  server: { port: 5184 },
+  server: { port: 5184, allowedHosts: true },
 })

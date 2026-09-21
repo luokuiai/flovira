@@ -38,7 +38,7 @@ function FieldRow({ field, path, item, depth, readOnly, ui, onChange, onRemove, 
   const { Input, Select, Button } = ui
   const allowedTypes = formFieldTypes.filter(type => depth === 0 || !['object', 'array'].includes(type.value) || item && depth === 1 && type.value === 'object')
   const unsupported = !allowedTypes.some(type => type.value === field.dataType)
-  return <div className="ffd-field">
+  return <div className={`ffd-field${item ? ' ffd-field--item' : ''}`}>
     <div className="ffd-row">
       {item ? <span className="ffd-item-label">数组元素</span> : <>
         <Input ariaLabel={`字段名称 ${path}`} placeholder="请输入字段名称" value={field.label || ''} disabled={readOnly}
