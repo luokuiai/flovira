@@ -79,6 +79,29 @@ test('defaults an unconfigured approval draft to the backend INITIATOR strategy 
   })
 })
 
+test('defaults an unconfigured carbon-copy draft to the submitter without a placeholder option', () => {
+  const initial = createInitialDefinition()
+  const approval = initial.nodeList.find(node => node.nodeType === '1')!
+  const definition = insertNodeAfter(initial, approval.nodeCode, '8')
+  const carbonCopy = definition.nodeList.find(node => node.nodeType === '8')!
+  const ref = createRef<ReactFlowDesignerRef>()
+  const capabilities = { ...DEMO_CAPABILITIES, approverStrategies: [...DEMO_CAPABILITIES.approverStrategies, {
+    code: 'INITIATOR', name: '提交人', selectionType: 'RELATION' as const, multiple: false,
+    editorType: 'NONE' as const, resultCardinality: 'EXACTLY_ONE' as const,
+  }] }
+  const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} capabilities={capabilities} />)
+
+  fireEvent.click(view.getByRole('button', { name: `编辑节点：${carbonCopy.nodeName}` }))
+  expect((view.getByLabelText('抄送人类型') as HTMLSelectElement).value).toBe('INITIATOR')
+  expect(view.queryByRole('option', { name: '请选择抄送人类型' })).toBeNull()
+  expect(getCarbonCopyRule(ref.current!.getDefinition().nodeList.find(node => node.nodeCode === carbonCopy.nodeCode)!).strategy).toBe('')
+
+  fireEvent.click(view.getByRole('button', { name: '确定' }))
+  expect(getCarbonCopyRule(ref.current!.getDefinition().nodeList.find(node => node.nodeCode === carbonCopy.nodeCode)!)).toMatchObject({
+    strategy: 'INITIATOR', strategyVersion: 1, selectionType: 'RELATION', relationType: undefined,
+  })
+})
+
 test('transfer choice picks separate users, cancellation preserves config, and node confirmation commits', async () => {
   const { definition, node } = fixture()
   const ref = createRef<ReactFlowDesignerRef>()

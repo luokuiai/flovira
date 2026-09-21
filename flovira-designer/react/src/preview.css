@@ -61,7 +61,7 @@
 .frp-node .frd-node__icon {
   width: 26px;
   height: 26px;
-  color: #fff;
+  color: var(--frd-node-header-text, #fff);
   background: transparent;
 }
 .frp-node[data-status="pending"] .frp-node-tile {
@@ -69,7 +69,7 @@
 }
 .frp-node[data-status="pending"] .frd-node__icon {
   background: transparent;
-  color: var(--frd-node-header);
+  color: var(--frd-node-selected, var(--frd-node-header));
 }
 .frp-current-summary {
   display: flex;

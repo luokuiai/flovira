@@ -140,10 +140,11 @@ describe('Flovira definition model', () => {
   test('round trips fixed subprocess configuration', () => {
     const node = createNode('6')
     node.ext = JSON.stringify({ 'future': 'kept' })
-    const configured = setSubprocessConfig(node, 'expense_child')
+    const configured = setSubprocessConfig(node, 'expense_child', '费用复核流程')
 
     expect(getSubprocessConfig(configured)).toMatchObject({
       fixedChildFlowCode: 'expense_child',
+      fixedChildFlowName: '费用复核流程',
       selectionMode: 'FIXED',
       completionPolicy: 'ALL',
     })

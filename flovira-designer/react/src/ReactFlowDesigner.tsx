@@ -134,7 +134,7 @@ const approverOptionVisible = (
   return cardinality === "ZERO_OR_ONE" || cardinality === "ZERO_OR_MORE";
 };
 
-const INSERT_TYPES: FloviraNodeType[] = ["1", "8", "7", "6", "3", "4", "5"];
+const INSERT_TYPES: FloviraNodeType[] = ["1", "8", "7", "3", "4", "5", "6"];
 
 const selectionHint = (
   name: string,
@@ -184,8 +184,8 @@ const summaryFor = (
   }
   if (node.nodeType === "2") return "系统";
   if (node.nodeType === "6") {
-    const code = String(getSubprocessConfig(node).fixedChildFlowCode || "");
-    return code || "未选择固定子流程";
+    const config = getSubprocessConfig(node);
+    return String(config.fixedChildFlowName || config.fixedChildFlowCode || "未选择固定子流程");
   }
   if (node.nodeType === "7")
     return String(getWaitConfig(node).waitKey || "未配置等待标识");
@@ -627,14 +627,17 @@ export const ReactFlowDesigner = forwardRef<
   useEffect(() => {
     if (
       disabled ||
-      selectedNode?.nodeType !== "1" ||
+      !selectedNode ||
+      !["1", "8"].includes(selectedNode.nodeType) ||
       selectedApproverRule?.strategy
     )
       return;
     const initiator = findApproverStrategy(capabilities, "INITIATOR");
     if (!initiator) return;
     const config = initiator.options
-      ?.filter((option) => approverOptionVisible(option, initiator, "1"))
+      ?.filter((option) =>
+        approverOptionVisible(option, initiator, selectedNode.nodeType),
+      )
       .reduce<Record<string, unknown>>((result, option) => {
         const value = option.defaultValue ?? option.choices[0]?.value;
         if (value !== undefined) result[option.code] = value;
@@ -644,7 +647,9 @@ export const ReactFlowDesigner = forwardRef<
       updateNode(
         nodeDefinition,
         selectedNode.nodeCode,
-        setApproverRule(
+        (selectedNode.nodeType === "8"
+          ? setCarbonCopyRule
+          : setApproverRule)(
           selectedNode,
           initiator.code,
           [],
@@ -1030,7 +1035,9 @@ export const ReactFlowDesigner = forwardRef<
       };
     });
     return (
-      <div className="frd-insert-point">
+      <div
+        className={`frd-insert-point${entersNode ? " frd-insert-point--enters-node" : ""}`}
+      >
         <span className="frd-insert-point__line" />
         <UiDropdownMenu
           items={items}
@@ -1743,15 +1750,6 @@ export const ReactFlowDesigner = forwardRef<
                                 },
                               ]
                             : []),
-                          ...(selectedNode.nodeType === "8"
-                            ? [
-                                {
-                                  value: "",
-                                  label: "请选择抄送人类型",
-                                  disabled: true,
-                                },
-                              ]
-                            : []),
                           ...(selectedApproverRule?.strategy &&
                           !selectedApproverStrategy
                             ? [
@@ -2149,15 +2147,19 @@ export const ReactFlowDesigner = forwardRef<
                       getSubprocessConfig(selectedNode).fixedChildFlowCode ||
                         "",
                     )}
+                    label={String(
+                      getSubprocessConfig(selectedNode).fixedChildFlowName ||
+                        "",
+                    )}
                     disabled={disabled}
                     queryResources={queryResources}
                     ui={components}
-                    onChange={(value) =>
+                    onChange={(value, label) =>
                       commitNode(
                         updateNode(
                           nodeDefinition,
                           selectedNode.nodeCode,
-                          setSubprocessConfig(selectedNode, value),
+                          setSubprocessConfig(selectedNode, value, label),
                         ),
                       )
                     }

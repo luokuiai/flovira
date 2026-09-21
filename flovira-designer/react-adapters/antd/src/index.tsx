@@ -9,6 +9,7 @@ import type {
   DesignerFieldProps,
   DesignerInputProps,
   DesignerRadioGroupProps,
+  DesignerAsyncSelectProps,
   DesignerSelectProps,
   DesignerTooltipProps,
   DesignerUiAdapter,
@@ -83,6 +84,41 @@ const AntdSelect = ({
     className={className}
     popupMatchSelectWidth={false}
     onChange={(nextValue) => onValueChange(String(nextValue))}
+  />
+)
+
+const AntdAsyncSelect = ({
+  value,
+  options,
+  disabled,
+  placeholder,
+  searchable,
+  loading,
+  searchValue,
+  emptyText,
+  ariaLabel,
+  className,
+  onSearchChange,
+  onOpenChange,
+  onValueChange,
+}: DesignerAsyncSelectProps) => (
+  <Select
+    value={value || undefined}
+    options={options}
+    size="small"
+    disabled={disabled}
+    placeholder={placeholder}
+    showSearch={searchable}
+    filterOption={false}
+    loading={loading}
+    searchValue={searchValue}
+    onSearch={onSearchChange}
+    onOpenChange={onOpenChange}
+    aria-label={ariaLabel}
+    className={className}
+    popupMatchSelectWidth
+    notFoundContent={loading ? '加载中...' : emptyText}
+    onChange={(nextValue) => onValueChange(String(nextValue ?? ''))}
   />
 )
 
@@ -219,6 +255,7 @@ export const antdDesignerUi: DesignerUiAdapter = {
   Button: AntdButton,
   Input: AntdInput,
   Select: AntdSelect,
+  AsyncSelect: AntdAsyncSelect,
   Checkbox: AntdCheckbox,
   RadioGroup: AntdRadioGroup,
   Field: AntdField,
