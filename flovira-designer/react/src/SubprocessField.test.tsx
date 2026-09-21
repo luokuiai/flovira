@@ -65,6 +65,6 @@ test('keeps search and pagination inside the dropdown and closes after choosing'
   expect(dropdown.getByLabelText('搜索子流程')).toBeTruthy()
   expect(dropdown.getByRole('button', { name: '加载更多' })).toBeTruthy()
   fireEvent.click(dropdown.getByRole('option', { name: 'expense' }))
-  expect(onChange).toHaveBeenCalledWith('expense')
+  expect(onChange).toHaveBeenCalledWith('expense', 'expense')
   expect(view.queryByRole('listbox')).toBeNull()
 })

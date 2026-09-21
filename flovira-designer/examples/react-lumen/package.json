@@ -1,6 +1,6 @@
 {
   "name": "flovira-react-lumen-designer-demo",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-alpha.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,8 +11,8 @@
   "dependencies": {
     "@luokuiai/flovira-react-adapter-lumen": "workspace:*",
     "@luokuiai/flovira-react-designer": "workspace:*",
-    "@luokuiai/lumen-theme-clarity": "1.0.0-beta.7",
-    "@luokuiai/lumen-ui": "1.0.0-beta.7",
+    "@luokuiai/lumen-theme-clarity": "1.0.0-beta.9",
+    "@luokuiai/lumen-ui": "1.0.0-beta.9",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

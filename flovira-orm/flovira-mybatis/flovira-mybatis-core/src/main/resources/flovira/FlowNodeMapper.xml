@@ -9,6 +9,7 @@
         <result property="nodeType" column="node_type"/>
         <result property="definitionId" column="definition_id"/>
         <result property="nodeCode" column="node_code"/>
+        <result property="nodeKey" column="node_key"/>
         <result property="nodeName" column="node_name"/>
         <result property="permissionFlag" column="permission_flag"/>
         <result property="nodeRatio" column="node_ratio"/>
@@ -32,6 +33,7 @@
                t.node_type,
                t.definition_id,
                t.node_code,
+               t.node_key,
                t.node_name,
                t.permission_flag,
                t.node_ratio,
@@ -67,6 +69,7 @@
             <if test="entity.nodeType != null">and t.node_type = #{entity.nodeType}</if>
             <if test="entity.definitionId != null">and t.definition_id = #{entity.definitionId}</if>
             <if test="entity.nodeCode != null and entity.nodeCode != ''">and t.node_code = #{entity.nodeCode}</if>
+            <if test="entity.nodeKey != null and entity.nodeKey != ''">and t.node_key = #{entity.nodeKey}</if>
             <if test="entity.nodeName != null and entity.nodeName != ''">and t.node_name = #{entity.nodeName}</if>
             <if test="entity.permissionFlag != null and entity.permissionFlag != ''">and t.permission_flag =
                 #{entity.permissionFlag}
@@ -103,6 +106,7 @@
         node_type,
         definition_id,
         node_code,
+        node_key,
         node_name,
         permission_flag,
         node_ratio,
@@ -127,6 +131,7 @@
             #{item.nodeType},
             #{item.definitionId},
             #{item.nodeCode},
+            #{item.nodeKey},
             #{item.nodeName},
             #{item.permissionFlag},
             #{item.nodeRatio},
@@ -155,6 +160,7 @@
         node_type,
         definition_id,
         node_code,
+        node_key,
         node_name,
         permission_flag,
         node_ratio,
@@ -177,6 +183,7 @@
             #{item.nodeType},
             #{item.definitionId},
             #{item.nodeCode},
+            #{item.nodeKey},
             #{item.nodeName},
             #{item.permissionFlag},
             #{item.nodeRatio},
@@ -264,6 +271,7 @@
             <if test="nodeType != null">node_type,</if>
             <if test="definitionId != null">definition_id,</if>
             <if test="nodeCode != null and nodeCode != ''">node_code,</if>
+            <if test="nodeKey != null and nodeKey != ''">node_key,</if>
             <if test="nodeName != null and nodeName != ''">node_name,
                 <if test="permissionFlag != null and permissionFlag != ''">permission_flag,</if>
             </if>
@@ -287,6 +295,7 @@
             <if test="nodeType != null">#{nodeType},</if>
             <if test="definitionId != null">#{definitionId},</if>
             <if test="nodeCode != null and nodeCode != ''">#{nodeCode},</if>
+            <if test="nodeKey != null and nodeKey != ''">#{nodeKey},</if>
             <if test="nodeName != null and nodeName != ''">#{nodeName},
                 <if test="permissionFlag != null and permissionFlag != ''">#{permissionFlag},</if>
             </if>
@@ -313,6 +322,7 @@
             <if test="nodeType != null">node_type = #{nodeType},</if>
             <if test="definitionId != null">definition_id = #{definitionId},</if>
             <if test="nodeCode != null and nodeCode != ''">node_code = #{nodeCode},</if>
+            <if test="nodeKey != null and nodeKey != ''">node_key = #{nodeKey},</if>
             <if test="nodeName != null and nodeName != ''">node_name = #{nodeName},</if>
             <if test="permissionFlag != null and permissionFlag != ''">permission_flag = #{permissionFlag},</if>
             <if test="nodeRatio != null">node_ratio = #{nodeRatio},</if>
@@ -376,6 +386,7 @@
             <if test="nodeType != null">and node_type = #{nodeType}</if>
             <if test="definitionId != null">and definition_id = #{definitionId}</if>
             <if test="nodeCode != null and nodeCode != ''">and node_code = #{nodeCode}</if>
+            <if test="nodeKey != null and nodeKey != ''">and node_key = #{nodeKey}</if>
             <if test="nodeName != null and nodeName != ''">and node_name = #{nodeName}</if>
             <if test="permissionFlag != null and permissionFlag != ''">and permission_flag = #{permissionFlag}</if>
             <if test="nodeRatio != null">and node_ratio = #{nodeRatio}</if>
@@ -402,6 +413,7 @@
             <if test="entity.nodeType != null">and node_type = #{entity.nodeType}</if>
             <if test="entity.definitionId != null">and definition_id = #{entity.definitionId}</if>
             <if test="entity.nodeCode != null and entity.nodeCode != ''">and node_code = #{entity.nodeCode}</if>
+            <if test="entity.nodeKey != null and entity.nodeKey != ''">and node_key = #{entity.nodeKey}</if>
             <if test="entity.nodeName != null and entity.nodeName != ''">and node_name = #{entity.nodeName}</if>
             <if test="entity.permissionFlag != null and entity.permissionFlag != ''">and permission_flag =
                 #{entity.permissionFlag}

@@ -102,7 +102,11 @@ public class ExtJsonPersistenceContractTest {
                 RootEntity first = record(dao, 101L, json);
                 RootEntity absent = record(dao, 102L, null);
                 dao.saveBatch(Arrays.asList(first, absent));
-                assertEquals(ext, FlowEngine.jsonConvert.strToMap(readExt(dao.selectById(101L))));
+                RootEntity saved = dao.selectById(101L);
+                assertEquals(ext, FlowEngine.jsonConvert.strToMap(readExt(saved)));
+                if ("flow_node".equals(tables[i])) {
+                    assertEquals("node-key-101", saved.getClass().getMethod("getNodeKey").invoke(saved));
+                }
                 assertNull(readExt(dao.selectById(102L)));
                 String sqlType = jdbc.queryForObject("select data_type from information_schema.columns "
                     + "where table_name = ? and column_name = 'ext'", String.class, tables[i]);
@@ -140,6 +144,7 @@ public class ExtJsonPersistenceContractTest {
         fields.put("Version", "1"); fields.put("BusinessType", "contract");
         fields.put("BusinessId", "business-" + id); fields.put("NodeType", 1);
         fields.put("NodeCode", "node-" + id); fields.put("NodeName", "JSON contract");
+        fields.put("NodeKey", "node-key-" + id);
         fields.put("DefinitionId", 1L); fields.put("InstanceId", 1L); fields.put("TaskId", id);
         fields.put("FlowStatus", "1"); fields.put("SkipType", "PASS");
         fields.put("PublishStatus", 0); fields.put("ActivityStatus", 1);

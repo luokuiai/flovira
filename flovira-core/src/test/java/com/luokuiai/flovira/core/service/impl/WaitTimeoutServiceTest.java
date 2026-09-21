@@ -75,7 +75,7 @@ public class WaitTimeoutServiceTest {
         WaitResumeResult second = fixture.service.resumeTask(10L, Collections.<String, Object>emptyMap());
 
         assertEquals("RESUMED", first.getStatus());
-        assertEquals("order.paid", first.getWaitKey());
+        assertEquals("ORDER_PAID", first.getWaitKey());
         assertEquals("NOT_FOUND_OR_ALREADY_RESUMED", second.getStatus());
         assertEquals(1, fixture.passes);
         assertEquals("SYSTEM_WAIT", fixture.params.getHandler());
@@ -87,7 +87,7 @@ public class WaitTimeoutServiceTest {
     public void shouldResolveWaitKeyFromInstanceSnapshot() {
         WaitFixture fixture = new WaitFixture();
 
-        WaitResumeResult result = fixture.service.resume(100L, "order.paid",
+        WaitResumeResult result = fixture.service.resume(100L, "ORDER_PAID",
             Collections.<String, Object>emptyMap());
 
         assertEquals("RESUMED", result.getStatus());
@@ -177,7 +177,7 @@ public class WaitTimeoutServiceTest {
     public void shouldRejectAmbiguousWaitKey() {
         WaitFixture fixture = new WaitFixture();
         fixture.duplicate = true;
-        fixture.service.resume(100L, "order.paid", Collections.<String, Object>emptyMap());
+        fixture.service.resume(100L, "ORDER_PAID", Collections.<String, Object>emptyMap());
     }
 
     @Test
@@ -280,7 +280,7 @@ public class WaitTimeoutServiceTest {
     private static final class WaitFixture {
         private final WaitServiceImpl service = new WaitServiceImpl();
         private final Instance instance = TestEntityFactory.create(Instance.class).setId(100L)
-            .setDefJson("WAIT_PAYMENT=order.paid");
+            .setDefJson("WAIT_PAYMENT=ORDER_PAID");
         private volatile Task task = TestEntityFactory.create(Task.class).setId(10L).setInstanceId(100L)
             .setDefinitionId(1L).setNodeType(NodeType.WAIT.getKey()).setNodeCode("WAIT_PAYMENT");
         private int passes;

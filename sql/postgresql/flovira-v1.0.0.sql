@@ -85,6 +85,7 @@ CREATE TABLE flow_node
     node_type       int2          NOT NULL,
     definition_id   int8          NOT NULL,
     node_code       varchar(96)   NOT NULL,
+    node_key        varchar(96)   NULL,
     node_name       varchar(100)  NULL,
     permission_flag varchar(200)  NULL,
     node_ratio      varchar(200) NULL,
@@ -109,6 +110,7 @@ COMMENT ON COLUMN flow_node.id IS '主键id';
 COMMENT ON COLUMN flow_node.node_type IS '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 COMMENT ON COLUMN flow_node.definition_id IS '流程定义id';
 COMMENT ON COLUMN flow_node.node_code IS '流程节点编码';
+COMMENT ON COLUMN flow_node.node_key IS '用户配置的节点标识，同一流程内非空值唯一';
 COMMENT ON COLUMN flow_node.node_name IS '流程节点名称';
 COMMENT ON COLUMN flow_node.permission_flag IS '权限标识（权限类型:权限标识，可以多个，用@@隔开)';
 COMMENT ON COLUMN flow_node.node_ratio IS '流程签署比例值';
@@ -126,6 +128,7 @@ COMMENT ON COLUMN flow_node.ext IS '节点扩展属性';
 COMMENT ON COLUMN flow_node.deleted IS '删除标志';
 COMMENT ON COLUMN flow_node.tenant_id IS '租户id';
 CREATE INDEX idx_flow_node_definition ON flow_node (tenant_id, definition_id, deleted, node_code);
+CREATE INDEX idx_flow_node_key ON flow_node (tenant_id, definition_id, deleted, node_key);
 
 
 CREATE TABLE flow_skip

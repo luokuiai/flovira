@@ -380,11 +380,13 @@ public class DefServiceImpl extends FloviraServiceImpl<FlowDefinitionDao<Definit
         AssertUtil.isNotEmpty(skipMap, "[" + flowName + "]" + ExceptionCons.FLOW_HAVE_USELESS_SKIP);
         // 每一个流程的开始节点个数
         Set<String> nodeCodeSet = new HashSet<>();
+        Set<String> nodeKeySet = new HashSet<>();
         // 便利一个流程中的各个节点
         int startNum = 0;
         for (Node node : allNodes) {
             FlowConfigUtil.initNodeAndCondition(node, definition.getId(), definition.getVersion());
             startNum = FlowConfigUtil.checkStartAndSame(node, startNum, flowName, nodeCodeSet);
+            FlowConfigUtil.checkNodeKey(node, flowName, nodeKeySet);
         }
         AssertUtil.isTrue(startNum == 0, "[" + flowName + "]" + ExceptionCons.LOST_START_NODE);
         // 校验跳转节点的合法性

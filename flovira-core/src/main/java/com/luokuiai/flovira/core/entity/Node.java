@@ -83,6 +83,10 @@ public interface Node extends RootEntity {
 
     Node setNodeCode(String nodeCode);
 
+    String getNodeKey();
+
+    Node setNodeKey(String nodeKey);
+
     String getNodeName();
 
     Node setNodeName(String nodeName);
@@ -142,6 +146,7 @@ public interface Node extends RootEntity {
             .setNodeType(this.getNodeType())
             .setDefinitionId(this.getDefinitionId())
             .setNodeCode(this.getNodeCode())
+            .setNodeKey(this.getNodeKey())
             .setNodeName(this.getNodeName())
             .setNodeRatio(this.getNodeRatio())
             .setPermissionFlag(this.getPermissionFlag())

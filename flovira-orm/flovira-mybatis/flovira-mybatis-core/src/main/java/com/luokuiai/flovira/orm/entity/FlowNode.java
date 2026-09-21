@@ -85,6 +85,10 @@ public class FlowNode implements Node {
      */
     private String nodeCode;
     /**
+     * 用户配置的节点标识，同一流程内非空值唯一
+     */
+    private String nodeKey;
+    /**
      * 流程节点名称
      */
     private String nodeName;

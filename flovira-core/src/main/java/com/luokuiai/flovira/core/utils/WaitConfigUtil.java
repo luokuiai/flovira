@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 public final class WaitConfigUtil {
 
     public static final String EXT_CONFIG = "waitConfig";
-    private static final Pattern WAIT_KEY_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_.:-]{0,127}$");
+    private static final Pattern WAIT_KEY_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{0,127}$");
 
     private WaitConfigUtil() {
     }

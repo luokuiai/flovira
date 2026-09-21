@@ -31,6 +31,7 @@ public class SubprocessConfig implements Serializable {
 
     private int schemaVersion = CURRENT_SCHEMA_VERSION;
     private String fixedChildFlowCode;
+    private String fixedChildFlowName;
     private String completionPolicy = "ALL";
     private boolean allowEmpty;
 }

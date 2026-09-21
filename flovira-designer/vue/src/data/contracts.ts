@@ -1,5 +1,6 @@
 export type DesignerNodeType = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'
 export type ApproverStrategy = 'INITIATOR' | 'USER' | 'ROLE' | 'DEPARTMENT_LEADER' | 'SUPERVISING_LEADER'
+export const NODE_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,95}$/
 
 export interface ApproverSubject {
   id: string

@@ -43,6 +43,10 @@ public class ExceptionCons {
 
     public static final String SAME_NODE_CODE = "同一流程中节点编码重复!";
 
+    public static final String SAME_NODE_KEY = "同一流程中节点标识重复!";
+
+    public static final String INVALID_NODE_KEY = "节点标识须以英文字母开头，只能包含字母、数字或下划线，最长96位!";
+
     public static final String NULL_DEST_NODE = "无法他跳转，未配置目标节点!";
 
     public static final String NULL_SKIP_TYPE = "未找到跳转类型匹配的目标节点!";

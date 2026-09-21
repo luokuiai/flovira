@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { DesignerResourceItem, DesignerResourceLoader, DesignerUiAdapter } from './types'
 
-export function SubprocessField({ value, disabled, queryResources, ui, onChange }: {
+export function SubprocessField({ value, label, disabled, queryResources, ui, onChange }: {
   value: string
+  label?: string
   disabled?: boolean
   queryResources?: DesignerResourceLoader
   ui: DesignerUiAdapter
-  onChange: (value: string) => void
+  onChange: (value: string, label?: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const [keyword, setKeyword] = useState('')
@@ -43,9 +44,50 @@ export function SubprocessField({ value, disabled, queryResources, ui, onChange 
     }, 200)
     return () => { active = false; clearTimeout(timer) }
   }, [open, disabled, queryResources, keyword, pageNum, retry])
-  const { Field, Button, Input, DropdownMenu } = ui
-  const current = items.find((item) => (item.code || item.id) === value)
+  const { Field, Button, Input, DropdownMenu, AsyncSelect } = ui
+  const loadedCurrent = items.find((item) => (item.code || item.id) === value)
+  const current = loadedCurrent
     || (selected && (selected.code || selected.id) === value ? selected : undefined)
+    || (value && label ? { id: value, code: value, name: label, resourceType: 'SUBPROCESS' } : undefined)
+  useEffect(() => {
+    if (value && loadedCurrent?.name && loadedCurrent.name !== label) onChange(value, loadedCurrent.name)
+  }, [value, label, loadedCurrent?.name])
+  if (AsyncSelect) {
+    const options = [
+      ...(value ? [{ value: '', label: '清除选择' }] : []),
+      ...Array.from(new Map([
+        ...(current ? [current] : []),
+        ...items,
+      ].map((item) => [item.code || item.id, item])).values()).map((item) => ({
+        value: item.code || item.id,
+        label: item.name,
+        disabled: item.disabled,
+      })),
+    ]
+    return <Field label="子流程">
+      <AsyncSelect
+        value={value}
+        options={options}
+        disabled={disabled || !queryResources}
+        placeholder={queryResources ? '请选择已发布流程' : '请接入方提供子流程查询'}
+        searchable
+        loading={state === 'loading'}
+        loadingText="加载中..."
+        searchValue={keyword}
+        searchPlaceholder="搜索流程名称或编码"
+        emptyText={state === 'error' ? '子流程加载失败，请重新搜索' : '暂无匹配流程'}
+        ariaLabel="子流程"
+        className="frd-subprocess-select"
+        onOpenChange={setOpen}
+        onSearchChange={(text) => { setKeyword(text); setPageNum(1); setItems([]); setHasMore(false); setState('loading') }}
+        onValueChange={(nextValue) => {
+          const item = items.find((candidate) => (candidate.code || candidate.id) === nextValue)
+          setSelected(item)
+          onChange(nextValue, item?.name)
+        }}
+      />
+    </Field>
+  }
   return <Field label="子流程">
     <DropdownMenu items={[]} onSelect={() => {}} onOpenChange={setOpen}
       trigger={<button type="button" className="frd-select frd-subprocess-trigger" disabled={disabled}
@@ -58,7 +100,7 @@ export function SubprocessField({ value, disabled, queryResources, ui, onChange 
           onClick={() => { onChange(''); setSelected(undefined); close() }}>清除选择</button>}
         {items.map(item => <button key={item.code || item.id} type="button" role="option"
           aria-selected={value === (item.code || item.id)} disabled={disabled || item.disabled}
-          onClick={() => { setSelected(item); onChange(item.code || item.id); close() }}>{item.name}</button>)}
+          onClick={() => { setSelected(item); onChange(item.code || item.id, item.name); close() }}>{item.name}</button>)}
       </div>
       {!queryResources && <p role="status">请接入方提供子流程查询</p>}
       {state === 'loading' && <p role="status">加载中...</p>}

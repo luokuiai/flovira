@@ -82,6 +82,7 @@ export type {
   DesignerSubject,
   DesignerSelectOption,
   DesignerSelectProps,
+  DesignerAsyncSelectProps,
   DesignerTooltipProps,
   DesignerUiAdapter,
   FloviraDefinition,

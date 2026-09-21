@@ -46,6 +46,8 @@ const NODE_NAMES: Record<FloviraNodeType, string> = {
   '8': '抄送节点',
 }
 
+export const NODE_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,95}$/
+
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 export const createId = (_prefix?: string): string => {
@@ -115,6 +117,7 @@ export const normalizeDefinition = (
       ...node,
       nodeType: String(node.nodeType) as FloviraNodeType,
       nodeCode: String(node.nodeCode),
+      nodeKey: typeof node.nodeKey === 'string' && node.nodeKey.trim() ? node.nodeKey.trim() : undefined,
       nodeName: node.nodeName || NODE_NAMES[String(node.nodeType) as FloviraNodeType] || '流程节点',
       skipList: Array.isArray(node.skipList) ? node.skipList.map((skip) => ({
         ...skip,
@@ -128,7 +131,12 @@ export const normalizeDefinition = (
 export const serializeDefinition = (definition: FloviraDefinition): string => {
   const saved = clone(definition) as FloviraDefinition & { modelValue?: unknown }
   delete saved.modelValue
-  saved.nodeList.forEach(node => { delete node.formId })
+  saved.nodeList.forEach(node => {
+    delete node.formId
+    const nodeKey = node.nodeKey?.trim()
+    if (nodeKey) node.nodeKey = nodeKey
+    else delete node.nodeKey
+  })
   return JSON.stringify(saved, null, 2)
 }
 
@@ -342,10 +350,12 @@ export const getNodeExtConfig = (node: FloviraNode, code: string): Record<string
 export const setSubprocessConfig = (
   node: FloviraNode,
   fixedChildFlowCode: string,
+  fixedChildFlowName?: string,
 ): FloviraNode => {
   return setNodeExtConfig(node, 'subprocessConfig', {
     schemaVersion: 1,
     fixedChildFlowCode,
+    fixedChildFlowName,
     selectionMode: 'FIXED',
     completionPolicy: 'ALL',
   })
@@ -505,7 +515,20 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
   }
   const nodes = definition.nodeList
   const codes = new Set(nodes.map((node) => node.nodeCode))
+  const keys = new Set<string>()
   const incoming = new Map<string, number>()
+  nodes.forEach((node) => {
+    const nodeKey = node.nodeKey?.trim()
+    if (!nodeKey) return
+    if (!NODE_KEY_PATTERN.test(nodeKey)) {
+      issues.push({ code: 'NODE_KEY_INVALID', nodeCode: node.nodeCode,
+        message: `${node.nodeName} 的节点标识格式无效` })
+    } else if (keys.has(nodeKey)) {
+      issues.push({ code: 'NODE_KEY_DUPLICATE', nodeCode: node.nodeCode,
+        message: `节点标识 ${nodeKey} 重复` })
+    }
+    keys.add(nodeKey)
+  })
   nodes.forEach((node) => node.skipList.forEach((skip) => {
     incoming.set(skip.targetNodeCode, (incoming.get(skip.targetNodeCode) || 0) + 1)
     if (!codes.has(skip.targetNodeCode)) {
@@ -611,7 +634,7 @@ export const validateDefinition = (definition: FloviraDefinition, capabilities?:
         issues.push({ code: 'CARBON_COPY_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 未配置抄送人` })
       }
     }
-    if (node.nodeType === '7' && !/^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/.test(String(getWaitConfig(node).waitKey || ''))) {
+    if (node.nodeType === '7' && !/^[A-Za-z][A-Za-z0-9_]{0,127}$/.test(String(getWaitConfig(node).waitKey || ''))) {
       issues.push({ code: 'WAIT_KEY_REQUIRED', nodeCode: node.nodeCode, message: `${node.nodeName} 的等待标识无效` })
     }
     const timeout = getTimeoutConfig(node)

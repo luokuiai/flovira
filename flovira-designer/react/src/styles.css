@@ -59,6 +59,11 @@
   outline: 2px solid var(--frd-primary);
   outline-offset: 2px;
 }
+.frd-form-permissions {
+  overflow: hidden;
+  border: 1px solid var(--frd-border);
+  border-radius: 10px;
+}
 .frd-form-permissions table {
   width: 100%;
   border-collapse: collapse;
@@ -66,8 +71,10 @@
   font-size: 14px;
 }
 .frd-form-permissions thead {
-  background: var(--frd-canvas);
   color: var(--frd-muted);
+}
+.frd-form-permissions thead th {
+  background: var(--frd-canvas);
 }
 .frd-form-permissions th {
   text-align: left;
@@ -75,7 +82,7 @@
 }
 .frd-form-permissions th,
 .frd-form-permissions td {
-  padding: 12px 8px;
+  padding: 12px 16px;
 }
 .frd-form-permissions th:not(:first-child),
 .frd-form-permissions td {
@@ -357,13 +364,6 @@
   gap: 4px;
 }
 
-.frd-header .frd-toolbar {
-  padding: 4px;
-  border: 1px solid var(--frd-border);
-  border-radius: 999px;
-  background: var(--frd-surface);
-}
-
 .frd-toolbar button {
   border-radius: 999px;
 }
@@ -556,7 +556,7 @@
   border-radius: calc(var(--frd-node-radius) - var(--frd-node-border-width))
     calc(var(--frd-node-radius) - var(--frd-node-border-width)) 0 0;
   background: var(--frd-node-header, var(--frd-primary));
-  color: #ffffff;
+  color: var(--frd-node-header-text, #ffffff);
 }
 
 .frd-node__icon {
@@ -655,8 +655,7 @@
   --frd-node-ring: #ffe7d2;
 }
 
-.frd-node--exclusive,
-.frd-node--inclusive {
+.frd-node--exclusive {
   --frd-node-border: #c7d2fe;
   --frd-node-hover: #818cf8;
   --frd-node-header: #6366f1;
@@ -666,18 +665,26 @@
 
 .frd-node--parallel {
   --frd-node-border: #bfdbfe;
-  --frd-node-hover: #60a5fa;
+  --frd-node-hover: #3b82f6;
   --frd-node-header: #2563eb;
   --frd-node-selected: #2563eb;
   --frd-node-ring: #dbeafe;
 }
 
+.frd-node--inclusive {
+  --frd-node-border: #ddd6fe;
+  --frd-node-hover: #a78bfa;
+  --frd-node-header: #8b5cf6;
+  --frd-node-selected: #8b5cf6;
+  --frd-node-ring: #ede9fe;
+}
+
 .frd-node--subprocess {
-  --frd-node-border: #e9d5ff;
-  --frd-node-hover: #c084fc;
-  --frd-node-header: #a855f7;
-  --frd-node-selected: #a855f7;
-  --frd-node-ring: #f3e8ff;
+  --frd-node-border: #e8c9bb;
+  --frd-node-hover: #c76b45;
+  --frd-node-header: #b85c38;
+  --frd-node-selected: #b85c38;
+  --frd-node-ring: #f5e9e3;
 }
 
 .frd-node--copy {
@@ -698,15 +705,28 @@
 .frd-insert-point__line::before {
   position: absolute;
   top: 0;
-  bottom: 8px;
   left: 0;
   width: var(--frd-connector-width);
   background: var(--frd-connector);
   content: "";
 }
 
-.frd-connector::after,
-.frd-insert-point__line::after {
+.frd-connector::before {
+  bottom: 0;
+}
+
+.frd-insert-point__line::before {
+  bottom: 0;
+}
+
+.frd-connector--readonly-arrow::before,
+.frd-insert-point--enters-node .frd-insert-point__line::before {
+  bottom: 8px;
+}
+
+.frd-connector--readonly-arrow::after,
+.frd-insert-point--enters-node .frd-insert-point__line::after,
+.frd-branch__connector::after {
   position: absolute;
   bottom: 2px;
   left: 50%;
@@ -723,30 +743,13 @@
   height: 32px;
 }
 
-/* 只读插入点没有加号，直接连接上下线段，不保留中间箭头。 */
+/* 只读插入点没有加号，直接连接上下线段。 */
 .frd-connector--readonly::before {
-  bottom: 0;
-}
-
-.frd-connector--readonly::after {
-  display: none;
-}
-
-/* 只读连线进入实际节点时保留箭头；合流拼接处仍为连续直线。 */
-.frd-connector--readonly-arrow::before {
-  bottom: 6px;
-}
-
-.frd-connector--readonly-arrow::after {
   bottom: 0;
 }
 
 .frd-connector--fork {
   height: 20px;
-}
-
-.frd-connector--fork::after {
-  display: none;
 }
 
 .frd-connector--fork::before {
@@ -927,19 +930,6 @@
   content: "";
 }
 
-.frd-branch__connector::after {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-top: 6px solid var(--frd-connector-arrow);
-  border-right: 5px solid transparent;
-  border-left: 5px solid transparent;
-  content: "";
-  transform: translateX(-50%);
-}
-
 .frd-branch__merge-tail {
   width: var(--frd-connector-width);
   min-height: 32px;
@@ -978,6 +968,10 @@
   gap: 12px;
   text-align: left;
   cursor: pointer;
+}
+
+.frd-subprocess-select {
+  width: 100%;
 }
 
 .frd-subprocess-trigger span {
@@ -1139,6 +1133,24 @@
 
 .frd-field__label {
   margin-bottom: 6px;
+}
+
+.frd-field-help-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.frd-field-help-label__icon {
+  display: inline-flex;
+  color: var(--frd-muted);
+  cursor: help;
+  outline: none;
+}
+
+.frd-field-help-label__icon:hover,
+.frd-field-help-label__icon:focus-visible {
+  color: var(--frd-primary);
 }
 
 .frd-settings-panel .frd-field__label {
@@ -1503,6 +1515,7 @@
 }
 .frd-condition-card[data-default="true"] {
   --frd-node-header: #64748b;
+  --frd-node-header-text: #fff;
   --frd-node-border: #cbd5e1;
 }
 .frd-condition-card__header {
@@ -1513,7 +1526,7 @@
   min-height: 36px;
   padding: 7px 28px 7px 12px;
   background: var(--frd-node-header);
-  color: #fff;
+  color: var(--frd-node-header-text, #fff);
 }
 .frd-condition-card__name-wrapper {
   min-width: 0;
@@ -1641,7 +1654,7 @@
   padding: 2px;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--frd-node-header-text, #fff);
   cursor: pointer;
 }
 

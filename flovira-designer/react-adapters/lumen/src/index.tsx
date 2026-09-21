@@ -10,6 +10,7 @@ import type {
   DesignerFieldProps,
   DesignerInputProps,
   DesignerRadioGroupProps,
+  DesignerAsyncSelectProps,
   DesignerSelectProps,
   DesignerTooltipProps,
   DesignerUiAdapter,
@@ -113,6 +114,52 @@ const LumenSelect = ({
   />
 )
 
+const LumenAsyncSelect = ({
+  value,
+  options,
+  disabled,
+  placeholder,
+  searchable,
+  loading,
+  loadingText,
+  searchValue,
+  searchPlaceholder,
+  emptyText,
+  ariaLabel,
+  className,
+  onSearchChange,
+  onOpenChange,
+  onValueChange,
+}: DesignerAsyncSelectProps) => (
+  <Select
+    triggerClassName="frd-lumen-select-trigger"
+    optionClassName={() => 'frd-lumen-select-option'}
+    value={value || null}
+    options={options.map((option) => ({
+      value: option.value,
+      label: selectLabel(option.label, option.value),
+      disabled: option.disabled,
+    }))}
+    size="md"
+    disabled={disabled}
+    placeholder={placeholder}
+    searchable={searchable}
+    filterOptions={false}
+    loading={loading}
+    loadingText={loadingText}
+    searchValue={searchValue}
+    searchPlaceholder={searchPlaceholder}
+    emptyText={emptyText}
+    aria-label={ariaLabel}
+    className={className}
+    onSearchChange={onSearchChange}
+    onOpenChange={onOpenChange}
+    onChange={(nextValue) => {
+      if (!Array.isArray(nextValue)) onValueChange(nextValue === null ? '' : String(nextValue))
+    }}
+  />
+)
+
 const LumenCheckbox = ({
   checked,
   disabled,
@@ -153,7 +200,7 @@ const LumenRadioGroup = ({
 )
 
 const LumenField = ({ label, hint, children, className }: DesignerFieldProps) => (
-  <FormField label={label} required={false} error={hint} size="sm" className={`frd-lumen-field ${className || ''}`}>
+  <FormField label={label} required={false} helperText={hint} size="sm" className={`frd-lumen-field ${className || ''}`}>
     {children}
   </FormField>
 )
@@ -275,6 +322,7 @@ export const lumenDesignerUi: DesignerUiAdapter = {
   Button: LumenButton,
   Input: LumenInput,
   Select: LumenSelect,
+  AsyncSelect: LumenAsyncSelect,
   Checkbox: LumenCheckbox,
   RadioGroup: LumenRadioGroup,
   Field: LumenField,

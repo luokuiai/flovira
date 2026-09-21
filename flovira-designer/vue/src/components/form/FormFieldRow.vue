@@ -48,7 +48,7 @@ function confirmType() {
 }
 </script>
 <template>
-  <div class="ffd-field">
+  <div class="ffd-field" :class="{ 'ffd-field--item': item }">
     <div class="ffd-row">
       <span v-if="item" class="ffd-item-label">数组元素</span>
       <template v-else>
