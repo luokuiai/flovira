@@ -61,10 +61,12 @@ public class FlowConfigUtil {
         // 每一个流程的开始节点个数
         int startNum = 0;
         Set<String> nodeCodeSet = new HashSet<>();
+        Set<String> nodeKeySet = new HashSet<>();
         // 遍历一个流程中的各个节点
         for (Node node : nodeList) {
             initNodeAndCondition(node, definition.getId(), definition.getVersion());
             startNum = checkStartAndSame(node, startNum, flowName, nodeCodeSet);
+            checkNodeKey(node, flowName, nodeKeySet);
             allNodes.add(node);
             allSkips.addAll(node.getSkipList());
         }
@@ -88,6 +90,19 @@ public class FlowConfigUtil {
             "【" + flowName + "】" + ExceptionCons.SAME_NODE_CODE);
         nodeCodeSet.add(node.getNodeCode());
         return startNum;
+    }
+
+    public static void checkNodeKey(Node node, String flowName, Set<String> nodeKeySet) {
+        String nodeKey = StringUtils.trim(node.getNodeKey());
+        if (StringUtils.isEmpty(nodeKey)) {
+            node.setNodeKey(null);
+            return;
+        }
+        AssertUtil.isTrue(!nodeKey.matches("[A-Za-z][A-Za-z0-9_]{0,95}"),
+            "【" + flowName + "】" + ExceptionCons.INVALID_NODE_KEY);
+        AssertUtil.contains(nodeKeySet, nodeKey, "【" + flowName + "】" + ExceptionCons.SAME_NODE_KEY);
+        node.setNodeKey(nodeKey);
+        nodeKeySet.add(nodeKey);
     }
 
     /**

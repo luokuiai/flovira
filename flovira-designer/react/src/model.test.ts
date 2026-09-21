@@ -59,6 +59,19 @@ describe('Flovira definition model', () => {
     expect(first).not.toBe(second)
   })
 
+  test('keeps node keys optional and rejects duplicate non-empty keys', () => {
+    const definition = createInitialDefinition()
+    definition.nodeList[0].nodeKey = 'request_start'
+    definition.nodeList[1].nodeKey = 'request_start'
+
+    expect(validateDefinition(definition).issues).toContainEqual(expect.objectContaining({
+      code: 'NODE_KEY_DUPLICATE',
+    }))
+    definition.nodeList[1].nodeKey = ''
+    const saved = JSON.parse(serializeDefinition(definition))
+    expect(saved.nodeList[1]).not.toHaveProperty('nodeKey')
+  })
+
   test('filters node and approver controls using host capabilities', () => {
     const capabilities = {
       ...DEFAULT_DESIGNER_CAPABILITIES,

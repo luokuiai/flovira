@@ -21,16 +21,14 @@ test('imports and exports only the workflow-level form reference', () => {
   expect(definition.nodeList[1].formId).toBe('other-form')
 })
 
-test('configures one workflow form, without a node form selector', () => {
+test('keeps the workflow form reference out of node settings', () => {
   const ref = createRef<ReactFlowDesignerRef>()
-  const view = render(<ReactFlowDesigner ref={ref} />)
+  const definition = createInitialDefinition()
+  definition.formId = 'finance:v1'
+  const view = render(<ReactFlowDesigner ref={ref} defaultValue={definition} />)
   fireEvent.click(view.getByRole('button', { name: '编辑节点：开始' }))
-  fireEvent.change(view.getByLabelText('业务表单标识'), { target: { value: 'finance:v1' } })
-  fireEvent.click(view.getByRole('button', { name: '确定' }))
-  expect(JSON.parse(ref.current!.getFlowJson()).formId).toBe('finance:v1')
-  fireEvent.click(view.getByRole('button', { name: '编辑节点：审批节点' }))
-  fireEvent.click(view.getByRole('tab', { name: '基础信息' }))
   expect(view.queryByLabelText('业务表单标识')).toBeNull()
+  expect(view.queryByLabelText('业务表单')).toBeNull()
   expect(view.queryByText('节点表单')).toBeNull()
   expect(view.queryByText('继承流程表单')).toBeNull()
   fireEvent.click(view.getByRole('button', { name: '确定' }))

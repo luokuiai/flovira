@@ -243,6 +243,12 @@ watch(() => form.value.nodeName, (n) => {
   })
 });
 
+watch(() => form.value.nodeKey, (nodeKey) => {
+  props.lf.setProperties(objId.value, {
+    nodeKey
+  })
+});
+
 watch(() => form.value.collaborativeWay, (n) => {
   // 监听节点属性变化并更新
   props.lf.setProperties(objId.value, {

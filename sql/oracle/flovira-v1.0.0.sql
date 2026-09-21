@@ -89,6 +89,7 @@ create table FLOW_NODE
     NODE_TYPE       NUMBER(1)     not null,
     DEFINITION_ID   NUMBER(20)    not null,
     NODE_CODE       VARCHAR2(96)  not null,
+    NODE_KEY        VARCHAR2(96),
     NODE_NAME       VARCHAR2(100),
     PERMISSION_FLAG VARCHAR2(200),
     NODE_RATIO      VARCHAR2(200),
@@ -115,6 +116,7 @@ comment on column FLOW_NODE.ID is '主键id';
 comment on column FLOW_NODE.NODE_TYPE is '节点类型（0开始节点 1中间节点 2结束节点 3互斥网关 4并行网关 5包容网关 6子流程 7等待）';
 comment on column FLOW_NODE.DEFINITION_ID is '对应flow_definition表的id';
 comment on column FLOW_NODE.NODE_CODE is '流程节点编码';
+comment on column FLOW_NODE.NODE_KEY is '用户配置的节点标识，同一流程内非空值唯一';
 comment on column FLOW_NODE.NODE_NAME is '流程节点名称';
 comment on column FLOW_NODE.NODE_RATIO is '流程签署比例值';
 comment on column FLOW_NODE.COORDINATE is '坐标';
@@ -132,6 +134,7 @@ comment on column FLOW_NODE.DELETED is '删除标志';
 comment on column FLOW_NODE.TENANT_ID is '租户id';
 comment on column FLOW_NODE.PERMISSION_FLAG is '权限标识（权限类型:权限标识，可以多个，用@@隔开)';
 create index IDX_FLOW_NODE_DEFINITION on FLOW_NODE (TENANT_ID, DEFINITION_ID, DELETED, NODE_CODE);
+create index IDX_FLOW_NODE_KEY on FLOW_NODE (TENANT_ID, DEFINITION_ID, DELETED, NODE_KEY);
 
 create table FLOW_SKIP
 (

@@ -7,7 +7,7 @@
           <div class="base-settings-content">
             <slot name="form-item-task-name" :model="form" field="nodeCode">
               <wf-form-item :label="t('node.codeLabel')">
-                <wf-input v-model="form.nodeCode" :disabled="disabled"></wf-input>
+                <wf-input v-model="form.nodeCode" disabled></wf-input>
               </wf-form-item>
             </slot>
             <slot name="form-item-task-name" :model="form" field="nodeName">

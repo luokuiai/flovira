@@ -60,14 +60,14 @@ public class WaitTimeoutConfigTest {
     @Test
     public void shouldAcceptValidWaitKey() {
         WaitConfig config = new WaitConfig();
-        config.setWaitKey("order.paid:retry_1");
+        config.setWaitKey("ORDER_PAID_RETRY_1");
         WaitConfigUtil.validate(config);
     }
 
     @Test(expected = IllegalStateException.class)
     public void shouldRejectInvalidWaitKey() {
         WaitConfig config = new WaitConfig();
-        config.setWaitKey("1 invalid");
+        config.setWaitKey("order.paid");
         WaitConfigUtil.validate(config);
     }
 

@@ -1,3 +1,5 @@
+import { NODE_KEY_PATTERN } from './contracts'
+
 export interface PackageDefinition extends Record<string, any> {
   flowCode: string
   flowName: string
@@ -48,9 +50,17 @@ export function parseWorkflowPackage(input: unknown): WorkflowPackage {
     check(!flows.has(flow.flowCode), '重复的流程编码: ' + flow.flowCode)
     check(Array.isArray(flow.nodeList) && flow.nodeList.length > 0, '流程节点列表为空')
     const codes = new Set<string>()
+    const keys = new Set<string>()
     const children: string[] = []
     for (const node of flow.nodeList) {
       check(node && nonblank(node.nodeCode) && !codes.has(node.nodeCode), '无效或重复的节点编码')
+      if (node.nodeKey != null) check(typeof node.nodeKey === 'string', '无效或重复的节点标识')
+      const nodeKey = typeof node.nodeKey === 'string' ? node.nodeKey.trim() : ''
+      if (nodeKey) {
+        check(NODE_KEY_PATTERN.test(nodeKey) && !keys.has(nodeKey), '无效或重复的节点标识')
+        node.nodeKey = nodeKey
+        keys.add(nodeKey)
+      } else delete node.nodeKey
       check(/^[0-8]$/.test(String(node.nodeType)) && Array.isArray(node.skipList), '无效的节点或连线列表')
       codes.add(node.nodeCode)
       delete node.formId

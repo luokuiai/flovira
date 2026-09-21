@@ -14,6 +14,7 @@ CREATE TABLE flow_node
     node_type       int2          NOT NULL,
     definition_id   int8          NOT NULL,
     node_code       varchar(96)   NOT NULL,
+    node_key        varchar(96)   NULL,
     node_name       varchar(100)  NULL,
     permission_flag varchar(200)  NULL,
     node_ratio      varchar(200) NULL,

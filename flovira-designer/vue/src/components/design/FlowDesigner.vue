@@ -84,7 +84,7 @@
 import { getUiAdapter } from '@/ui/uiAdapter'
 import PropertySetting from '@/components/design/common/vue/propertySetting.vue'
 import { designerResourceItems, queryDef } from "@/api/flow/definition";
-import { resourcesToTree } from '@/data/contracts';
+import { NODE_KEY_PATTERN, resourcesToTree } from '@/data/contracts';
 import {
     getPreviousNodes,
     isGateWay,
@@ -586,6 +586,15 @@ function validateStructure(): FlowStructureValidateResult {
   const graphEdges: any[] = graph.edges || [];
   if (graphNodes.filter((n) => n.type === 'start').length < 1) errors.push(t('flowDesigner.errNoStart'));
   if (graphNodes.filter((n) => n.type === 'end').length < 1) errors.push(t('flowDesigner.errNoEnd'));
+  const nodeKeys = new Set<string>();
+  graphNodes.forEach((node) => {
+    const nodeKey = node.properties?.nodeKey?.trim();
+    if (!nodeKey) return;
+    if (!NODE_KEY_PATTERN.test(nodeKey) || nodeKeys.has(nodeKey)) {
+      errors.push(t('flowDesigner.errNodeKey', { key: nodeKey }));
+    }
+    nodeKeys.add(nodeKey);
+  });
   if (graphNodes.length > 1) {
     const connected = new Set<string>();
     graphEdges.forEach((e) => { connected.add(e.sourceNodeId); connected.add(e.targetNodeId); });

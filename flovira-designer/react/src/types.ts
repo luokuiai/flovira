@@ -94,6 +94,7 @@ export interface FloviraSkip extends Record<string, unknown> {
 export interface FloviraNode extends Record<string, unknown> {
   nodeType: FloviraNodeType
   nodeCode: string
+  nodeKey?: string | null
   nodeName: string
   coordinate?: string
   nodeRatio?: string | number
