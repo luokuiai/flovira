@@ -1,6 +1,6 @@
 {
   "name": "flovira-antdv4-designer-demo",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-alpha.8",
   "private": true,
   "description": "Flovira 设计器（@luokuiai/flovira-vue-designer）Ant Design Vue 4 消费示例（setUiAdapter(antdvAdapter)，全程不依赖 Element Plus）",
   "type": "module",
