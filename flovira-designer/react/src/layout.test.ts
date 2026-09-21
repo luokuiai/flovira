@@ -28,12 +28,17 @@ test("embedded appearance removes only the outer card decoration", () => {
   );
 });
 
-test("readonly insert points are continuous lines without intermediate arrows", () => {
+test("shows connector arrows only where lines enter nodes", () => {
   const css = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
-  const stem = css.match(/\.frd-connector--readonly::before\s*\{([^}]+)\}/)![1];
-  const arrow = css.match(/\.frd-connector--readonly::after\s*\{([^}]+)\}/)![1];
-  expect(stem).toContain("bottom: 0;");
-  expect(arrow).toContain("display: none;");
+  const continuous = css.match(/\.frd-connector::before\s*\{([^}]+)\}/)![1];
+  const entering = css.match(
+    /\.frd-connector--readonly-arrow::before,\s*\.frd-insert-point--enters-node \.frd-insert-point__line::before\s*\{([^}]+)\}/,
+  )![1];
+  expect(continuous).toContain("bottom: 0;");
+  expect(entering).toContain("bottom: 8px;");
+  expect(css).toContain(
+    ".frd-insert-point--enters-node .frd-insert-point__line::after",
+  );
 });
 
 test("sizes each branch to its own content instead of stretching siblings equally", () => {

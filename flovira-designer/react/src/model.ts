@@ -350,10 +350,12 @@ export const getNodeExtConfig = (node: FloviraNode, code: string): Record<string
 export const setSubprocessConfig = (
   node: FloviraNode,
   fixedChildFlowCode: string,
+  fixedChildFlowName?: string,
 ): FloviraNode => {
   return setNodeExtConfig(node, 'subprocessConfig', {
     schemaVersion: 1,
     fixedChildFlowCode,
+    fixedChildFlowName,
     selectionMode: 'FIXED',
     completionPolicy: 'ALL',
   })

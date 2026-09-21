@@ -84,8 +84,11 @@ const rules = computed(() => ({
 
 watch(() => props.modelValue.ext?.subprocessConfig, (value) => {
   try {
-    fixedChildFlowCode.value = value ? JSON.parse(value).fixedChildFlowCode || '' : ''
+    const config = value ? JSON.parse(value) : {}
+    selectedName.value = config.fixedChildFlowName || ''
+    fixedChildFlowCode.value = config.fixedChildFlowCode || ''
   } catch (_) {
+    selectedName.value = ''
     fixedChildFlowCode.value = ''
   }
 }, { immediate: true })
@@ -98,6 +101,7 @@ watch(fixedChildFlowCode, (value) => {
     subprocessConfig: value ? JSON.stringify({
       schemaVersion: 1,
       fixedChildFlowCode: value,
+      fixedChildFlowName: selectedName.value || undefined,
       completionPolicy: 'ALL',
       allowEmpty: false,
     }) : '',

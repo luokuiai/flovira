@@ -170,6 +170,9 @@ describe("ReactFlowDesigner", () => {
     expect(
       view.container.querySelector(".frd-insert-point__trigger"),
     ).toBeTruthy();
+    expect(
+      view.container.querySelectorAll(".frd-insert-point--enters-node"),
+    ).toHaveLength(2);
   });
 
   test.each(["3", "5"] as const)(

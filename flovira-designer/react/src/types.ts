@@ -247,6 +247,18 @@ export interface DesignerSelectProps {
   onValueChange(value: string): void
 }
 
+export interface DesignerAsyncSelectProps extends DesignerSelectProps {
+  placeholder?: string
+  searchable?: boolean
+  loading?: boolean
+  loadingText?: string
+  searchValue?: string
+  searchPlaceholder?: string
+  emptyText?: string
+  onSearchChange?(value: string): void
+  onOpenChange?(open: boolean): void
+}
+
 export interface DesignerCheckboxProps {
   checked: boolean
   disabled?: boolean
@@ -342,6 +354,7 @@ export interface DesignerUiAdapter {
   Button: ComponentType<DesignerButtonProps>
   Input: ComponentType<DesignerInputProps>
   Select: ComponentType<DesignerSelectProps>
+  AsyncSelect?: ComponentType<DesignerAsyncSelectProps>
   Checkbox: ComponentType<DesignerCheckboxProps>
   RadioGroup: ComponentType<DesignerRadioGroupProps>
   Field: ComponentType<DesignerFieldProps>
