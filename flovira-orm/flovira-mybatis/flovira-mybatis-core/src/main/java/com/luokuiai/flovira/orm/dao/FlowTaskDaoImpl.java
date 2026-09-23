@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,10 +16,8 @@
  */
 package com.luokuiai.flovira.orm.dao;
 
-import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowTaskDao;
-import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.orm.entity.FlowTask;
 import com.luokuiai.flovira.orm.mapper.FlowTaskMapper;
 import com.luokuiai.flovira.orm.utils.TenantDeleteUtil;
@@ -53,10 +52,7 @@ public class FlowTaskDaoImpl extends FloviraDaoImpl<FlowTask> implements FlowTas
     @Override
     public int deleteByInsIds(List<Long> instanceIds) {
         FlowTask entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDeleted())) {
-            return getMapper().updateByInsIdsLogic(instanceIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
-        }
-        return getMapper().deleteByInsIds(instanceIds, entity);
+        return getMapper().updateByInsIdsLogic(instanceIds, entity, TenantDeleteUtil.DELETED, entity.getDeleted());
     }
 
     @Override

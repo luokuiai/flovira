@@ -17,7 +17,6 @@
 package com.luokuiai.flovira.core.utils;
 
 import com.luokuiai.flovira.core.FlowEngine;
-import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.NodeTimeoutConfig;
 import com.luokuiai.flovira.core.entity.Node;
 import com.luokuiai.flovira.core.entity.Task;
@@ -94,8 +93,7 @@ public final class TimeoutConfigUtil {
     }
 
     public static void applySnapshot(Node node, Task task, Date createdAt, Map<String, Object> variables) {
-        Flovira flowConfig = FlowEngine.getFlowConfig();
-        if (flowConfig == null || flowConfig.getTimeout() == null || !flowConfig.getTimeout().isEnabled()) {
+        if (!FlowEngine.isTimeoutEnabled()) {
             return;
         }
         NodeTimeoutConfig config = read(node);

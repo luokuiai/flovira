@@ -6,8 +6,8 @@ Flovira is an integrated workflow SDK with Java 8 core compatibility, framework 
 
 For releases, follow root `AGENTS.md` and `docs/releasing.md`: use a `release-<VERSION>` branch from `develop`, manual version updates, and an annotated tag on the `main` merge commit. Do not substitute the automatic Lerna release command.
 
-Use the existing engine factories and adapter matrix. Follow root rules for public contracts, licensing, migration, verification and git authorization. Flovira schemas do not use foreign keys; every table keeps `deleted` non-null with default `0`, and indexes follow tenant and logical-deletion query predicates. A workflow uses its definition's form; nodes configure field permissions, not separate forms. Do not rely on obsolete Maven / Yarn commands, dual designer modes, built-in form management or SQL Server support.
+Use the existing engine factories and adapter matrix. Follow root rules for public contracts, licensing, migration, verification and git authorization. Flovira schemas do not use foreign keys; every table keeps `deleted` non-null with fixed `0` active / `1` deleted semantics, and indexes follow tenant and logical-deletion query predicates. A workflow uses its definition's form; nodes configure field permissions, not separate forms. Do not rely on obsolete Maven / Yarn commands, dual designer modes, built-in form management or SQL Server support.
 
-Timeout scheduling is host-owned: expose explicit timeout APIs only. Hosts must integrate scheduling; document this requirement in developer usage guides, not in designer timeout settings.
+`FlowEngine.setTimeoutEnabled(boolean)` is the process-wide timeout capability switch. Do not expose `flovira.timeout.*` Spring Boot properties. Timeout scheduling is host-owned: expose explicit timeout APIs only. Hosts pass batch size to the API and must integrate scheduling; document this requirement in developer usage guides, not in designer timeout settings.
 
 All `ext` columns use native JSON: MySQL JSON, PostgreSQL JSONB, Oracle JSON (21c+, COMPATIBLE >= 20). Java keeps String; ORM field handlers bind database JSON types without text-storage fallbacks.

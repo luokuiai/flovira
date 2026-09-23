@@ -16,7 +16,6 @@
 package com.luokuiai.flovira.core.utils;
 
 import com.luokuiai.flovira.core.FlowEngine;
-import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.NodeTimeoutConfig;
 import com.luokuiai.flovira.core.dto.WaitConfig;
 import com.luokuiai.flovira.core.entity.Node;
@@ -98,13 +97,12 @@ public class WaitTimeoutConfigTest {
             public String objToStr(Object variable) { return "snapshot"; }
         };
 
-        Flovira flovira = new Flovira();
-        FlowEngine.setFlowConfig(flovira);
+        FlowEngine.setTimeoutEnabled(false);
         Task disabledTask = TestEntityFactory.create(Task.class);
         TimeoutConfigUtil.applySnapshot(node, disabledTask, new Date(1000L));
         assertEquals(null, disabledTask.getTimeoutAt());
 
-        flovira.getTimeout().setEnabled(true);
+        FlowEngine.setTimeoutEnabled(true);
         Task enabledTask = TestEntityFactory.create(Task.class);
         TimeoutConfigUtil.applySnapshot(node, enabledTask, new Date(1000L));
         assertEquals(new Date(301000L), enabledTask.getTimeoutAt());
@@ -129,6 +127,7 @@ public class WaitTimeoutConfigTest {
         schedule.clear();
         assertThrows(IllegalStateException.class, () -> TimeoutConfigUtil.applySnapshot(node,
             TestEntityFactory.create(Task.class), new Date(), variables));
+        FlowEngine.setTimeoutEnabled(false);
     }
 
     @Test
