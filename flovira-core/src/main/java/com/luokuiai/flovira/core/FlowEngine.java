@@ -105,6 +105,8 @@ public class FlowEngine {
 
     private static Flovira flowConfig;
 
+    private static volatile boolean timeoutEnabled;
+
     private static DataFillHandler dataFillHandler;
 
     private static TenantHandler tenantHandler;
@@ -315,6 +317,15 @@ public class FlowEngine {
 
     public static void setFlowConfig(Flovira flowConfig) {
         FlowEngine.flowConfig = flowConfig;
+    }
+
+    /** 全局超时能力开关，由宿主代码显式控制，不绑定框架配置。 */
+    public static boolean isTimeoutEnabled() {
+        return timeoutEnabled;
+    }
+
+    public static void setTimeoutEnabled(boolean enabled) {
+        timeoutEnabled = enabled;
     }
 
     public static void initDataFillHandler(String handlerPath) {

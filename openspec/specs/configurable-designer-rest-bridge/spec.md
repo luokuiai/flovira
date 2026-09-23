@@ -9,11 +9,11 @@ Define the optional Spring REST bridge for designer capabilities and host-owned 
 The Spring Web module SHALL expose capability and business data provider operations as an optional REST bridge and SHALL contain no frontend rendering or static assets.
 
 #### Scenario: Bridge enabled
-- **WHEN** `flovira.ui` is enabled
+- **WHEN** the host includes `flovira-plugin-ui-sb-web`
 - **THEN** Spring registers the designer contract endpoints
 
 #### Scenario: Bridge disabled
-- **WHEN** `flovira.ui` is disabled
+- **WHEN** the host does not include `flovira-plugin-ui-sb-web`
 - **THEN** Spring does not register the designer contract endpoints
 
 ### Requirement: Configurable API prefix
@@ -38,7 +38,7 @@ The REST bridge SHALL delegate authentication and authorization to the host appl
 The Spring Web bridge SHALL register its built-in controller only when the host has not declared a `FloviraController` or subclass Bean.
 
 #### Scenario: Use the built-in controller
-- **WHEN** UI endpoints are enabled and the host declares no custom controller
+- **WHEN** the Spring Web bridge is present and the host declares no custom controller
 - **THEN** Flovira registers the complete built-in controller with the configured API prefix
 
 #### Scenario: Host extends the controller

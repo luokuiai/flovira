@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,17 +17,19 @@
 package com.luokuiai.flovira.orm.utils;
 
 import com.luokuiai.flovira.core.FlowEngine;
-import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.entity.RootEntity;
 import com.luokuiai.flovira.core.handler.TenantHandler;
 import com.luokuiai.flovira.core.utils.ObjectUtil;
 
 /**
- * mybatis-plus 租户和逻辑删除工具类
+ * MyBatis 租户和逻辑删除工具类
  *
  * @author warm
  */
 public class TenantDeleteUtil {
+
+    public static final String NOT_DELETED = "0";
+    public static final String DELETED = "1";
 
     private TenantDeleteUtil() {
     }
@@ -37,10 +40,7 @@ public class TenantDeleteUtil {
      * @param <T>
      */
     public static <T extends RootEntity> T getEntity(T entity) {
-        Flovira flowConfig = FlowEngine.getFlowConfig();
-        if (flowConfig.isLogicDelete()) {
-            entity.setDeleted(flowConfig.getLogicNotDeleteValue());
-        }
+        entity.setDeleted(NOT_DELETED);
 
         TenantHandler tenantHandler = FlowEngine.tenantHandler();
         if (ObjectUtil.isNotNull(tenantHandler)) {

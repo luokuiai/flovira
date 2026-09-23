@@ -15,5 +15,4 @@ flovira:
   data-source-type: postgresql
   permission-handler-path: com.luokuiai.flovira.example.common.security.DemoPermissionHandler
   token-name: X-Demo-User
-  ui: true
   ui-api-prefix: /flovira

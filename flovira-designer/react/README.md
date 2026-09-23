@@ -259,4 +259,4 @@ The existing `style` prop takes precedence over `background` and can also custom
 
 ## 超时调度接入
 
-**使用节点超时功能，业务系统必须自行接入调度。** 设计器仅保存超时规则；后端开启 `flovira.timeout.enabled` 不会启动定时任务。宿主通过定时任务调用 `FlowEngine.timeoutService().executeDue(...)`，或通过延迟消息调用 `executeTimeout(taskId)`。多实例调度协调、重试与监控由宿主配置。参见[超时接入说明](../../docs/timeout-integration.md)。
+**使用节点超时功能，业务系统必须自行接入调度。** 设计器仅保存超时规则；宿主调用 `FlowEngine.setTimeoutEnabled(true)` 只会开启全局超时能力，不会启动定时任务。宿主通过定时任务调用 `FlowEngine.timeoutService().executeDue(...)`，或通过延迟消息调用 `executeTimeout(taskId)`。多实例调度协调、重试与监控由宿主配置。参见[超时接入说明](../../docs/timeout-integration.md)。

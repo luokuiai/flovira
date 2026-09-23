@@ -17,7 +17,6 @@
 package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
-import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.DefJson;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.NodeJson;
@@ -65,6 +64,7 @@ public class WaitTimeoutServiceTest {
     @Before
     public void setUp() {
         FlowEngine.setTransactionExecutor(new DirectTransactionExecutor());
+        FlowEngine.setTimeoutEnabled(false);
         FlowEngine.jsonConvert = new TestJsonConvert();
     }
 
@@ -136,9 +136,7 @@ public class WaitTimeoutServiceTest {
         WaitFixture fixture = new WaitFixture();
         fixture.task.setTimeoutAction(TimeoutAction.RESUME_WAIT.name())
             .setTimeoutStatus("PENDING").setTimeoutAt(new Date(1L));
-        Flovira flovira = new Flovira();
-        flovira.getTimeout().setEnabled(true);
-        FlowEngine.setFlowConfig(flovira);
+        FlowEngine.setTimeoutEnabled(true);
 
         TimeoutExecutionResult result = new TimeoutServiceImpl().executeDue(new Date(), 10);
 
@@ -222,7 +220,7 @@ public class WaitTimeoutServiceTest {
         assertFalse(fixture.service.executeTimeout(20L));
         fixture.task.setTimeoutAt(new Date(1L));
         assertFalse(fixture.service.executeTimeout(999L));
-        FlowEngine.getFlowConfig().getTimeout().setEnabled(false);
+        FlowEngine.setTimeoutEnabled(false);
         assertFalse(fixture.service.executeTimeout(20L));
         assertEquals(0, fixture.service.executeDue(new Date(), 10).getScanned());
         assertFalse(fixture.claimed);
@@ -232,6 +230,12 @@ public class WaitTimeoutServiceTest {
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectNullTaskId() {
         new TimeoutServiceImpl().executeTimeout(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectInvalidBatchSize() {
+        FlowEngine.setTimeoutEnabled(true);
+        new TimeoutServiceImpl().executeDue(new Date(), 0);
     }
 
     @Test
@@ -263,9 +267,7 @@ public class WaitTimeoutServiceTest {
     @Test
     public void shouldCheckWaitDeadlineBeforeResumingFromMessage() {
         WaitFixture fixture = new WaitFixture();
-        Flovira config = new Flovira();
-        config.getTimeout().setEnabled(true);
-        FlowEngine.setFlowConfig(config);
+        FlowEngine.setTimeoutEnabled(true);
         fixture.task.setTimeoutAction(TimeoutAction.RESUME_WAIT.name())
             .setTimeoutAt(new Date(System.currentTimeMillis() + 60000L));
         TimeoutServiceImpl service = new TimeoutServiceImpl();
@@ -362,9 +364,7 @@ public class WaitTimeoutServiceTest {
                     callback.run();
                 }
             });
-            Flovira flovira = new Flovira();
-            flovira.getTimeout().setEnabled(true);
-            FlowEngine.setFlowConfig(flovira);
+            FlowEngine.setTimeoutEnabled(true);
             final TaskService taskService = proxy(TaskService.class, (method, args) -> {
                 if ("getById".equals(method.getName())) return task.getId().equals(args[0]) ? task : null;
                 if ("listDueTimeoutTasks".equals(method.getName())) {

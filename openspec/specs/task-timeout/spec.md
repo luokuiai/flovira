@@ -21,7 +21,7 @@ BETWEEN and WAIT nodes SHALL support optional fixed-duration timeout configurati
 - **THEN** definition validation fails before publication
 
 ### Requirement: Backend timeout execution has a safe global switch
-The backend SHALL expose `flovira.timeout.enabled`, default it to false, and preserve node timeout configuration regardless of the switch.
+The backend SHALL expose a process-wide `FlowEngine.setTimeoutEnabled(boolean)` switch, default it to false, expose no `flovira.timeout.*` Spring Boot properties, and preserve node timeout configuration regardless of the switch.
 
 #### Scenario: Timeout backend is disabled
 - **WHEN** a configured node creates a task while the global switch is false
@@ -62,11 +62,11 @@ The timeout service SHALL atomically claim due tasks before execution, recover s
 - **THEN** the transaction rolls back the claim so a later signal or timeout scan can retry
 
 #### Scenario: Ordinary claim owner terminates
-- **WHEN** a non-WAIT timeout claim remains running past the configured claim timeout
+- **WHEN** a non-WAIT timeout claim remains running past the engine claim recovery window
 - **THEN** a later scan makes the task eligible for recovery
 
 ### Requirement: Hosts must integrate timeout scheduling
-Core SHALL expose batch `executeDue(now, batchSize)` and single-task `executeTimeout(taskId)` APIs. Flovira SHALL NOT register periodic invokers or Redis scheduler locks. Enabling `flovira.timeout.enabled` enables snapshots and explicit execution, not scheduling. Hosts MUST supply scheduling or delayed-message delivery, tenant context, retries and monitoring. Documentation and both designers MUST display this requirement.
+Core SHALL expose batch `executeDue(now, batchSize)` and single-task `executeTimeout(taskId)` APIs. Flovira SHALL NOT register periodic invokers or Redis scheduler locks. Enabling the process-wide timeout switch enables snapshots and explicit execution, not scheduling. Hosts MUST supply scheduling or delayed-message delivery, tenant context, retries and monitoring. Documentation and both designers MUST display this requirement.
 
 #### Scenario: Timeout execution is enabled without host scheduling
 - **WHEN** a host enables timeout execution but never invokes the APIs

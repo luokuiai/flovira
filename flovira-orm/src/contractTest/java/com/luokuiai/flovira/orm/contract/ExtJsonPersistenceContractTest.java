@@ -85,7 +85,7 @@ public class ExtJsonPersistenceContractTest {
                 "--spring.datasource.username=" + user, "--spring.datasource.password=" + password,
                 "--spring.sql.init.mode=always",
                 "--spring.sql.init.schema-locations=classpath:" + dialect + "/flovira-v1.0.0.sql",
-                "--flovira.banner=false", "--flovira.logic-delete=true", "--flovira.data-source-type=" + dialect)) {
+                "--flovira.banner=false", "--flovira.data-source-type=" + dialect)) {
             JdbcTemplate jdbc = context.getBean(JdbcTemplate.class);
             Map<String, Object> business = new LinkedHashMap<>();
             business.put("text", String.join("", Collections.nCopies(40000, "中")));
@@ -126,7 +126,13 @@ public class ExtJsonPersistenceContractTest {
                 }
                 assertEquals(1, dao.delete(query));
                 assertEquals(0L, dao.selectCount(query));
+                assertEquals("1", jdbc.queryForObject("select deleted from " + tables[i]
+                    + " where id = 101", String.class));
                 dao.deleteById(102L);
+                assertEquals("1", jdbc.queryForObject("select deleted from " + tables[i]
+                    + " where id = 102", String.class));
+                jdbc.update("update " + tables[i] + " set deleted = '2' where id = 102");
+                assertNull(dao.selectById(102L));
             }
         } finally {
             bridge.set(null, null);
