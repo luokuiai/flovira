@@ -6,7 +6,7 @@ import { FlowPreview } from './FlowPreview'
 import { parseWorkflowPackage, getPackageDefinition, getPackageForm, parsePackageFormContent } from './workflowPackage'
 import packageFixture from '../../../flovira-orm/src/contractTest/resources/workflow-package.json'
 import { layoutPreview, PREVIEW_NODE_HEIGHT } from './previewLayout'
-import type { FloviraDefinition, FloviraNode, FloviraNodeType } from './types'
+import type { DesignerTooltipProps, FloviraDefinition, FloviraNode, FloviraNodeType } from './types'
 
 afterEach(cleanup)
 
@@ -49,26 +49,50 @@ describe('FlowPreview', () => {
     expect(status('开始')).toBe('completed')
     expect(status('财务审批')).toBe('current')
     expect(status('归档')).toBe('pending')
-    fireEvent.mouseEnter(view.getByLabelText('归档').closest('.frp-tooltip-trigger')!)
-    expect(view.getByRole('tooltip').textContent).not.toMatch(/未办理|已办理|当前办理中/)
+    expect(view.getByLabelText('财务审批').textContent).toContain('审批中')
+    expect(view.getByLabelText('主管审批').textContent).toContain('已审批')
+    expect(view.getByLabelText('发票复核').textContent).toContain('待审批')
+    expect(view.queryByRole('tooltip')).toBeNull()
     view.rerender(<FlowPreview value={parallel} completedNodeCodes={[]} />)
     expect(status('开始')).toBe('pending')
     view.rerender(<FlowPreview value={parallel} />)
     expect(status('开始')).toBe('default')
   })
 
-  test('renders compact nodes with icons and all forward edges, merging unequal branches once', () => {
+  test('marks branches outside the current route as skipped instead of pending', () => {
+    const definition: FloviraDefinition = { nodeList: [
+      node('start', ['gateway'], '0'), node('gateway', ['selected', 'unused'], '3'),
+      node('selected', ['end']), node('unused', ['end']), node('end', [], '2'),
+    ] }
+    const view = render(<FlowPreview value={definition} currentNodeCodes={['selected']}
+      completedNodeCodes={['start', 'gateway']} nodeHandlers={{ unused: ['不应显示'] }} />)
+    const status = (code: string) => view.container.querySelector(`[data-node-code="${code}"] .frp-node`)?.getAttribute('data-status')
+    expect(status('selected')).toBe('current')
+    expect(status('unused')).toBe('skipped')
+    expect(view.getByLabelText('unused').textContent).toContain('未经过')
+    expect(view.getByLabelText('unused').querySelector('.frp-node-status')).toBeNull()
+    expect(view.getByLabelText('unused').textContent).not.toContain('不应显示')
+    expect(status('end')).toBe('pending')
+  })
+
+  test('renders designer cards with icons and all forward edges, merging unequal branches once', () => {
     const before = JSON.stringify(parallel)
     const view = render(<FlowPreview value={parallel} />)
     expect(view.container.querySelectorAll('[data-node-code]')).toHaveLength(6)
     expect(view.container.querySelectorAll('.frd-node__icon svg')).toHaveLength(6)
     expect(view.container.querySelectorAll('[data-edge-source]')).toHaveLength(6)
     expect(view.getAllByLabelText('归档')).toHaveLength(1)
+    expect(view.getByLabelText('流程图画布').style.height).toBe(`${layoutPreview(parallel).height}px`)
     expect(view.queryByRole('button', { name: /保存|删除|添加|撤销|编辑/ })).toBeNull()
     expect(JSON.stringify(parallel)).toBe(before)
     const layout = layoutPreview(parallel)
     const merge = layout.nodes.find((item) => item.node.nodeCode === '归档')!
     const review = layout.nodes.find((item) => item.node.nodeCode === '发票复核')!
+    const split = layout.nodes.find((item) => item.node.nodeCode === '并行审批')!
+    const manager = layout.nodes.find((item) => item.node.nodeCode === '主管审批')!
+    expect(manager.y - split.y - PREVIEW_NODE_HEIGHT).toBe(52)
+    expect(layout.edges.find((edge) => edge.source === '并行审批')!.path)
+      .toContain(`V ${split.y + PREVIEW_NODE_HEIGHT + 20}`)
     expect(merge.y).toBeGreaterThan(review.y + PREVIEW_NODE_HEIGHT)
   })
 
@@ -93,11 +117,12 @@ describe('FlowPreview', () => {
   })
 
   test('updates parallel current nodes and actual handlers without inferring completed nodes', () => {
-    const view = render(<FlowPreview value={parallel} currentNodeCodes={['主管审批', '财务审批']} nodeHandlers={{ 主管审批: ['张三', '李四'] }} />)
+    const view = render(<FlowPreview value={parallel} currentNodeCodes={['主管审批', '财务审批']} nodeHandlers={{ 开始: ['王小明'], 主管审批: ['张三', '李四'] }} />)
     expect(view.container.querySelectorAll('[aria-current="step"]')).toHaveLength(2)
-    fireEvent.focus(view.getByLabelText('主管审批').closest('[tabindex]')!)
-    expect(view.getByRole('tooltip').textContent).toContain('办理人：张三、李四')
-    expect(view.getByRole('tooltip').textContent).not.toMatch(/未办理|已办理|当前办理中/)
+    expect(view.getByLabelText('开始').textContent).toContain('王小明')
+    expect(view.getByLabelText('主管审批').textContent).toContain('张三、李四')
+    expect(view.container.textContent).not.toMatch(/发起人|办理人|审批人/)
+    expect(view.queryByRole('tooltip')).toBeNull()
 
     view.rerender(<FlowPreview value={parallel} currentNodeCodes={['发票复核']} />)
     expect(view.container.querySelectorAll('[aria-current="step"]')).toHaveLength(1)
@@ -105,26 +130,26 @@ describe('FlowPreview', () => {
     expect(view.container.querySelector('[data-node-code="开始"] [aria-current]')).toBeNull()
   })
 
-  test('opens tooltip with hover or focus, dismisses with Escape, and escapes handler text', () => {
-    const view = render(<FlowPreview value={parallel} currentNodeCodes={['主管审批']} nodeHandlers={{ 主管审批: ['<script>name</script>'] }} />)
-    const trigger = view.getByLabelText('主管审批').closest('.frp-tooltip-trigger')!
-    fireEvent.mouseEnter(trigger)
-    expect(view.getByRole('tooltip').textContent).toContain('<script>name</script>')
+  test('enables the UI adapter tooltip only when handler names are truncated', () => {
+    const AdapterTooltip = ({ content, children, disabled }: DesignerTooltipProps) => <span>{children}{!disabled && <span role="tooltip">{content}</span>}</span>
+    const view = render(<FlowPreview value={parallel} currentNodeCodes={['主管审批']} nodeHandlers={{ 主管审批: ['<script>name</script>'] }}
+      ui={{ Tooltip: AdapterTooltip }} />)
+    const names = view.getByText('<script>name</script>')
+    expect(view.queryByRole('tooltip')).toBeNull()
+    Object.defineProperty(names, 'scrollWidth', { configurable: true, value: 200 })
+    Object.defineProperty(names, 'clientWidth', { configurable: true, value: 100 })
+    fireEvent(window, new Event('resize'))
+    expect(view.getByRole('tooltip').textContent).toBe('<script>name</script>')
     expect(view.getByRole('tooltip').querySelector('script')).toBeNull()
-    fireEvent.keyDown(trigger, { key: 'Escape' })
-    expect(view.queryByRole('tooltip')).toBeNull()
-    fireEvent.focus(trigger.querySelector('[tabindex]')!)
-    expect(view.getByRole('tooltip')).toBeTruthy()
-    fireEvent.blur(trigger)
-    expect(view.queryByRole('tooltip')).toBeNull()
   })
 
   test('does not mistake configured participants for actual handlers', () => {
-    const definition = { nodeList: [{ ...node('审批'), permissionFlag: 'role:admin' }] }
-    const view = render(<FlowPreview value={definition} currentNodeCodes={['审批']} />)
-    fireEvent.mouseEnter(view.getByLabelText('审批').closest('.frp-tooltip-trigger')!)
-    expect(view.getByRole('tooltip').textContent).toContain('办理人：暂未提供')
-    expect(view.getByRole('tooltip').textContent).not.toContain('admin')
+    const definition = { nodeList: [{ ...node('审批'), permissionFlag: 'role:admin' }, node('子流程', [], '6')] }
+    const view = render(<FlowPreview value={definition} currentNodeCodes={['审批']}
+      nodeHandlers={{ 子流程: ['不应显示'] }} />)
+    expect(view.getByLabelText('审批').textContent).toContain('暂未提供')
+    expect(view.getByLabelText('审批').textContent).not.toContain('admin')
+    expect(view.getByLabelText('子流程').textContent).not.toContain('不应显示')
   })
 
   test('accepts custom tooltip content, icons and the existing UI adapter contract', () => {
@@ -176,8 +201,10 @@ describe('FlowPreview', () => {
     const view = render(<><FlowPreview value={parallel} /><FlowPreview value={parallel} /></>)
     const markers = [...view.container.querySelectorAll('marker')].map((marker) => marker.id)
     expect(new Set(markers).size).toBe(2)
+    const initialHeight = view.getAllByLabelText('流程图画布')[0].style.height
     fireEvent.click(view.getAllByRole('button', { name: '放大流程图' })[0])
     expect(view.getByText('110%')).toBeTruthy()
+    expect(view.getAllByLabelText('流程图画布')[0].style.height).toBe(initialHeight)
     fireEvent.click(view.getAllByRole('button', { name: '自适应流程图' })[0])
     expect(view.queryByText('110%')).toBeNull()
   })
