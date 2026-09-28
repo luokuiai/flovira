@@ -18,7 +18,6 @@ package com.luokuiai.flovira.ui.config;
 
 import com.luokuiai.flovira.ui.controller.FloviraController;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,7 +27,6 @@ import org.springframework.context.annotation.Configuration;
  * @author ruoyi
  */
 @Configuration
-@ConditionalOnProperty(value = "flovira.ui", havingValue = "true", matchIfMissing = true)
 public class FloviraUiConfig {
 
     /**

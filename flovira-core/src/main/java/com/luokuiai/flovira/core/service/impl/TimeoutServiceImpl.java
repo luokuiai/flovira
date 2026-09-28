@@ -18,7 +18,6 @@ package com.luokuiai.flovira.core.service.impl;
 
 import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.listener.lifecycle.LifecycleTransition;
-import com.luokuiai.flovira.core.config.Flovira;
 import com.luokuiai.flovira.core.dto.FlowParams;
 import com.luokuiai.flovira.core.dto.TimeoutExecutionResult;
 import com.luokuiai.flovira.core.dto.WaitResumeResult;
@@ -43,23 +42,25 @@ import java.util.List;
 public class TimeoutServiceImpl implements TimeoutService {
 
     public static final String SYSTEM_HANDLER = "SYSTEM_TIMEOUT";
+    private static final long CLAIM_TIMEOUT_MILLIS = 300000L;
     private static final Logger log = LoggerFactory.getLogger(TimeoutServiceImpl.class);
 
     @Override
     public TimeoutExecutionResult executeDue(Date now, int batchSize) {
-        Flovira config = FlowEngine.getFlowConfig();
         TimeoutExecutionResult result = new TimeoutExecutionResult(0, 0, 0, 0);
-        if (config == null || config.getTimeout() == null || !config.getTimeout().isEnabled()) {
+        if (!FlowEngine.isTimeoutEnabled()) {
             return result;
         }
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("batchSize must be greater than 0");
+        }
         Date scanTime = now == null ? new Date() : new Date(now.getTime());
-        int limit = batchSize > 0 ? batchSize : config.getTimeout().getBatchSize();
-        Date staleBefore = new Date(scanTime.getTime() - config.getTimeout().getClaimTimeoutMillis());
-        List<Task> tasks = FlowEngine.taskService().listDueTimeoutTasks(scanTime, staleBefore, limit);
+        Date staleBefore = new Date(scanTime.getTime() - CLAIM_TIMEOUT_MILLIS);
+        List<Task> tasks = FlowEngine.taskService().listDueTimeoutTasks(scanTime, staleBefore, batchSize);
         result.setScanned(tasks.size());
         for (Task candidate : tasks) {
             try {
-                if (executeTimeout(candidate.getId(), scanTime, config.getTimeout(), result)) {
+                if (executeTimeout(candidate.getId(), scanTime, result)) {
                     result.setSucceeded(result.getSucceeded() + 1);
                 }
             } catch (RuntimeException ex) {
@@ -75,15 +76,13 @@ public class TimeoutServiceImpl implements TimeoutService {
         if (taskId == null) {
             throw new IllegalArgumentException("taskId must not be null");
         }
-        Flovira config = FlowEngine.getFlowConfig();
-        if (config == null || config.getTimeout() == null || !config.getTimeout().isEnabled()) {
+        if (!FlowEngine.isTimeoutEnabled()) {
             return false;
         }
-        return executeTimeout(taskId, new Date(), config.getTimeout(), new TimeoutExecutionResult(0, 0, 0, 0));
+        return executeTimeout(taskId, new Date(), new TimeoutExecutionResult(0, 0, 0, 0));
     }
 
-    private boolean executeTimeout(final Long taskId, final Date now, final Flovira.Timeout config,
-                                   final TimeoutExecutionResult result) {
+    private boolean executeTimeout(final Long taskId, final Date now, final TimeoutExecutionResult result) {
         return FlowEngine.transactionExecutor().execute(new TransactionCallback<Boolean>() {
             @Override
             public Boolean execute() {
@@ -108,7 +107,7 @@ public class TimeoutServiceImpl implements TimeoutService {
                         && !TimeoutAction.AUTO_REJECT.name().equals(task.getTimeoutAction()))) {
                     throw new IllegalStateException("Unsupported task timeout action");
                 }
-                Date staleBefore = new Date(now.getTime() - config.getClaimTimeoutMillis());
+                Date staleBefore = new Date(now.getTime() - CLAIM_TIMEOUT_MILLIS);
                 // 抢占与推进共用事务：持有数据库写锁直到提交，失败由事务回滚抢占状态。
                 // 不再单独提交租约或无条件释放，避免旧执行者干扰后续执行者。
                 if (!FlowEngine.taskService().claimTimeout(taskId, now, staleBefore)) {

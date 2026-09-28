@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,7 +21,6 @@ import com.luokuiai.flovira.core.entity.RootEntity;
 import com.luokuiai.flovira.core.orm.agent.FloviraQuery;
 import com.luokuiai.flovira.core.orm.dao.FloviraDao;
 import com.luokuiai.flovira.core.utils.ObjectUtil;
-import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.core.utils.page.Page;
 import com.luokuiai.flovira.orm.mapper.FloviraMapper;
 import com.luokuiai.flovira.orm.utils.TenantDeleteUtil;
@@ -105,28 +105,19 @@ public abstract class FloviraDaoImpl<T extends RootEntity> implements FloviraDao
     @Override
     public int delete(T entity) {
         TenantDeleteUtil.getEntity(entity);
-        if (StringUtils.isNotEmpty(entity.getDeleted())) {
-            return getMapper().updateLogic(entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
-        }
-        return getMapper().delete(entity);
+        return getMapper().updateLogic(entity, TenantDeleteUtil.DELETED, entity.getDeleted());
     }
 
     @Override
     public int deleteById(Serializable id) {
         T entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDeleted())) {
-            return getMapper().updateByIdLogic(id, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
-        }
-        return getMapper().deleteById(id, entity);
+        return getMapper().updateByIdLogic(id, entity, TenantDeleteUtil.DELETED, entity.getDeleted());
     }
 
     @Override
     public int deleteByIds(Collection<? extends Serializable> ids) {
         T entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDeleted())) {
-            return getMapper().updateByIdsLogic(ids, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
-        }
-        return getMapper().deleteByIds(ids, entity);
+        return getMapper().updateByIdsLogic(ids, entity, TenantDeleteUtil.DELETED, entity.getDeleted());
     }
 
     @Override

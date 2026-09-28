@@ -65,7 +65,7 @@ function App() {
   }, [])
 
   return (
-    <main className={tab === 'designer' ? 'demo-main--designer' : undefined}>
+    <main className={tab === 'designer' || tab === 'preview' ? 'demo-main--designer' : undefined}>
       <Tabs value={tab} idPrefix="demo" className="demo-tabs"
         options={[{ value: 'form', label: '表单定义' }, { value: 'designer', label: '流程设计' }, { value: 'preview', label: '流程预览' }]}
         onChange={value => setTab(value as 'form' | 'designer' | 'preview')} />

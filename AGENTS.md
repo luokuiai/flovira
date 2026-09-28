@@ -10,14 +10,14 @@ Core constraints: Java 8 source compatibility, framework / ORM / JSON independen
 
 - `flovira-core`: entities, services, abstract DAOs, workflow state transitions, handlers, listeners, expression strategies, ID generation and SPI.
 - `flovira-orm`: MyBatis and MyBatis-Plus implementations. Each has an ORM core plus Spring Boot 2 / 3 / 4 starters (`sb` / `sb3` / `sb4`).
-- `flovira-plugin`: Spring expressions and integration (`modes`), separate Jackson / Jackson 3 / Gson providers (`json`), and designer backend APIs (`ui`). No bundled frontend pages.
+- `flovira-plugin`: Spring expressions and integration (`modes`), separate Jackson / Jackson 3 / Gson providers (`json`), and designer backend APIs (`ui`). No bundled frontend pages. The optional `flovira-plugin-ui-sb-web` dependency itself enables the default REST bridge; do not add a duplicate `flovira.ui` switch.
 - `flovira-designer`: Bun workspace with independent Vue / React packages, optional React UI adapters and consuming examples.
 - `sql/mysql`, `sql/postgresql`, `sql/oracle`: complete `flovira-v1.0.0.sql` fresh-install schemas. SQL Server is unsupported. Do not restore its scripts or dialect branches.
 - Tests exist in backend `src/test`, shared ORM `src/contractTest`, and frontend test files. External integration suites may supplement these; do not claim this repository has no tests.
 - Flovira may manage versioned form metadata and content in `flow_form`; host applications may also supply forms. Workflow definitions, nodes, tasks and history store opaque string `formId` references and approval data snapshots. Keep host page routing outside `flow_form`; do not restore `form_custom`, `form_type`, `form_path`, numeric-only form references, bundled rendering pages or designer mode switching.
 - Form loading reads stored form references and approval data without callbacks. Do not restore the legacy `formLoad` listener or its expression dispatch.
 - A workflow uses one form selected by its definition. Nodes configure field permissions, never a separate form or an override. Task and history form references are snapshots of the workflow form.
-- Timeout scheduling is host-owned. Flovira provides deadline snapshots and explicit batch / single-task execution APIs, never automatic schedulers or Redis scheduler locks. Usage documentation must state that hosts must integrate scheduling themselves; enabling timeout configuration alone does not execute tasks. Keep this integration requirement in developer documentation, not in designer timeout settings.
+- Timeout scheduling is host-owned. `FlowEngine.setTimeoutEnabled(boolean)` controls the process-wide timeout capability. Do not expose `flovira.timeout.*` Spring Boot properties: hosts pass batch size to the explicit execution API, while claim recovery uses the engine default. Flovira provides deadline snapshots and explicit batch / single-task execution APIs, never automatic schedulers or Redis scheduler locks. Usage documentation must state that hosts must integrate scheduling themselves. Keep this integration requirement in developer documentation, not in designer timeout settings.
 - Lifecycle callbacks are registered in host code or discovered as Spring beans. Do not add persisted subscriptions, designer callback selection, or lifecycle parsing of `ext`. Hosts filter business applicability in their callback code. `ext` is a JSON object; do not introduce code/value arrays, compatibility branches, or rewrite unrelated host extension data.
 
 ## Instruction hierarchy and maintenance
@@ -76,7 +76,7 @@ Read root and applicable module instructions before editing. Module files contai
 - Conditions, approver expressions, vote signing and listeners are extension points; follow existing `condition`, `strategy`, `listener` and plugin expression implementations.
 - Read relevant services, strategies, handlers, listeners and enums before changing approval, rejection, jumping, transfer, delegation, added / removed signers, termination, withdrawal, voting or branch behavior.
 - CRUD uses `FloviraDao`. Entity changes must reach both ORM implementations, serialization, DTO conversion and supported SQL schemas.
-- Preserve tenant isolation and logical deletion in both engine-managed and ORM-managed paths.
+- Preserve tenant isolation in both engine-managed and ORM-managed paths. Logical deletion is mandatory and fixed to `0` for active rows and `1` for deleted rows in both ORM implementations; do not expose host switches or marker-value configuration.
 
 ## Approver strategies
 
@@ -101,7 +101,7 @@ Read root and applicable module instructions before editing. Module files contai
 - Synchronize all three schemas: `sql/mysql/flovira-v1.0.0.sql`, `sql/postgresql/flovira-v1.0.0.sql`, `sql/oracle/flovira-v1.0.0.sql`.
 - Store every `ext` column as native JSON: MySQL `JSON`, PostgreSQL `JSONB`, Oracle `JSON` (21c+ with `COMPATIBLE >= 20`). Keep Java `String` contracts and field-specific ORM bindings; do not introduce text-storage fallbacks.
 - Do not define foreign keys in Flovira schemas. Protect internal relationships through engine transactions and verification; use indexes and unique constraints where appropriate.
-- Every Flovira table must define `deleted` as `NOT NULL DEFAULT '0'`. Align indexes with tenant isolation, logical-deletion filters and actual DAO query predicates.
+- Every Flovira table must define `deleted` as `NOT NULL DEFAULT '0'`. All engine deletes update it to `1`; align indexes with tenant isolation, logical-deletion filters and actual DAO query predicates.
 - Maintain complete V1 fresh-install baselines during 1.0.0 development; do not restore an inherited historical upgrade chain.
 - Respect dialect differences in types, sequences / identity, pagination, case and reserved words. Check column comments and indexes against actual columns.
 - Document migration purpose, affected contracts, data mapping, database differences and rollback. Never execute destructive database changes without explicit authorization.

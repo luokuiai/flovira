@@ -1,8 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { CircleHelp, Maximize, ZoomIn, ZoomOut } from 'lucide-react'
+import { CircleHelp, LocateFixed, ZoomIn, ZoomOut } from 'lucide-react'
 import { normalizeDefinition } from './model'
 import { NODE_META } from './nodeMeta'
+import { NodeHeader } from './NodeHeader'
 import { layoutPreview, PREVIEW_NODE_HEIGHT } from './previewLayout'
 import type { DesignerTooltipProps, DesignerUiAdapter, FloviraDefinition, FloviraNode } from './types'
 import './preview.css'
@@ -10,7 +11,7 @@ import './preview.css'
 export interface FlowPreviewNodeContext {
   node: FloviraNode
   current: boolean
-  status: 'default' | 'pending' | 'current' | 'completed'
+  status: 'default' | 'pending' | 'current' | 'completed' | 'skipped'
   handlers: readonly string[]
 }
 
@@ -19,9 +20,9 @@ export interface FlowPreviewProps {
   value?: FloviraDefinition | string | null
   /** 实例当前所在节点，允许并行节点；不推断历史状态。 */
   currentNodeCodes?: readonly string[]
-  /** 已办理节点；提供后启用进度配色，其余非当前节点显示为未办理。 */
+  /** 已办理节点；提供后根据当前节点区分待办与未经过分支。 */
   completedNodeCodes?: readonly string[]
-  /** 业务提供的实际办理人姓名，以节点编号为键。 */
+  /** 业务提供的开始/审批节点实际人员姓名，以节点编号为键。 */
   nodeHandlers?: Readonly<Record<string, readonly string[]>>
   height?: CSSProperties['height']
   className?: string
@@ -31,12 +32,38 @@ export interface FlowPreviewProps {
   renderNodeIcon?: (context: FlowPreviewNodeContext) => ReactNode
 }
 
+function HandlerNames({ names, Tooltip }: { names: readonly string[]; Tooltip: ComponentType<DesignerTooltipProps> }) {
+  const text = names.length ? names.join('、') : '暂未提供'
+  const element = useRef<HTMLSpanElement>(null)
+  const [truncated, setTruncated] = useState(false)
+  useEffect(() => {
+    const measure = () => {
+      const target = element.current
+      setTruncated(Boolean(target && target.scrollWidth > target.clientWidth))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    if (element.current) observer.observe(element.current)
+    return () => observer.disconnect()
+  }, [text])
+  return (
+    <Tooltip content={text} disabled={!truncated}>
+      <span ref={element} className="frp-node-handler-names">{text}</span>
+    </Tooltip>
+  )
+}
+
 /** 默认提示使用浮层，避免在小尺寸滚动画布内被裁剪。 */
-function PreviewTooltip({ content, children }: DesignerTooltipProps) {
+function PreviewTooltip({ content, children, disabled }: DesignerTooltipProps) {
   const id = useId()
   const trigger = useRef<HTMLSpanElement>(null)
   const [position, setPosition] = useState<{ left: number; top: number; above: boolean } | null>(null)
   const open = () => {
+    if (disabled) return
     const rect = trigger.current?.getBoundingClientRect()
     if (!rect) return
     const above = rect.top > window.innerHeight / 2
@@ -56,7 +83,7 @@ function PreviewTooltip({ content, children }: DesignerTooltipProps) {
       window.removeEventListener('resize', close)
     }
   }, [position])
-  return (
+  return disabled ? children : (
     <span
       ref={trigger}
       className="frp-tooltip-trigger"
@@ -80,13 +107,13 @@ function PreviewTooltip({ content, children }: DesignerTooltipProps) {
   )
 }
 
-/** 业务详情页使用的紧凑只读流程图。 */
+/** 业务详情页使用的只读流程图。 */
 export function FlowPreview({
   value,
   currentNodeCodes = [],
   completedNodeCodes,
   nodeHandlers = {},
-  height = 320,
+  height,
   className = '',
   style,
   ui,
@@ -123,14 +150,35 @@ export function FlowPreview({
     return () => observer.disconnect()
   }, [])
   const layout = result.layout
-  const fit = layout && size.width && size.height
-    ? Math.max(0.25, Math.min(1, size.width / layout.width, size.height / layout.height))
+  const adaptiveHeight = height == null || height === 'auto'
+  const fit = layout && size.width
+    ? Math.max(0.25, Math.min(1, size.width / layout.width,
+      adaptiveHeight || !size.height ? 1 : size.height / layout.height))
     : 1
   const scale = zoom ?? fit
+  const viewportHeight = adaptiveHeight ? Math.max(80, (layout?.height ?? 0) * fit) : height
   const current = new Set(currentNodeCodes)
   const completed = new Set(completedNodeCodes)
   const Tooltip = ui?.Tooltip ?? PreviewTooltip
   const hasNodes = Boolean(layout?.nodes.length)
+  const pending = new Set<string>()
+  if (completedNodeCodes && layout) {
+    if (!current.size && !completed.size) {
+      layout.nodes.forEach(({ node }) => pending.add(node.nodeCode))
+    } else {
+      const outgoing = new Map<string, string[]>()
+      layout.edges.forEach(({ source, target }) => outgoing.set(source, [...(outgoing.get(source) ?? []), target]))
+      const queue = [...current]
+      for (let index = 0; index < queue.length; index += 1) {
+        (outgoing.get(queue[index]) ?? []).forEach((target) => {
+          if (!current.has(target) && !completed.has(target) && !pending.has(target)) {
+            pending.add(target)
+            queue.push(target)
+          }
+        })
+      }
+    }
+  }
 
   return (
     <section className={`flovira-flow-preview ${className}`} style={style} aria-label={result.name || '流程预览'}>
@@ -144,7 +192,7 @@ export function FlowPreview({
       <div
         ref={viewport}
         className="frp-viewport"
-        style={{ height }}
+        style={{ height: viewportHeight }}
         role="region"
         aria-label="流程图画布"
         tabIndex={0}
@@ -193,19 +241,28 @@ export function FlowPreview({
                     const meta = NODE_META[node.nodeType]
                     const Icon = meta?.icon ?? CircleHelp
                     const status: FlowPreviewNodeContext['status'] = current.has(node.nodeCode) ? 'current'
-                      : completed.has(node.nodeCode) ? 'completed' : completedNodeCodes ? 'pending' : 'default'
+                      : completed.has(node.nodeCode) ? 'completed'
+                        : pending.has(node.nodeCode) ? 'pending' : completedNodeCodes ? 'skipped' : 'default'
                     const context = { node, current: status === 'current', status, handlers: nodeHandlers[node.nodeCode] ?? [] }
-                    const content = renderTooltip ? renderTooltip(context) : (
-                      <span className="frp-tooltip-content">
-                        <span className="frp-tooltip-heading">
-                          <span className="frp-tooltip-name">{node.nodeName}</span>
+                    const approval = node.nodeType === '1'
+                    const showHandlers = approval || (node.nodeType === '0' && context.handlers.length > 0)
+                    const statusLabel = status === 'current' ? (approval ? '审批中' : '进行中')
+                      : status === 'completed' ? (approval ? '已审批' : '已完成')
+                        : status === 'pending' ? (approval ? '待审批' : '待进行')
+                          : ''
+                    const content = renderTooltip?.(context)
+                    const card = (
+                      <span className={`frd-node frp-node frd-node--${meta?.tone ?? 'approval'}`} data-current={context.current} data-status={status} aria-current={context.current ? 'step' : undefined} aria-label={node.nodeName}
+                        tabIndex={content && ui?.Tooltip ? 0 : undefined}>
+                        <NodeHeader node={node} icon={renderNodeIcon?.(context) ?? <Icon size={13} aria-hidden="true" />}>
+                          {statusLabel && <span className="frp-node-status">{statusLabel}</span>}
+                        </NodeHeader>
+                        <span className="frd-node__summary frp-node-handlers">
+                          {status === 'skipped' ? <span>未经过</span>
+                            : showHandlers
+                              ? <HandlerNames names={context.handlers} Tooltip={Tooltip} />
+                              : <span>{meta?.label ?? '流程节点'}</span>}
                         </span>
-                        {(context.handlers.length > 0 || context.current) && (
-                          <span className="frp-tooltip-detail">
-                            <span className="frp-tooltip-label">办理人：</span>
-                            <span>{context.handlers.length ? context.handlers.join('、') : '暂未提供'}</span>
-                          </span>
-                        )}
                       </span>
                     )
                     return (
@@ -215,15 +272,7 @@ export function FlowPreview({
                         data-node-code={node.nodeCode}
                         style={{ left: x, top: y, width, height: PREVIEW_NODE_HEIGHT } as CSSProperties}
                       >
-                        <Tooltip content={content}>
-                          <span className={`frd-node frp-node frd-node--${meta?.tone ?? 'approval'}`} data-current={context.current} data-status={status} aria-current={context.current ? 'step' : undefined} aria-label={node.nodeName}
-                            tabIndex={ui?.Tooltip ? 0 : undefined}>
-                            <span className="frp-node-tile">
-                              <span className="frd-node__icon">{renderNodeIcon?.(context) ?? <Icon size={18} strokeWidth={2} aria-hidden="true" />}</span>
-                              {context.current && <span className="frp-current-dot" aria-label="当前办理中" />}
-                            </span>
-                          </span>
-                        </Tooltip>
+                        {content ? <Tooltip content={content}>{card}</Tooltip> : card}
                       </div>
                     )
                   })}
@@ -233,13 +282,13 @@ export function FlowPreview({
       </div>
       {hasNodes && (
         <div className="frp-controls" role="group" aria-label="流程图缩放">
-          <button type="button" aria-label="缩小流程图" disabled={scale <= 0.25} onClick={() => setZoom(Math.max(0.25, scale - 0.1))}><ZoomOut size={14} /></button>
+          <button type="button" aria-label="缩小流程图" disabled={scale <= 0.25} onClick={() => setZoom(Math.max(0.25, scale - 0.1))}><ZoomOut size={16} /></button>
           <span className="frp-scale">{Math.round(scale * 100)}%</span>
-          <button type="button" aria-label="放大流程图" disabled={scale >= 2} onClick={() => setZoom(Math.min(2, scale + 0.1))}><ZoomIn size={14} /></button>
+          <button type="button" aria-label="放大流程图" disabled={scale >= 2} onClick={() => setZoom(Math.min(2, scale + 0.1))}><ZoomIn size={16} /></button>
           <button type="button" aria-label="自适应流程图" onClick={() => {
             setZoom(null)
             if (viewport.current) { viewport.current.scrollLeft = 0; viewport.current.scrollTop = 0 }
-          }}><Maximize size={14} /></button>
+          }}><LocateFixed size={16} /></button>
         </div>
       )}
     </section>

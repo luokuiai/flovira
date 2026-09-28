@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -28,24 +29,9 @@ public class FlowConfigCons {
     public static final String BANNER = "flovira.banner";
 
     /**
-     * 是否开启逻辑删除
-     */
-    public static final String LOGIC_DELETE = "flovira.logic_delete";
-
-    /**
-     * 是否开启逻辑删除
+     * id生成器类型
      */
     public static final String KEY_TYPE = "flovira.key_type";
-
-    /**
-     * 逻辑删除字段值
-     */
-    public static final String LOGIC_DELETE_VALUE = "flovira.logic_delete_value";
-
-    /**
-     * 逻辑未删除字段
-     */
-    public static final String LOGIC_NOT_DELETE_VALUE = "flovira.logic_not_delete_value";
 
     /**
      * 数据填充处理类路径
@@ -62,11 +48,6 @@ public class FlowConfigCons {
      * 兜底为mysql数据库
      */
     public static final String DATA_SOURCE_TYPE = "flovira.data_source_type";
-
-    /**
-     * 是否支持ui
-     */
-    public static final String UI = "flovira.ui";
 
     /**
      * 如果需要工作流共享业务系统权限

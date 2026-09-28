@@ -119,15 +119,15 @@ public class SubprocessPersistenceContractTest {
             "--spring.sql.init.mode=always",
             "--spring.sql.init.schema-locations=classpath:subprocess-contract-schema.sql",
             "--flovira.banner=false",
-            "--flovira.timeout.enabled=true",
-            "--flovira.logic-delete=true",
             "--flovira.tenant-handler-path=" + ContractTenantHandler.class.getName(),
             "--flovira.data-source-type=postgresql"
         );
+        FlowEngine.setTimeoutEnabled(true);
     }
 
     @AfterClass
     public static void stopApplication() {
+        FlowEngine.setTimeoutEnabled(false);
         if (context != null) context.close();
     }
 
@@ -1495,7 +1495,7 @@ public class SubprocessPersistenceContractTest {
 
     @Test
     public void shouldNotEnableSchedulingWhenTimeoutsAreEnabled() {
-        assertTrue(FlowEngine.getFlowConfig().getTimeout().isEnabled());
+        assertTrue(FlowEngine.isTimeoutEnabled());
         assertTrue(context.getBeansOfType(
             org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor.class).isEmpty());
         assertNotNull(FlowEngine.timeoutService());
@@ -1504,8 +1504,8 @@ public class SubprocessPersistenceContractTest {
     @Test
     public void shouldRollbackTimeoutClaimAndTransitionTogether() {
         timeoutTask();
-        boolean enabled = FlowEngine.getFlowConfig().getTimeout().isEnabled();
-        FlowEngine.getFlowConfig().getTimeout().setEnabled(true);
+        boolean enabled = FlowEngine.isTimeoutEnabled();
+        FlowEngine.setTimeoutEnabled(true);
         try {
             installTimeoutTransition(() -> {
                 jdbcTemplate.update("delete from flow_task where id = 42");
@@ -1526,15 +1526,15 @@ public class SubprocessPersistenceContractTest {
             org.junit.Assert.assertFalse(service.executeTimeout(42L));
         } finally {
             FrameInvoker.setBeanFunction(context::getBean);
-            FlowEngine.getFlowConfig().getTimeout().setEnabled(enabled);
+            FlowEngine.setTimeoutEnabled(enabled);
         }
     }
 
     @Test
     public void shouldHoldTimeoutClaimUntilTransitionCommits() throws Exception {
         timeoutTask();
-        boolean enabled = FlowEngine.getFlowConfig().getTimeout().isEnabled();
-        FlowEngine.getFlowConfig().getTimeout().setEnabled(true);
+        boolean enabled = FlowEngine.isTimeoutEnabled();
+        FlowEngine.setTimeoutEnabled(true);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         CountDownLatch competitor = new CountDownLatch(1);
@@ -1573,7 +1573,7 @@ public class SubprocessPersistenceContractTest {
             workers.shutdownNow();
             workers.awaitTermination(10, TimeUnit.SECONDS);
             FrameInvoker.setBeanFunction(context::getBean);
-            FlowEngine.getFlowConfig().getTimeout().setEnabled(enabled);
+            FlowEngine.setTimeoutEnabled(enabled);
         }
     }
 

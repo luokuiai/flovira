@@ -33,7 +33,7 @@ public interface TimeoutService {
      * 不应将整批调用放在宿主的一个外层事务中。
      *
      * @param now 到期截止时间，null 使用当前时间
-     * @param batchSize 批次大小，非正数使用配置值
+     * @param batchSize 批次大小，必须大于 0
      * @return 扫描、抢占、成功和失败数量
      */
     TimeoutExecutionResult executeDue(Date now, int batchSize);

@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -19,7 +20,6 @@ import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowUserDao;
 import com.luokuiai.flovira.core.utils.CollUtil;
-import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.orm.entity.FlowUser;
 import com.luokuiai.flovira.orm.mapper.FlowUserMapper;
 import com.luokuiai.flovira.orm.utils.TenantDeleteUtil;
@@ -47,11 +47,8 @@ public class FlowUserDaoImpl extends FloviraDaoImpl<FlowUser> implements FlowUse
     @Override
     public int deleteByTaskIds(List<Long> taskIdList) {
         FlowUser entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDeleted())) {
-            return getMapper().updateByTaskIdsLogic(taskIdList, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(),
-                entity.getDeleted());
-        }
-        return getMapper().deleteByTaskIds(taskIdList, entity);
+        return getMapper().updateByTaskIdsLogic(taskIdList, entity, TenantDeleteUtil.DELETED,
+            entity.getDeleted());
     }
 
     @Override

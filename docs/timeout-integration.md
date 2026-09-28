@@ -2,20 +2,17 @@
 
 **业务系统必须自行接入超时调度。Flovira 不启动定时任务，也不自动配置 Redis 调度锁。**
 
-在设计器中配置节点超时，并开启 `flovira.timeout.enabled`，只会让新建任务保存截止时间和超时动作，并允许调用执行接口。没有宿主调度或消息触发，到期任务不会自动推进。
+在设计器中配置节点超时，并由宿主代码调用 `FlowEngine.setTimeoutEnabled(true)`，只会让新建任务保存截止时间和超时动作，并允许调用执行接口。没有宿主调度或消息触发，到期任务不会自动推进。
 
-## 后端配置
+## 全局开关
 
-```yaml
-flovira:
-  timeout:
-    enabled: true
-    batch-size: 100
-    # 兼容恢复旧版本遗留的 RUNNING 抢占，单位毫秒；不是扫描间隔。
-    claim-timeout-millis: 300000
+全局开关不绑定 Spring Boot 配置，宿主应在初始化时显式开启：
+
+```java
+FlowEngine.setTimeoutEnabled(true);
 ```
 
-默认 `enabled=false`。关闭时不会给新任务写入可执行的超时快照，执行接口不推进任务。重新开启不会给之前缺少快照的任务补算截止时间；已有快照保留原截止时间。
+默认关闭。关闭时不会给新任务写入可执行的超时快照，执行接口不推进任务。重新开启不会给之前缺少快照的任务补算截止时间；已有快照保留原截止时间。
 
 ## 方式一：由宿主定时调用
 
@@ -85,11 +82,11 @@ boolean executed = FlowEngine.timeoutService().executeTimeout(taskId);
 本次直接调整开发阶段接口和配置：
 
 1. 在升级前准备好宿主调度任务或延迟消息消费者，并明确扫描周期、批量大小、失败重试、租户上下文和集群协调。
-2. 移除 `flovira.timeout.scan-interval-seconds`、`flovira.timeout.scheduler-lock-key`；将原扫描间隔和锁配置迁入宿主。保留 `enabled`、`batch-size` 和 `claim-timeout-millis`。
+2. 移除全部 `flovira.timeout.*` 配置；将扫描间隔、批量大小和锁配置迁入宿主，并使用 `FlowEngine.setTimeoutEnabled(true)` 开启全局能力。批量大小通过 `executeDue(now, batchSize)` 传入。
 3. 删除对 `TimeoutSchedulerLock`、`FlowEngine.setTimeoutSchedulerLock`、`FlowEngine.timeoutSchedulerLock`、`TimeoutSchedulingConfig`、`SpringRedisTimeoutSchedulerLock` 的引用。需要 Redis 调度锁时由业务自行配置。
 4. 新版本不再因存在 `StringRedisTemplate` 自动创建锁，也不会隐式启用 Spring 定时调度。仅升级依赖而未接入宿主调度，会停止自动超时推进。
 5. 切换期间先停止旧实例调度并等待在途处理完成，再启用新宿主调度，避免新旧事务策略同时执行。验收到期审批、等待恢复、重复消息和失败重试。
 
-无需修改 MySQL、PostgreSQL、Oracle 表结构或历史数据，也不要重跑初始化 SQL。已有任务截止时间不变；旧普通任务遗留的过期 `RUNNING` 状态仍可通过 `claim-timeout-millis` 恢复。
+无需修改 MySQL、PostgreSQL、Oracle 表结构或历史数据，也不要重跑初始化 SQL。已有任务截止时间不变；旧普通任务遗留的过期 `RUNNING` 状态仍会按引擎默认恢复窗口重新参与抢占。
 
 回滚时先停宿主调度和消息消费、等待在途事务完成，再回退依赖并恢复旧调度配置。不要同时运行旧内置调度与新宿主任务。

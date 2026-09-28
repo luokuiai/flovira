@@ -60,21 +60,6 @@ public class Flovira implements Serializable {
     private String keyType;
 
     /**
-     * 是否开启逻辑删除
-     */
-    private boolean logicDelete = false;
-
-    /**
-     * 逻辑删除字段值
-     */
-    private String logicDeleteValue = "2";
-
-    /**
-     * 逻辑未删除字段
-     */
-    private String logicNotDeleteValue = "0";
-
-    /**
      * 数据填充处理类路径
      */
     private String dataFillHandlerPath;
@@ -102,11 +87,6 @@ public class Flovira implements Serializable {
     private String dataSourceType;
 
     /**
-     * ui开关
-     */
-    private boolean ui = true;
-
-    /**
      * 如果需要工作流共享业务系统权限，默认Authorization，如果有多个token，用逗号分隔
      */
     private String tokenName = "Authorization";
@@ -126,25 +106,9 @@ public class Flovira implements Serializable {
      */
     private int subprocessMaxChildren = DEFAULT_SUBPROCESS_MAX_CHILDREN;
 
-    /**
-     * 节点超时执行配置；宿主必须自行接入调度，启用此配置不会启动定时任务
-     */
-    private Timeout timeout = new Timeout();
-
-    @Getter
-    @Setter
-    public static class Timeout implements Serializable {
-        private boolean enabled = false;
-        private int batchSize = 100;
-        private long claimTimeoutMillis = 300000L;
-    }
-
     public void init() {
         if (subprocessMaxChildren < 1) {
             throw new IllegalArgumentException("flovira.subprocess-max-children must be greater than 0");
-        }
-        if (timeout == null || timeout.getBatchSize() < 1 || timeout.getClaimTimeoutMillis() < 1000L) {
-            throw new IllegalArgumentException("flovira.timeout configuration is invalid");
         }
         // 设置租户模式
         FlowEngine.initTenantHandler(this.getTenantHandlerPath());

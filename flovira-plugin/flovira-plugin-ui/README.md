@@ -49,11 +49,11 @@ Flovira 提供 `INITIATOR`、`USER`、`ROLE`、`DEPARTMENT_LEADER`、
 
 ```yaml
 flovira:
-  ui: true
   ui-api-prefix: /admin/v1/flovira
 ```
 
-接口鉴权由宿主 Spring Security 负责。关闭 `flovira.ui` 后不会注册这些 Controller。
+接口鉴权由宿主 Spring Security 负责。引入 `flovira-plugin-ui-sb-web` 即注册这些
+Controller；不需要 REST 桥接时不要引入该模块，只依赖 `flovira-plugin-ui-core`。
 
 ### 扩展内置 Controller
 

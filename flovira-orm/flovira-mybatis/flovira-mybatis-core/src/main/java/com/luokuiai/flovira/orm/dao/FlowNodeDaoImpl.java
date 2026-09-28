@@ -1,5 +1,6 @@
 /*
  *    Copyright 2024-2025, Warm-Flow (290631660@qq.com).
+ *    Copyright 2026, LuokuiAI (luokuiai@gmail.com).
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,10 +16,8 @@
  */
 package com.luokuiai.flovira.orm.dao;
 
-import com.luokuiai.flovira.core.FlowEngine;
 import com.luokuiai.flovira.core.invoker.FrameInvoker;
 import com.luokuiai.flovira.core.orm.dao.FlowNodeDao;
-import com.luokuiai.flovira.core.utils.StringUtils;
 import com.luokuiai.flovira.orm.entity.FlowNode;
 import com.luokuiai.flovira.orm.mapper.FlowNodeMapper;
 import com.luokuiai.flovira.orm.utils.TenantDeleteUtil;
@@ -60,9 +59,6 @@ public class FlowNodeDaoImpl extends FloviraDaoImpl<FlowNode> implements FlowNod
     @Override
     public int deleteNodeByDefIds(Collection<? extends Serializable> defIds) {
         FlowNode entity = TenantDeleteUtil.getEntity(newEntity());
-        if (StringUtils.isNotEmpty(entity.getDeleted())) {
-            return getMapper().updateNodeByDefIdsLogic(defIds, entity, FlowEngine.getFlowConfig().getLogicDeleteValue(), entity.getDeleted());
-        }
-        return getMapper().deleteNodeByDefIds(defIds, entity);
+        return getMapper().updateNodeByDefIdsLogic(defIds, entity, TenantDeleteUtil.DELETED, entity.getDeleted());
     }
 }

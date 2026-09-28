@@ -190,7 +190,7 @@ Rule metadata is stored in the parent branch node's `ext.branchConditions`; runt
 
 ## Read-only preview
 
-Use `FlowPreview` on detail pages or in dialogs. Nodes use compact, type-colored rounded squares with white icons; current nodes have a dot indicator. Hover or keyboard focus reveals full names and handlers. The preview supports parallel branches, joins, auto-fit, zoom, and panning on empty canvas space.
+Use `FlowPreview` on detail pages or in dialogs. It reuses the designer's node cards, shows actual handlers on approval nodes, and distinguishes completed, current, pending, and skipped-branch nodes. Truncated handler names expose their full text through the configured UI tooltip. The preview supports parallel branches, joins, auto-fit, zoom, and panning on empty canvas space.
 
 ```tsx
 import { FlowPreview, type FloviraDefinition } from '@luokuiai/flovira-react-designer'
@@ -215,9 +215,9 @@ Replace node codes and names with actual instance data. The preview makes no bac
 | --- | --- |
 | `value` | Definition object or JSON string; missing or empty nodes show an empty state |
 | `currentNodeCodes` | Current node codes; supports concurrent nodes and defaults to no highlights |
-| `completedNodeCodes` | Enables three-state colors: light for pending, solid with a dot for current, solid for completed. Current takes precedence. Omit for type-only preview colors |
-| `nodeHandlers` | Actual handler names keyed by node code; not inferred from design configuration |
-| `height` | Canvas height, default `320`; accepts a number or CSS height, with a compact zoom bar below |
+| `completedNodeCodes` | Enables progress cards: light for pending, highlighted for current, solid for completed, and gray for branches not on the current route. Current takes precedence. Omit for type-only preview colors |
+| `nodeHandlers` | Actual names keyed by node code and shown on start and approval cards; not inferred from design configuration |
+| `height` | Optional fixed canvas height. Omit it (or use `auto`) to follow the scaled graph height |
 | `ui` | Optional Lumen / Ant Design adapter; preview uses its Tooltip only |
 | `renderTooltip` | Custom content receiving `{ node, current, status, handlers }` |
 | `renderNodeIcon` | Custom icon receiving the same context |
@@ -259,4 +259,4 @@ The existing `style` prop takes precedence over `background` and can also custom
 
 ## 超时调度接入
 
-**使用节点超时功能，业务系统必须自行接入调度。** 设计器仅保存超时规则；后端开启 `flovira.timeout.enabled` 不会启动定时任务。宿主通过定时任务调用 `FlowEngine.timeoutService().executeDue(...)`，或通过延迟消息调用 `executeTimeout(taskId)`。多实例调度协调、重试与监控由宿主配置。参见[超时接入说明](../../docs/timeout-integration.md)。
+**使用节点超时功能，业务系统必须自行接入调度。** 设计器仅保存超时规则；宿主调用 `FlowEngine.setTimeoutEnabled(true)` 只会开启全局超时能力，不会启动定时任务。宿主通过定时任务调用 `FlowEngine.timeoutService().executeDue(...)`，或通过延迟消息调用 `executeTimeout(taskId)`。多实例调度协调、重试与监控由宿主配置。参见[超时接入说明](../../docs/timeout-integration.md)。

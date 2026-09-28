@@ -111,17 +111,18 @@ flovira:
   banner: true
   # Maximum child instances started by one subprocess node. Must be positive.
   subprocess-max-children: 128
-  timeout:
-    enabled: false
-    # Execution requires a host scheduler or delayed-message consumer.
-    batch-size: 100
-    claim-timeout-millis: 300000
 ```
 
 **You must integrate timeout scheduling in your host application.** Flovira does
-not start background scans or register Redis scheduler locks. Setting
-`flovira.timeout.enabled=true` enables timeout snapshots and execution APIs only;
-without host calls, overdue tasks remain pending.
+not start background scans or register Redis scheduler locks. Enable timeout
+snapshots and execution APIs globally in host code with
+`FlowEngine.setTimeoutEnabled(true)`; without host calls, overdue tasks remain pending.
+
+Logical deletion is always enabled with fixed `0` active / `1` deleted markers.
+Do not configure `logic-delete*`. The optional `flovira-plugin-ui-sb-web`
+dependency itself enables the default designer REST bridge; omit that dependency
+when the endpoints are not needed. See the
+[configuration migration](docs/changes/2026-09-23-fixed-soft-delete-and-ui-module.md).
 
 Call `FlowEngine.timeoutService().executeDue(new Date(), 100)` from your scheduler,
 or `executeTimeout(taskId)` from a delayed-message consumer. Hosts own scheduling,
