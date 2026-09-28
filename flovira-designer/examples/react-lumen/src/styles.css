@@ -48,6 +48,12 @@ main {
   min-height: 0;
 }
 
+#demo-panel-preview:not([hidden]) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
 #demo-panel-designer > .flovira-react-designer {
   flex: 1;
   height: auto;

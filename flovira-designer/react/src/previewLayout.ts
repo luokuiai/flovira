@@ -1,11 +1,13 @@
 import type { FloviraDefinition, FloviraNode, FloviraSkip } from './types'
 
-export const PREVIEW_NODE_WIDTH = 40
-export const PREVIEW_NODE_HEIGHT = 40
-const COLUMN_GAP = 32
-const ROW_GAP = 36
+export const PREVIEW_NODE_WIDTH = 216
+export const PREVIEW_NODE_HEIGHT = 84
+const COLUMN_GAP = 48
+const ROW_GAP = 52
 const PADDING = 24
+const BOTTOM_PADDING = 64
 const ARROW_NODE_GAP = 5
+const FORK_HEIGHT = 20
 
 interface PreviewNode {
   node: FloviraNode
@@ -105,7 +107,7 @@ export function layoutPreview(definition: FloviraDefinition) {
     route.slice(1).forEach((to, index) => {
       const from = route[index]
       const x = to.x + PREVIEW_NODE_WIDTH / 2
-      const middle = from.y + PREVIEW_NODE_HEIGHT + 12
+      const middle = from.y + PREVIEW_NODE_HEIGHT + FORK_HEIGHT
       // 虚拟节点整列直通，箭头仅落在真正的目标节点前。
       const end = to.node ? to.y - ARROW_NODE_GAP : to.y + PREVIEW_NODE_HEIGHT
       path += ` V ${middle} H ${x} V ${end}`
@@ -118,6 +120,6 @@ export function layoutPreview(definition: FloviraDefinition) {
     })),
     edges,
     width: Math.max(PADDING, ...allSlots.map((slot) => slot.x + PREVIEW_NODE_WIDTH)) + PADDING,
-    height: layers.length ? layers.length * (PREVIEW_NODE_HEIGHT + ROW_GAP) - ROW_GAP + PADDING * 2 : 0,
+    height: layers.length ? layers.length * (PREVIEW_NODE_HEIGHT + ROW_GAP) - ROW_GAP + PADDING + BOTTOM_PADDING : 0,
   }
 }
